@@ -4,7 +4,9 @@ const axios = require('axios');
 async function getQrCodeBuffer(upiId, storeName, amount) {
   if (!upiId || amount <= 0) return null;
   try {
-    const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Clearance of Dues')}`;
+    const trimmedUpi = upiId.trim();
+    console.log(`Generating direct UPI QR Code for UPI ID: "${trimmedUpi}", Store: "${storeName}", Amount: ${amount}`);
+    const upiUri = `upi://pay?pa=${trimmedUpi}&pn=${encodeURIComponent(storeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Clearance of Dues')}`;
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUri)}`;
     const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 5000 });
     return Buffer.from(response.data);
@@ -198,9 +200,11 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
 
   const qrX = 50;
   const qrY = infoBlockY + 10;
+  let hasRealQr = false;
   if (qrBuffer) {
     try {
       doc.image(qrBuffer, qrX, qrY, { width: 50, height: 50 });
+      hasRealQr = true;
     } catch (err) {
       console.error('Error drawing real QR code to PDF:', err);
       drawFallbackQR(doc, qrX, qrY);
@@ -209,8 +213,13 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
     drawFallbackQR(doc, qrX, qrY);
   }
 
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#111827').text('Scan to Settle Dues', 112, infoBlockY + 18);
-  doc.fontSize(7.5).font('Helvetica').fillColor('#6B7280').text('Scan using any UPI app to make a direct payment to the store owner.', 112, infoBlockY + 30, { width: 145 });
+  const qrLabel = store.upiId && hasRealQr ? 'Scan to Pay Direct' : 'Scan to Pay Online';
+  const qrDesc = store.upiId && hasRealQr
+    ? 'Scan using any UPI app to make a direct payment to the store owner.'
+    : 'Scan using your phone to open the online payment portal and clear dues.';
+
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#111827').text(qrLabel, 112, infoBlockY + 18);
+  doc.fontSize(7.5).font('Helvetica').fillColor('#6B7280').text(qrDesc, 112, infoBlockY + 30, { width: 145 });
 
   // Right Side: Summary Card
   doc.roundedRect(285, infoBlockY, 270, 70, 8).fillColor('#FFFFFF').fill();
@@ -238,6 +247,10 @@ const generateStatement = async (store, customer, transactions, dateRange, res) 
   if (store.upiId && customer.balance > 0) {
     qrBuffer = await getQrCodeBuffer(store.upiId, store.storeName, customer.balance);
   }
+  if (!qrBuffer && customer._id && customer.balance > 0) {
+    console.log(`No direct UPI QR code generated. Falling back to online checkout QR code for customer ID: ${customer._id}`);
+    qrBuffer = await getVerificationQrBuffer(customer._id);
+  }
   const doc = new PDFDocument({ margin: 40, size: 'A4' });
   const filename = `statement_${customer.name.replace(/\s+/g, '_')}_${dateRange.startDate}_${dateRange.endDate}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
@@ -250,6 +263,10 @@ const generateStatementBuffer = async (store, customer, transactions, dateRange)
   let qrBuffer = null;
   if (store.upiId && customer.balance > 0) {
     qrBuffer = await getQrCodeBuffer(store.upiId, store.storeName, customer.balance);
+  }
+  if (!qrBuffer && customer._id && customer.balance > 0) {
+    console.log(`No direct UPI QR code generated. Falling back to online checkout QR code for customer ID: ${customer._id}`);
+    qrBuffer = await getVerificationQrBuffer(customer._id);
   }
   return new Promise((resolve, reject) => {
     try {
