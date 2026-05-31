@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : window.location.origin;
+const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://digital-udhaar-khata.onrender.com';
 
 let socket = null;
 
