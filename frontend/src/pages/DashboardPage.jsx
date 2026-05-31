@@ -772,13 +772,13 @@ const DashboardPage = () => {
 
       {isSupported && (
         <button 
-          className={`fixed bottom-6 right-24 w-14 h-14 bg-orange text-white rounded-full flex items-center justify-center text-xl shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
+          className={`fixed bottom-4 right-18 md:bottom-6 md:right-24 w-12 h-12 md:w-14 md:h-14 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
             listening ? 'ring-4 ring-red-give/30 bg-red-give animate-pulse' : ''
           }`} 
           onClick={handleVoice} 
           title={listening ? "Stop Listening" : "Voice Entry"}
         >
-          {listening ? <HiOutlineX size={24} /> : <HiOutlineMicrophone size={24} />}
+          {listening ? <HiOutlineX className="w-5 h-5 md:w-6 md:h-6" /> : <HiOutlineMicrophone className="w-5 h-5 md:w-6 md:h-6" />}
         </button>
       )}
 

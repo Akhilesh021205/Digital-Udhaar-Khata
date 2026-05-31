@@ -13,7 +13,7 @@ const Layout = ({ children }) => {
       <div className="min-h-screen bg-soft-white text-deep-navy">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="lg:pl-64 pt-18 min-h-screen transition-all duration-300">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          <div className="p-4 pb-28 sm:p-6 sm:pb-32 lg:p-8 lg:pb-36 max-w-7xl mx-auto">
             {children || <Outlet context={[sidebarOpen, setSidebarOpen]} />}
           </div>
         </main>

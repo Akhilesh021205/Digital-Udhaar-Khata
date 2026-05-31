@@ -220,15 +220,15 @@ const AIChatAssistant = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-tr from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 border-none cursor-pointer group"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-tr from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 border-none cursor-pointer group"
         title="KathaGPT"
         id="ai-chat-btn"
       >
         {isOpen ? (
-          <HiOutlineX size={26} className="animate-in spin-in-90 duration-200" />
+          <HiOutlineX className="w-5 h-5 md:w-6.5 md:h-6.5 animate-in spin-in-90 duration-200" />
         ) : (
           <div className="relative">
-            <HiOutlineChatAlt2 size={26} className="group-hover:scale-110 transition-transform" />
+            <HiOutlineChatAlt2 className="w-5 h-5 md:w-6.5 md:h-6.5 group-hover:scale-110 transition-transform" />
           </div>
         )}
       </button>
