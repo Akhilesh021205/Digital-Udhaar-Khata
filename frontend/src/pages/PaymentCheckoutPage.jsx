@@ -98,6 +98,26 @@ export default function PaymentCheckoutPage() {
 
     const fetchCheckoutInfo = async () => {
       try {
+        // Check if there is an order_id from a redirect to verify
+        const queryParams = new URLSearchParams(window.location.search);
+        const orderId = queryParams.get('order_id');
+        if (orderId) {
+          setLoading(true);
+          console.log("Verifying Cashfree payment status for order:", orderId);
+          const verifyResponse = await axios.get(`/api/reminders/checkout/${customerId}/verify-payment/${orderId}`);
+          if (verifyResponse.data?.success) {
+            toast.success("Payment verified successfully!");
+            setIsPaid(true);
+            setPaymentStatus('SETTLED');
+            // Clean query parameters from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            setError(verifyResponse.data?.message || 'Payment verification failed.');
+            setLoading(false);
+            return;
+          }
+        }
+
         const response = await axios.get(`/api/reminders/checkout/${customerId}`);
         if (response.data?.success) {
           const fetchedData = response.data.data;
@@ -194,10 +214,42 @@ export default function PaymentCheckoutPage() {
     toast.success('Transaction ID copied to clipboard!');
   };
 
-  // Handle Card Checkout Form Submit (Mock warning)
-  const handleCardPaymentSubmit = (e) => {
-    e.preventDefault();
-    toast.info('Card payments are processed securely via direct UPI. Please scan the QR Code on the left or enter UPI Ref number to clear dues.');
+  // Handle Online Checkout Form Submit via Cashfree
+  const handleCardPaymentSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!data) return;
+
+    setSubmitting(true);
+    try {
+      // 1. Create order on backend
+      const response = await axios.post(`/api/reminders/checkout/${customerId}/create-order`);
+      if (response.data?.success) {
+        const { payment_session_id, isSandbox } = response.data;
+
+        // 2. Initialize Cashfree Web SDK
+        if (!window.Cashfree) {
+          toast.error("Payment SDK not loaded. Please refresh the page and try again.");
+          setSubmitting(false);
+          return;
+        }
+
+        const cashfree = window.Cashfree({
+          mode: isSandbox ? "sandbox" : "production"
+        });
+
+        // 3. Trigger checkout redirect
+        cashfree.checkout({
+          paymentSessionId: payment_session_id,
+          redirectTarget: "_self"
+        });
+      } else {
+        toast.error(response.data?.message || "Failed to initialize payment gateway order.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error starting payment gateway checkout.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -760,213 +812,50 @@ export default function PaymentCheckoutPage() {
                 </div>
               </>
             ) : (
-              // Card Payment Form Tab Panel
-              <form onSubmit={handleCardPaymentSubmit} className="w-full flex-grow flex flex-col gap-5">
-                {/* ── Card Type Detection Helper ── */}
-                {(() => {
-                  const raw = cardNo.replace(/\s/g, '');
-                  let cardType = null;
-                  if (/^4/.test(raw)) cardType = 'visa';
-                  else if (/^5[1-5]/.test(raw) || /^2(2[2-9][1-9]|[3-6]\d{2}|7[01]\d|720)/.test(raw)) cardType = 'mastercard';
-                  else if (/^6(0|52[1-9]|53\d|54[0-5])/.test(raw)) cardType = 'rupay';
-                  else if (/^3[47]/.test(raw)) cardType = 'amex';
-                  else if (/^6(011|22|4[4-9]|5)/.test(raw)) cardType = 'discover';
-                  
-                  const getGradient = () => {
-                    if (cardType === 'visa') return 'from-blue-900 via-blue-800 to-blue-700';
-                    if (cardType === 'mastercard') return 'from-gray-900 via-gray-800 to-red-900';
-                    if (cardType === 'rupay') return 'from-indigo-900 via-indigo-800 to-orange-700';
-                    if (cardType === 'amex') return 'from-emerald-900 via-emerald-800 to-emerald-700';
-                    if (cardType === 'discover') return 'from-orange-900 via-orange-800 to-orange-600';
-                    return 'from-slate-800 via-slate-700 to-slate-600';
-                  };
-
-                  const displayNumber = cardNo
-                    ? cardNo.replace(/\s/g,'').padEnd(16,'•').replace(/(.{4})/g,'$1 ').trim()
-                    : '•••• •••• •••• ••••';
-
-                  return (
-                    <div style={{ perspective: '1000px' }} className="w-full flex justify-center">
-                      <div
-                        style={{
-                          width: '100%', maxWidth: '360px', height: '200px',
-                          position: 'relative', transformStyle: 'preserve-3d',
-                          transition: 'transform 0.6s cubic-bezier(.4,0,.2,1)',
-                          transform: cardCvv.length > 0 ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                        }}
-                      >
-                        {/* FRONT */}
-                        <div
-                          style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}
-                          className={`rounded-2xl bg-gradient-to-br ${getGradient()} p-5 shadow-2xl flex flex-col justify-between text-white overflow-hidden`}
-                        >
-                          {/* Shimmer overlay */}
-                          <div style={{ position:'absolute',inset:0,background:'radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)',pointerEvents:'none' }} />
-                          
-                          {/* Top row: chip + card type */}
-                          <div className="flex justify-between items-start">
-                            {/* Chip */}
-                            <svg width="40" height="30" viewBox="0 0 40 30">
-                              <rect width="40" height="30" rx="5" fill="#d4a843"/>
-                              <rect x="13" y="0" width="14" height="30" fill="#c49a35"/>
-                              <rect x="0" y="10" width="40" height="10" fill="#c49a35"/>
-                              <rect x="13" y="10" width="14" height="10" fill="#b8902a"/>
-                              <rect x="15" y="5" width="10" height="5" rx="1" fill="#d4a843"/>
-                              <rect x="15" y="20" width="10" height="5" rx="1" fill="#d4a843"/>
-                            </svg>
-                            {/* Detected card type logo */}
-                            <div className="text-right">
-                              {cardType === 'visa' && (
-                                <img
-                                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/320px-Visa_Inc._logo.svg.png"
-                                  alt="Visa"
-                                  style={{height:'24px',objectFit:'contain',filter:'brightness(0) invert(1)'}}
-                                  loading="lazy"
-                                />
-                              )}
-                              {cardType === 'mastercard' && (
-                                <img
-                                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/320px-Mastercard-logo.svg.png"
-                                  alt="Mastercard"
-                                  style={{height:'28px',objectFit:'contain'}}
-                                  loading="lazy"
-                                />
-                              )}
-                              {cardType === 'rupay' && (
-                                <span style={{fontFamily:'sans-serif',fontWeight:900,fontSize:'14px',color:'#fff'}}>Ru<span style={{color:'#f97316'}}>Pay</span></span>
-                              )}
-                              {cardType === 'amex' && (
-                                <span style={{fontFamily:'sans-serif',fontWeight:900,fontSize:'13px',color:'#fff',letterSpacing:'1px'}}>AMEX</span>
-                              )}
-                              {cardType === 'discover' && (
-                                <span style={{fontFamily:'sans-serif',fontWeight:900,fontSize:'11px',color:'#fff'}}>DISCOVER</span>
-                              )}
-                              {!cardType && (
-                                <FaCreditCard size={24} style={{opacity:0.5}}/>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Card Number */}
-                          <div className="text-center" style={{letterSpacing:'3px',fontSize:'18px',fontWeight:700,fontFamily:'monospace',textShadow:'0 1px 3px rgba(0,0,0,0.4)'}}>
-                            {displayNumber}
-                          </div>
-
-                          {/* Bottom row: name + expiry */}
-                          <div className="flex justify-between items-end">
-                            <div>
-                              <div style={{fontSize:'8px',opacity:0.6,letterSpacing:'1px',textTransform:'uppercase',marginBottom:'2px'}}>Card Holder</div>
-                              <div style={{fontSize:'13px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',maxWidth:'180px',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
-                                {cardHolder || 'FULL NAME'}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div style={{fontSize:'8px',opacity:0.6,letterSpacing:'1px',textTransform:'uppercase',marginBottom:'2px'}}>Expires</div>
-                              <div style={{fontSize:'13px',fontWeight:700,fontFamily:'monospace'}}>
-                                {cardExpiry || 'MM/YY'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* BACK */}
-                        <div
-                          style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0, transform: 'rotateY(180deg)' }}
-                          className={`rounded-2xl bg-gradient-to-br ${getGradient()} shadow-2xl overflow-hidden`}
-                        >
-                          <div className="bg-slate-900 h-10 mt-7 w-full" />
-                          <div className="px-5 mt-4">
-                            <div className="bg-slate-100 rounded-lg flex items-center justify-between px-4 py-2">
-                              <span style={{fontSize:'9px',color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>CVV / CVC</span>
-                              <span style={{fontFamily:'monospace',fontWeight:900,fontSize:'16px',color:'#1e293b',letterSpacing:'4px'}}>
-                                {cardCvv ? '•'.repeat(cardCvv.length) : '•••'}
-                              </span>
-                            </div>
-                            <p style={{fontSize:'8px',color:'rgba(255,255,255,0.5)',marginTop:'12px',textAlign:'center'}}>
-                              This card is for display purposes only
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* ── Form Fields ── */}
-                <div className="space-y-3 text-left">
-                  {/* Card Number */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Card Number</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        maxLength={19}
-                        value={cardNo}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\D/g, '').slice(0, 16);
-                          setCardNo(raw.replace(/(.{4})/g, '$1 ').trim());
-                        }}
-                        placeholder="1234 5678 9012 3456"
-                        className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-indigo-400 rounded-xl font-semibold text-sm tracking-widest transition-all focus:outline-none"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300">
-                        <FaCreditCard size={16} />
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Cardholder Name */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Cardholder Name</label>
-                    <input
-                      type="text"
-                      value={cardHolder}
-                      onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                      placeholder="AS ON CARD"
-                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-indigo-400 rounded-xl font-semibold text-sm tracking-wider uppercase transition-all focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Expiry + CVV */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Expiry Date</label>
-                      <input
-                        type="text"
-                        maxLength={5}
-                        value={cardExpiry}
-                        onChange={(e) => {
-                          let val = e.target.value.replace(/\D/g, '');
-                          if (val.length > 2) val = val.substring(0, 2) + '/' + val.substring(2, 4);
-                          setCardExpiry(val);
-                        }}
-                        placeholder="MM/YY"
-                        className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-indigo-400 rounded-xl font-semibold text-sm text-center tracking-widest transition-all focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">CVV / CVC</label>
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                        onFocus={() => {}}
-                        onBlur={() => {}}
-                        placeholder="•••"
-                        className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-indigo-400 rounded-xl font-semibold text-sm text-center tracking-widest transition-all focus:outline-none"
-                      />
-                    </div>
-                  </div>
+              // Real Gateway Payment Tab Panel
+              <div className="w-full flex-grow flex flex-col justify-between items-center text-center">
+                <div className="w-full border-b border-slate-100 pb-4 mb-4">
+                  <h3 className="text-base font-black text-slate-800 mb-1">Online Payment Gateway</h3>
+                  <p className="text-slate-455 text-xs leading-relaxed">
+                    Pay securely using credit/debit card, net banking, UPI, or digital wallets.
+                  </p>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-3.5 px-6 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white rounded-2xl font-black text-sm transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <FaLock size={12} /> Pay ₹{balance.toFixed(2)} via Card
-                </button>
-              </form>
+                <div className="flex-1 flex flex-col justify-center items-center py-8 px-6 bg-slate-50 border border-slate-100 rounded-3xl my-6 w-full max-w-sm">
+                  <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-4 shadow-sm border border-indigo-100">
+                    <FaLock size={24} className="text-indigo-600" />
+                  </div>
+                  <h4 className="font-bold text-slate-800 text-sm mb-1">Secure Cashfree Checkout</h4>
+                  <p className="text-slate-500 text-xs leading-relaxed mb-6">
+                    Your payment will be processed securely. Once completed, your balance will be settled instantly.
+                  </p>
+
+                  <button
+                    onClick={handleCardPaymentSubmit}
+                    disabled={submitting}
+                    className="w-full py-3.5 px-6 bg-[#F97316] hover:bg-[#ea6c10] disabled:bg-slate-300 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-orange-200 cursor-pointer flex items-center justify-center gap-2 border-none"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Redirecting to Gateway...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaLock size={12} />
+                        <span>Pay ₹{balance.toFixed(2)} Securely</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Card Brand Logos */}
+                <div className="w-full border-t border-slate-100 pt-4 mt-6 flex justify-center items-center gap-4">
+                  <VisaLogo />
+                  <MastercardLogo />
+                  <RupayLogo />
+                </div>
+              </div>
             )}
           </div>
         </div>

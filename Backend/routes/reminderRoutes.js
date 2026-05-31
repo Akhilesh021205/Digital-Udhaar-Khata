@@ -311,7 +311,8 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
     res.status(200).json({
       success: true,
       order_id: orderId,
-      payment_session_id: response.data.payment_session_id
+      payment_session_id: response.data.payment_session_id,
+      isSandbox
     });
   } catch (error) {
     console.error('Error creating Cashfree order:', error.response?.data || error.message);
