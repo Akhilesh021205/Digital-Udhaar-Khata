@@ -128,10 +128,10 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
     }
 
     const utrStr = utr.toString().trim();
-    if (utrStr.length !== 12 || !/^\d+$/.test(utrStr)) {
+    if (utrStr.length < 8 || utrStr.length > 22 || !/^[a-zA-Z0-9]+$/.test(utrStr)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid 12-digit numerical UPI Ref / UTR number is required.',
+        message: 'Valid UPI Ref / Transaction UTR number (8 to 22 alphanumeric characters) is required.',
       });
     }
 
@@ -144,34 +144,6 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'This Transaction UTR has already been submitted and verified. Duplicate entries are blocked.',
-      });
-    }
-
-    // 2. Heuristic UTR validity checks (Year digit + Julian Day range)
-    // UPI UTR standard: YDDDHH... (Y=Year, DDD=Julian Day 001-366)
-    const yearDigit = parseInt(utrStr.charAt(0));
-    const julianDay = parseInt(utrStr.substring(1, 4));
-
-    const currentYear = new Date().getFullYear();
-    const expectedYearDigit = currentYear % 10; // e.g. 6 for 2026
-
-    // Compute Julian day for today
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const diff = now - start;
-    const oneDay = 1000 * 60 * 60 * 24;
-    const currentJulianDay = Math.floor(diff / oneDay); // e.g. 149
-
-    const isValidYearDigit = (yearDigit === expectedYearDigit || yearDigit === (expectedYearDigit - 1 + 10) % 10);
-    
-    // We allow a tolerance of ±5 days for timezone differences and clearing delays
-    const julianDiff = Math.abs(julianDay - currentJulianDay);
-    const isValidJulianDay = julianDay >= 1 && julianDay <= 366 && (julianDiff <= 5 || (366 - julianDiff <= 5));
-
-    if (!isValidYearDigit || !isValidJulianDay) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid UPI Transaction Reference Number (UTR). Please verify and enter the correct 12-digit UTR from your GPay, PhonePe, or Paytm app receipt.',
       });
     }
 

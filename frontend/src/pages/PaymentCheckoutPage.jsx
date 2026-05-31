@@ -919,22 +919,22 @@ export default function PaymentCheckoutPage() {
                   />
                 </div>
 
-                {/* UTR Input */}
+                 {/* UTR Input */}
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    12-Digit UPI Ref / UTR Number
+                    UPI Ref / Transaction UTR Number
                   </label>
                   <input 
                     type="text"
-                    maxLength={12}
+                    maxLength={22}
                     required
                     value={utr}
-                    onChange={(e) => setUtr(e.target.value.replace(/\D/g, ''))}
-                    placeholder="e.g. 308945678912"
-                    className="w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-[#F97316] rounded-2xl font-bold text-sm tracking-widest placeholder:tracking-normal transition-all focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+                    onChange={(e) => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                    placeholder="Enter UPI Ref / UTR number"
+                    className="w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-[#F97316] rounded-2xl font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
                   />
                   <span className="text-[10px] text-slate-400 block mt-1 leading-relaxed">
-                    Found in transaction details of your UPI app (PhonePe, GPay, Paytm) after payment.
+                    Found in transaction details of your UPI or banking app after payment (8 to 22 characters).
                   </span>
                 </div>
               </div>
