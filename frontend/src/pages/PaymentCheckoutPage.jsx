@@ -211,6 +211,24 @@ export default function PaymentCheckoutPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
+        <div className="max-w-md w-full bg-white border border-slate-150 rounded-3xl p-8 text-center shadow-2xl space-y-6">
+          <div className="w-20 h-20 bg-rose-150 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-md">
+            <FaTimesCircle size={44} className="text-rose-500" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-slate-800">Unable to Load Payment</h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              {error}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const storeName = data?.storeName || 'Digital Udhaar';
   const customerName = data?.customerName || 'Valued Customer';
   const customerPhone = data?.customerPhone || '';
