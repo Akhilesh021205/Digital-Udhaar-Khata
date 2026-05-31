@@ -636,6 +636,13 @@ const googleLogin = async (req, res, next) => {
         phone: '',
         avatar: picture || '',
       });
+    } else {
+      if (!user.name) {
+        user.name = name || 'Google User';
+      }
+      if (!user.storeName) {
+        user.storeName = `${name || 'My'}'s Store`;
+      }
     }
 
     // Record login activity
@@ -710,6 +717,13 @@ const googleLoginMock = async (req, res, next) => {
         phone: '',
         avatar: avatar || '',
       });
+    } else {
+      if (!user.name) {
+        user.name = name || 'Google User';
+      }
+      if (!user.storeName) {
+        user.storeName = `${name || 'My'}'s Store`;
+      }
     }
 
     // Record login activity
