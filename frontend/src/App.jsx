@@ -21,24 +21,19 @@ import SettingsPage from './pages/SettingsPage';
 import Loader from './components/Common/Loader';
 import LandingPage from './pages/LandingPage';
 import PermanentHistoryPage from './pages/PermanentHistoryPage';
-import SecuritySetupPage from './pages/SecuritySetupPage';
-import SecurityLockScreen from './components/Security/SecurityLockScreen';
+import SecurityLockSetup from './pages/SecuritySetupPage';
+import { SecurityLockProvider } from './context/SecurityLockContext';
 import PaymentCheckoutPage from './pages/PaymentCheckoutPage';
 import { initSocket } from './services/socket';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('udhaar-unlocked') === 'true');
 
   if (loading) return <Loader fullPage />;
   if (!user) return <Navigate to="/" />;
 
   if (!user.hasPin) {
     return <Navigate to="/security-setup" />;
-  }
-
-  if (!unlocked) {
-    return <SecurityLockScreen onUnlock={() => setUnlocked(true)} />;
   }
 
   return children;
@@ -60,15 +55,11 @@ const SecuritySetupRoute = ({ children }) => {
 
 const IndexRoute = () => {
   const { user, loading } = useAuth();
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('udhaar-unlocked') === 'true');
 
   if (loading) return <Loader fullPage />;
   if (user) {
     if (!user.hasPin) {
       return <Navigate to="/security-setup" />;
-    }
-    if (!unlocked) {
-      return <SecurityLockScreen onUnlock={() => setUnlocked(true)} />;
     }
     return <Layout><DashboardPage /></Layout>;
   }
@@ -81,7 +72,7 @@ const AppRoutes = () => (
     <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
     <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
     <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-    <Route path="/security-setup" element={<SecuritySetupRoute><SecuritySetupPage /></SecuritySetupRoute>} />
+    <Route path="/security-setup" element={<SecuritySetupRoute><SecurityLockSetup /></SecuritySetupRoute>} />
     <Route path="/pay/:customerId" element={<PaymentCheckoutPage />} />
     <Route path="/" element={<IndexRoute />} />
     <Route path="/customers" element={<ProtectedRoute><Layout><CustomersPage /></Layout></ProtectedRoute>} />
@@ -106,15 +97,17 @@ function App() {
         <AuthProvider>
           <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "1023724395376-dummyclientid.apps.googleusercontent.com"}>
             <LanguageProvider>
-              <AppRoutes />
-              <ToastContainer
-                position="top-center"
-                style={{ top: '10vh', left: '50%', transform: 'translateX(-50%)' }}
-                autoClose={1500}
-                hideProgressBar
-                pauseOnHover={false}
-                pauseOnFocusLoss={false}
-              />
+              <SecurityLockProvider>
+                <AppRoutes />
+                <ToastContainer
+                  position="top-center"
+                  style={{ top: '10vh', left: '50%', transform: 'translateX(-50%)' }}
+                  autoClose={1500}
+                  hideProgressBar
+                  pauseOnHover={false}
+                  pauseOnFocusLoss={false}
+                />
+              </SecurityLockProvider>
             </LanguageProvider>
           </GoogleOAuthProvider>
         </AuthProvider>

@@ -304,55 +304,55 @@ const DashboardPage = () => {
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 bg-orange/8 border border-orange/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md">
-          <div>
-            <span className="text-xs font-semibold text-slate-gray block tracking-wide">{t('totalBalance') || 'Total Balance'}</span>
-            <span className="text-xl font-black text-deep-navy block mt-1 font-outfit">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        <div className="p-3.5 sm:p-5 bg-orange/8 border border-orange/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
+          <div className="min-w-0 flex-1 pr-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('totalBalance') || 'Total Balance'}</span>
+            <span className="text-base sm:text-xl font-black text-deep-navy block mt-0.5 font-outfit truncate">
               ₹{((stats?.youWillGet || 0) - (stats?.youWillGive || 0)).toLocaleString('en-IN')}
             </span>
-            <span className="text-sm text-slate-gray block mt-1 font-medium">{t('totalUdhar') || 'Total Transactions Balance'}</span>
+            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{t('totalUdhar') || 'Total Transactions Balance'}</span>
           </div>
-          <div className="w-12 h-12 rounded-full bg-orange text-white flex items-center justify-center font-bold text-lg shadow-sm">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-orange text-white flex items-center justify-center font-bold text-sm sm:text-lg shadow-sm shrink-0">
             ₹
           </div>
         </div>
 
-        <div className="p-5 bg-green-get/8 border border-green-get/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md">
-          <div>
-            <span className="text-xs font-semibold text-slate-gray block tracking-wide">{t('youWillGet')}</span>
-            <span className="text-xl font-black text-green-get block mt-1 font-outfit">
+        <div className="p-3.5 sm:p-5 bg-green-get/8 border border-green-get/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
+          <div className="min-w-0 flex-1 pr-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('youWillGet')}</span>
+            <span className="text-base sm:text-xl font-black text-green-get block mt-0.5 font-outfit truncate">
               ₹{(stats?.youWillGet || 0).toLocaleString('en-IN')}
             </span>
-            <span className="text-sm text-slate-gray block mt-1 font-medium">{stats?.customersWithDues || 0} {t('customers')}</span>
+            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{stats?.customersWithDues || 0} {t('customers')}</span>
           </div>
-          <div className="w-12 h-12 rounded-full bg-green-get text-white flex items-center justify-center text-xl shadow-sm">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-green-get text-white flex items-center justify-center text-sm sm:text-xl shadow-sm shrink-0">
             <HiOutlineArrowDown />
           </div>
         </div>
 
-        <div className="p-5 bg-red-give/8 border border-red-give/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md">
-          <div>
-            <span className="text-xs font-semibold text-slate-gray block tracking-wide">{t('youWillGive')}</span>
-            <span className="text-xl font-black text-red-give block mt-1 font-outfit">
+        <div className="p-3.5 sm:p-5 bg-red-give/8 border border-red-give/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
+          <div className="min-w-0 flex-1 pr-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('youWillGive')}</span>
+            <span className="text-base sm:text-xl font-black text-red-give block mt-0.5 font-outfit truncate">
               ₹{(stats?.youWillGive || 0).toLocaleString('en-IN')}
             </span>
-            <span className="text-sm text-slate-gray block mt-1 font-medium">{t('advancePayments') || 'Advance accounts'}</span>
+            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{t('advancePayments') || 'Advance accounts'}</span>
           </div>
-          <div className="w-12 h-12 rounded-full bg-red-give text-white flex items-center justify-center text-xl shadow-sm">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-red-give text-white flex items-center justify-center text-sm sm:text-xl shadow-sm shrink-0">
             <HiOutlineArrowUp />
           </div>
         </div>
 
-        <div className="p-5 bg-slate-gray/8 border border-slate-gray/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md">
-          <div>
-            <span className="text-xs font-semibold text-slate-gray block tracking-wide">{t('totalTransactions') || 'Total Transactions'}</span>
-            <span className="text-xl font-black text-deep-navy block mt-1 font-outfit">
+        <div className="p-3.5 sm:p-5 bg-slate-gray/8 border border-slate-gray/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
+          <div className="min-w-0 flex-1 pr-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('totalTransactions') || 'Total Transactions'}</span>
+            <span className="text-base sm:text-xl font-black text-deep-navy block mt-0.5 font-outfit truncate">
               {(stats?.todayTransactions || 0) + (stats?.pendingTransactions || 0)}
             </span>
-            <span className="text-sm text-slate-gray block mt-1 font-medium">{t('thisMonth') || 'This Month'}</span>
+            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{t('thisMonth') || 'This Month'}</span>
           </div>
-          <div className="w-12 h-12 rounded-full bg-slate-gray text-white flex items-center justify-center text-xl shadow-sm">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-slate-gray text-white flex items-center justify-center text-sm sm:text-xl shadow-sm shrink-0">
             <HiOutlineCreditCard />
           </div>
         </div>

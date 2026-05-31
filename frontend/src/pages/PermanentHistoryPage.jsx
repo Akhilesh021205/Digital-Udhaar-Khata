@@ -67,44 +67,44 @@ const PermanentHistoryPage = () => {
       />
 
       {/* Audit Stats Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-pure-white border border-soft-gray p-5 rounded-2xl shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
-            <HiOutlineClock size={22} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
+            <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-gray">Total Logs</span>
-            <h4 className="text-xl font-extrabold text-deep-navy m-0 mt-0.5">{totalCount}</h4>
-          </div>
-        </div>
-
-        <div className="bg-pure-white border border-soft-gray p-5 rounded-2xl shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
-            <HiOutlinePlusCircle size={22} />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-gray">New Records</span>
-            <h4 className="text-xl font-extrabold text-deep-navy m-0 mt-0.5">{createCount}</h4>
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">Total Logs</span>
+            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{totalCount}</h4>
           </div>
         </div>
 
-        <div className="bg-pure-white border border-soft-gray p-5 rounded-2xl shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-warning-pending/10 flex items-center justify-center text-warning-pending shrink-0">
-            <HiOutlinePencilAlt size={22} />
+        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
+            <HiOutlinePlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-gray">Updates & Edits</span>
-            <h4 className="text-xl font-extrabold text-deep-navy m-0 mt-0.5">{editCount}</h4>
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">New Records</span>
+            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{createCount}</h4>
           </div>
         </div>
 
-        <div className="bg-pure-white border border-soft-gray p-5 rounded-2xl shadow-xs flex items-center gap-4 transition-all hover:shadow-sm">
-          <div className="w-12 h-12 rounded-xl bg-red-give/10 flex items-center justify-center text-red-give shrink-0">
-            <HiOutlineTrash size={22} />
+        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-warning-pending/10 flex items-center justify-center text-warning-pending shrink-0">
+            <HiOutlinePencilAlt className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-gray">Deletions</span>
-            <h4 className="text-xl font-extrabold text-deep-navy m-0 mt-0.5">{deleteCount}</h4>
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">Updates & Edits</span>
+            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{editCount}</h4>
+          </div>
+        </div>
+
+        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-red-give/10 flex items-center justify-center text-red-give shrink-0">
+            <HiOutlineTrash className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">Deletions</span>
+            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{deleteCount}</h4>
           </div>
         </div>
       </div>
