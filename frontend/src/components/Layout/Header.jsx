@@ -1,25 +1,29 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { HiOutlineMenuAlt2, HiOutlineUser, HiOutlineLogout, HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
+import { SidebarContext } from './Layout';
 
 const Header = ({ title, subtitle, onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const context = useOutletContext();
+  const sidebarCtx = useContext(SidebarContext);
+  const context = sidebarCtx || useOutletContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const toggleSidebar = onToggleSidebar || (() => {
+  const toggleSidebar = () => {
     if (context && Array.isArray(context)) {
       const [sidebarOpen, setSidebarOpen] = context;
       setSidebarOpen(!sidebarOpen);
+    } else if (onToggleSidebar) {
+      onToggleSidebar();
     }
-  });
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
