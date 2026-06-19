@@ -1,9 +1,22 @@
 import { useState, useRef, useEffect, useContext } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
-import { HiOutlineMenuAlt2, HiOutlineUser, HiOutlineLogout, HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
+import { 
+  HiOutlineMenuAlt2, 
+  HiOutlineUser, 
+  HiOutlineLogout, 
+  HiOutlineSun, 
+  HiOutlineMoon,
+  HiOutlineHome,
+  HiOutlineUsers,
+  HiOutlineCog,
+  HiOutlineBell,
+  HiOutlineBookOpen,
+  HiOutlineClock
+} from 'react-icons/hi';
+import Logo from '../Common/Logo';
 import { SidebarContext } from './Layout';
 
 const Header = ({ title, subtitle, onToggleSidebar }) => {
@@ -40,8 +53,17 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
     navigate('/');
   };
 
+  const links = [
+    { to: '/', icon: <HiOutlineHome size={18} />, label: t('dashboard') },
+    { to: '/customers', icon: <HiOutlineUsers size={18} />, label: t('customers') },
+    { to: '/cashbook', icon: <HiOutlineBookOpen size={18} />, label: t('cashbook') },
+    { to: '/reminders', icon: <HiOutlineBell size={18} />, label: t('reminders') },
+    { to: '/settings', icon: <HiOutlineCog size={18} />, label: t('settings') },
+    { to: '/history', icon: <HiOutlineClock size={18} />, label: 'History' },
+  ];
+
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-64 h-18 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-soft-white/80 backdrop-blur-md border-b border-soft-gray z-40">
+    <header className="fixed top-0 right-0 left-0 h-18 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-soft-white/80 backdrop-blur-md border-b border-soft-gray z-40">
       <div className="flex items-center">
         <button 
           className="lg:hidden mr-3 p-2 text-slate-gray hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-none" 
@@ -50,15 +72,51 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
         >
           <HiOutlineMenuAlt2 size={22} />
         </button>
+
+        {/* Logo and App Name (Desktop only) */}
+        <div className="hidden lg:flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-pure-white border border-soft-gray flex items-center justify-center p-1.5 shadow-sm shrink-0">
+            <Logo />
+          </div>
+          <div className="text-left">
+            <div className="text-sm font-bold text-deep-navy leading-tight">Udhaar Khata</div>
+            <span className="text-[9px] text-slate-gray font-normal block mt-0.5">{t('digitalLedger') || 'Digital Ledger'}</span>
+          </div>
+        </div>
+
+        {/* Vertical Divider */}
+        <div className="hidden lg:block w-px h-8 bg-soft-gray/80 mx-4" />
+
         <div>
-          <h1 className="text-xl font-bold text-deep-navy leading-none">{title}</h1>
+          <h1 className="text-base lg:text-lg font-bold text-deep-navy leading-none">{title}</h1>
           {subtitle && (
-            <p className="text-xs text-slate-gray mt-1 leading-none">
+            <p className="text-[10px] lg:text-xs text-slate-gray mt-1 leading-none">
               {subtitle}
             </p>
           )}
         </div>
       </div>
+
+      {/* Horizontal Navigation Links */}
+      <nav className="hidden lg:flex items-center gap-1.5 xl:gap-2">
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            end={link.to === '/'}
+            className={({ isActive }) => 
+              `flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                isActive 
+                  ? 'text-white bg-[#DC2626] shadow-md shadow-red-600/20' 
+                  : 'text-slate-gray hover:text-deep-navy hover:bg-light-cream'
+              }`
+            }
+          >
+            {link.icon}
+            <span>{link.label}</span>
+          </NavLink>
+        ))}
+      </nav>
       
       <div className="flex items-center gap-3" id="header-actions">
         {/* Theme toggle button */}

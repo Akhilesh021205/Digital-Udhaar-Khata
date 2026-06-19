@@ -168,7 +168,7 @@ const updateProfile = async (req, res, next) => {
 // @route   POST /api/auth/setup-security
 const setupSecurity = async (req, res, next) => {
   try {
-    const { pin, isBiometricEnabled, biometricCredentialId, biometricPublicKey } = req.body;
+    const { pin, isBiometricEnabled, biometricCredentialId, biometricPublicKey, biometricFaceTemplate } = req.body;
     
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -188,6 +188,9 @@ const setupSecurity = async (req, res, next) => {
     if (biometricPublicKey !== undefined) {
       user.biometricPublicKey = biometricPublicKey;
     }
+    if (biometricFaceTemplate !== undefined) {
+      user.biometricFaceTemplate = biometricFaceTemplate;
+    }
 
     await user.save();
 
@@ -206,6 +209,7 @@ const setupSecurity = async (req, res, next) => {
         hasPin: user.hasPin,
         isBiometricEnabled: user.isBiometricEnabled,
         biometricCredentialId: user.biometricCredentialId || '',
+        biometricFaceTemplate: user.biometricFaceTemplate || '',
       }
     });
   } catch (error) {

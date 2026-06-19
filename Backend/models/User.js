@@ -66,6 +66,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    biometricFaceTemplate: {
+      type: String,
+      default: '',
+    },
     resetPasswordToken: {
       type: String,
       default: '',

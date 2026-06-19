@@ -22,6 +22,7 @@ import Loader from './components/Common/Loader';
 import LandingPage from './pages/LandingPage';
 import PermanentHistoryPage from './pages/PermanentHistoryPage';
 import SecurityLockSetup from './pages/SecuritySetupPage';
+import BiometricDemoPage from './pages/BiometricDemoPage';
 import { SecurityLockProvider } from './context/SecurityLockContext';
 import PaymentCheckoutPage from './pages/PaymentCheckoutPage';
 import { initSocket } from './services/socket';
@@ -73,6 +74,7 @@ const AppRoutes = () => (
     <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
     <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
     <Route path="/security-setup" element={<SecuritySetupRoute><SecurityLockSetup /></SecuritySetupRoute>} />
+    <Route path="/biometric-demo" element={<BiometricDemoPage />} />
     <Route path="/pay/:customerId" element={<PaymentCheckoutPage />} />
     <Route path="/" element={<IndexRoute />} />
     <Route path="/customers" element={<ProtectedRoute><Layout><CustomersPage /></Layout></ProtectedRoute>} />

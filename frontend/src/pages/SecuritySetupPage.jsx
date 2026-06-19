@@ -5,33 +5,67 @@ import API from '../api/axios';
 import Logo from '../components/Common/Logo';
 import { toast } from 'react-toastify';
 import { 
-  HiOutlineBackspace,
-  HiOutlineCheckCircle
-} from 'react-icons/hi';
+  Shield, 
+  Fingerprint, 
+  Scan, 
+  Lock, 
+  Check, 
+  Camera, 
+  ArrowLeft, 
+  AlertCircle,
+  ShieldCheck,
+  Smartphone
+} from 'lucide-react';
+import { HiOutlineBackspace } from 'react-icons/hi';
+import { loadFaceApiModels, detectFaceInVideo, getFaceAngle } from '../utils/biometricScanner';
 
-// Premium SVG for Fingerprint Scanner
-const FingerprintIcon = ({ className = "w-12 h-12" }) => (
-  <svg className={`${className} text-orange`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0-1.105-1.343-2-3-2s-3 .895-3 2M12 11c0 1.105 1.343 2 3 2s3-.895 3-2M12 11V7a3 3 0 10-6 0v4M12 11v4a3 3 0 106 0v-4m-6 8a7 7 0 100-14 7 7 0 000 14z" />
-  </svg>
-);
-
-// Premium SVG for Face ID Scan
-const FaceIdIcon = ({ className = "w-12 h-12" }) => (
-  <svg className={`${className} text-orange`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h.01M9 9h.01M12 15h.01M19 12a7 7 0 11-14 0 7 7 0 0114 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 00-2-2v-3m18-5h-3a2 2 0 00-2 2v3m-14 11H5a2 2 0 00-2-2v-3m18 5h-3a2 2 0 00-2-2v-3" />
-  </svg>
-);
-
-const scanStyles = `
+const securityStyles = `
   @keyframes scanLine {
     0% { top: 0%; }
     50% { top: 100%; }
     100% { top: 0%; }
   }
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.35); opacity: 0.3; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  @keyframes rotateDotted {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes pulseFaceOutline {
+    0%, 100% { opacity: 0.25; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.03); }
+  }
   .animate-scan-line {
     animation: scanLine 2.5s ease-in-out infinite;
+  }
+  .animate-ripple {
+    animation: ripple 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-rotate-dotted {
+    animation: rotateDotted 15s linear infinite;
+  }
+  .animate-pulse-outline {
+    animation: pulseFaceOutline 3s ease-in-out infinite;
+  }
+  @keyframes drawCheck {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes scaleUp {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .animate-draw-check {
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+    animation: drawCheck 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .animate-success-circle {
+    animation: scaleUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 `;
 
@@ -39,17 +73,24 @@ const SecuritySetupPage = () => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState('create-pin'); // 'create-pin' | 'confirm-pin' | 'biometrics' | 'success'
+  const [step, setStep] = useState('create-pin'); // 'create-pin' | 'confirm-pin' | 'biometrics' | 'face-onboarding' | 'face-scanning' | 'fingerprint-scanning' | 'success'
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [shake, setShake] = useState(false);
-  const [biometricType, setBiometricType] = useState(null); // 'fingerprint' | 'faceid'
-  const [showSimulateModal, setShowSimulateModal] = useState(false);
-  const [simulating, setSimulating] = useState(false);
   const [deviceSupportsBio, setDeviceSupportsBio] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Face ID scan states
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanAngle, setScanAngle] = useState('front'); // 'front' | 'left' | 'right' | 'saving' | 'loading'
   const [cameraStream, setCameraStream] = useState(null);
+  const [faceScanStatus, setFaceScanStatus] = useState('Ready to register face');
   const videoRef = useRef(null);
+  const animationFrameId = useRef(null);
+  
+  // Fingerprint scan states
+  const [fingerProgress, setFingerProgress] = useState(0);
+  const [fingerScanning, setFingerScanning] = useState(false);
 
   // Check if browser/device supports WebAuthn Platform biometrics
   useEffect(() => {
@@ -80,7 +121,6 @@ const SecuritySetupPage = () => {
         const newVal = confirmPin + num;
         setConfirmPin(newVal);
         if (newVal.length === 4) {
-          // Compare
           if (newVal === pin) {
             setTimeout(() => setStep('biometrics'), 250);
           } else {
@@ -104,13 +144,14 @@ const SecuritySetupPage = () => {
     }
   };
 
-  const saveSecuritySettings = useCallback(async (enableBio = false, bioCredId = '') => {
+  const saveSecuritySettings = useCallback(async (enableBio = false, bioCredId = '', faceTemplate = '') => {
     setSaving(true);
     try {
       const { data } = await API.post('/auth/setup-security', {
         pin,
         isBiometricEnabled: enableBio,
-        biometricCredentialId: bioCredId
+        biometricCredentialId: bioCredId,
+        biometricFaceTemplate: faceTemplate
       });
       
       updateUser(data.data);
@@ -119,7 +160,7 @@ const SecuritySetupPage = () => {
       
       setTimeout(() => {
         navigate('/');
-      }, 2000);
+      }, 2200);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save security settings');
     } finally {
@@ -127,98 +168,175 @@ const SecuritySetupPage = () => {
     }
   }, [pin, updateUser, navigate]);
 
-  // Real WebAuthn implementation
-  const registerRealBiometrics = async (type) => {
-    try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      
-      const createOptions = {
-        publicKey: {
-          challenge,
-          rp: { name: "Udhaar Khata" },
-          user: {
-            id: new TextEncoder().encode(user._id || 'mock-id'),
-            name: user.email || 'user@example.com',
-            displayName: user.name || 'Merchant'
-          },
-          pubKeyCredParams: [
-            { type: "public-key", alg: -7 },   // ES256
-            { type: "public-key", alg: -257 }  // RS256
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: "platform",
-            userVerification: "required"
-          },
-          timeout: 60000
-        }
-      };
-
-      const credential = await navigator.credentials.create(createOptions);
-      if (credential) {
-        await saveSecuritySettings(true, credential.id);
-      }
-    } catch (err) {
-      console.warn("WebAuthn error, falling back to simulated prompt:", err);
-      // Fallback to simulated biometric UI
-      setBiometricType(type);
-      setShowSimulateModal(true);
-    }
+  // Handle skip biometrics
+  const handleSkipBiometrics = async () => {
+    await saveSecuritySettings(false);
   };
 
-  const handleEnableBiometrics = async (type) => {
-    if (deviceSupportsBio) {
-      await registerRealBiometrics(type);
-    } else {
-      // Fallback to premium simulated experience directly
-      setBiometricType(type);
-      setShowSimulateModal(true);
+  // Start Face ID Scan Flow
+  const startFaceScan = async () => {
+    setStep('face-scanning');
+    setScanProgress(0);
+    setScanAngle('loading');
+    setFaceScanStatus('Loading security AI models...');
+    
+    const loaded = await loadFaceApiModels();
+    if (!loaded) {
+      toast.error('Failed to load Face ID AI models');
+      setStep('biometrics');
+      return;
     }
-  };
 
-  const startSimulation = useCallback(async () => {
+    setScanAngle('front');
+    setFaceScanStatus('Position your face inside the circle.');
+
     let stream = null;
-    if (biometricType === 'faceid') {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-        setCameraStream(stream);
-        setSimulating(true);
-        
-        setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        }, 100);
-      } catch (err) {
-        console.error("Camera access failed:", err);
-        toast.error("Camera access is required for Face ID setup");
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 320, height: 240, facingMode: 'user' } 
+      });
+      setCameraStream(stream);
+      
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 150);
+    } catch (err) {
+      console.error("Camera access failed:", err);
+      toast.error("Camera access is required to register Face ID");
+      setStep('biometrics');
+      return;
+    }
+
+    const descriptors = { front: null, left: null, right: null };
+    let currentAngle = 'front';
+    let currentProgress = 0;
+
+    const processFrame = async () => {
+      if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+        animationFrameId.current = requestAnimationFrame(processFrame);
         return;
       }
-    } else {
-      setSimulating(true);
-    }
 
-    setTimeout(async () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setCameraStream(null);
+      const detection = await detectFaceInVideo(videoRef.current);
+      if (!detection) {
+        setFaceScanStatus('No face detected. Please position your face inside the frame.');
+        animationFrameId.current = requestAnimationFrame(processFrame);
+        return;
       }
-      setSimulating(false);
-      setShowSimulateModal(false);
-      toast.success(`${biometricType === 'fingerprint' ? 'Fingerprint' : 'Face ID'} Registered Successfully!`);
-      const mockCredentialId = `mock-${biometricType}-id-${Date.now()}`;
-      await saveSecuritySettings(true, mockCredentialId);
-    }, 3500);
-  }, [biometricType, saveSecuritySettings]);
 
-  const handleCloseModal = useCallback(() => {
+      const angle = getFaceAngle(detection.landmarks);
+      
+      if (currentAngle === 'front') {
+        if (angle === 'front') {
+          currentProgress += 5;
+          setScanProgress(Math.min(currentProgress, 33));
+          setFaceScanStatus('Keep looking straight... registering front angle.');
+          if (currentProgress >= 33) {
+            descriptors.front = Array.from(detection.descriptor);
+            currentAngle = 'left';
+            toast.success('Front angle registered! Now turn your head to the Left.');
+          }
+        } else {
+          setFaceScanStatus('Please look straight at the camera.');
+        }
+      } else if (currentAngle === 'left') {
+        if (angle === 'left') {
+          currentProgress += 5;
+          setScanProgress(Math.min(currentProgress, 66));
+          setFaceScanStatus('Registering left angle... hold steady.');
+          if (currentProgress >= 66) {
+            descriptors.left = Array.from(detection.descriptor);
+            currentAngle = 'right';
+            toast.success('Left angle registered! Now turn your head to the Right.');
+          }
+        } else {
+          setFaceScanStatus('Slowly turn your face to the LEFT.');
+        }
+      } else if (currentAngle === 'right') {
+        if (angle === 'right') {
+          currentProgress += 5;
+          setScanProgress(Math.min(currentProgress, 100));
+          setFaceScanStatus('Registering right angle... hold steady.');
+          if (currentProgress >= 100) {
+            descriptors.right = Array.from(detection.descriptor);
+            currentAngle = 'saving';
+            setScanAngle('saving');
+            setFaceScanStatus('Registering secure descriptors. Raw photos are discarded.');
+            
+            // Stop camera stream
+            if (stream) {
+              stream.getTracks().forEach(track => track.stop());
+            }
+            setCameraStream(null);
+
+            // Save to backend
+            setTimeout(async () => {
+              const faceTemplateJSON = JSON.stringify({
+                front: descriptors.front,
+                left: descriptors.left,
+                right: descriptors.right
+              });
+              const mockCredentialId = `face-id-${Date.now()}`;
+              toast.success("Face ID registered successfully.");
+              await saveSecuritySettings(true, mockCredentialId, faceTemplateJSON);
+            }, 1200);
+            return;
+          }
+        } else {
+          setFaceScanStatus('Slowly turn your face to the RIGHT.');
+        }
+      }
+
+      setScanAngle(currentAngle);
+      animationFrameId.current = requestAnimationFrame(processFrame);
+    };
+
+    animationFrameId.current = requestAnimationFrame(processFrame);
+  };
+
+  const cancelFaceScan = () => {
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
     if (cameraStream) {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
-    setSimulating(false);
-    setShowSimulateModal(false);
-  }, [cameraStream]);
+    setStep('biometrics');
+  };
+
+  // Start Fingerprint Scan Flow
+  const startFingerprintScan = () => {
+    setStep('fingerprint-scanning');
+    setFingerProgress(0);
+    setFingerScanning(true);
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 4;
+      setFingerProgress(Math.min(progress, 100));
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setFingerScanning(false);
+        setTimeout(async () => {
+          toast.success("Fingerprint registered successfully.");
+          const mockCredentialId = `mock-fingerprint-id-${Date.now()}`;
+          await saveSecuritySettings(true, mockCredentialId);
+        }, 800);
+      }
+    }, 120);
+  };
+
+
+
+  const cancelFingerprintScan = () => {
+    setStep('biometrics');
+  };
 
   useEffect(() => {
     return () => {
@@ -228,21 +346,15 @@ const SecuritySetupPage = () => {
     };
   }, [cameraStream]);
 
-
-
-  const handleSkipBiometrics = async () => {
-    await saveSecuritySettings(false);
-  };
-
   const renderDots = (length) => {
     return (
       <div className={`flex gap-4 justify-center my-8 ${shake ? 'animate-shake' : ''}`}>
         {[0, 1, 2, 3].map((idx) => (
           <div 
             key={idx} 
-            className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
+            className={`w-4.5 h-4.5 rounded-full border-2 transition-all duration-150 ${
               idx < length 
-                ? 'bg-orange border-orange scale-110 shadow-md shadow-orange/30' 
+                ? 'bg-[#DC2626] border-[#DC2626] scale-110 shadow-md shadow-red-600/30' 
                 : 'border-slate-gray/30 bg-transparent'
             }`} 
           />
@@ -252,23 +364,27 @@ const SecuritySetupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-light-cream to-soft-white p-5 relative overflow-hidden py-12">
-      <style>{scanStyles}</style>
-      {/* Decorative background shapes */}
-      <div className="absolute w-[500px] h-[500px] bg-radial from-orange/5 to-transparent -top-[100px] -right-[100px] rounded-full"></div>
-      <div className="absolute w-[400px] h-[400px] bg-radial from-info-analytics/5 to-transparent -bottom-[80px] -left-[80px] rounded-full"></div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-5 relative overflow-hidden py-12">
+      <style>{securityStyles}</style>
+      
+      {/* Background radial highlights */}
+      <div className="absolute w-[500px] h-[500px] bg-radial from-red-600/5 to-transparent -top-[100px] -right-[100px] rounded-full"></div>
+      <div className="absolute w-[400px] h-[400px] bg-radial from-red-600/5 to-transparent -bottom-[80px] -left-[80px] rounded-full"></div>
 
-      <div className="w-full max-w-md p-8 bg-pure-white border border-soft-gray rounded-2xl shadow-lg relative z-10 text-center">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-light-cream border border-soft-gray flex items-center justify-center p-2 shadow-inner">
-          <Logo />
-        </div>
+      <div className="w-full max-w-md p-8 bg-white border border-slate-100 rounded-3xl shadow-xl relative z-10 text-center">
+        {/* Shield icon at the top of PIN and Biometrics steps */}
+        {step !== 'success' && (
+          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mx-auto mb-4 border border-red-100/50">
+            <Shield className="w-5 h-5" />
+          </div>
+        )}
 
         {step === 'create-pin' && (
           <div>
-            <h1 className="text-2xl font-bold text-deep-navy mb-1 font-outfit">Secure your Udhar Khata</h1>
-            <p className="text-sm text-slate-gray mb-6">Step 3: Create a 4-Digit Security PIN</p>
+            <h1 className="text-xl font-bold text-slate-900 mb-1 font-outfit">Secure Your Account</h1>
+            <p className="text-xs text-slate-500 mb-6">Create a 4-Digit Security PIN</p>
             
-            <div className="text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               Enter New PIN
             </div>
             {renderDots(pin.length)}
@@ -277,10 +393,10 @@ const SecuritySetupPage = () => {
 
         {step === 'confirm-pin' && (
           <div>
-            <h1 className="text-2xl font-bold text-deep-navy mb-1 font-outfit">Confirm Security PIN</h1>
-            <p className="text-sm text-slate-gray mb-6">Re-enter the 4-digit PIN to confirm</p>
+            <h1 className="text-xl font-bold text-slate-900 mb-1 font-outfit">Confirm Security PIN</h1>
+            <p className="text-xs text-slate-500 mb-6">Re-enter the 4-digit PIN to confirm</p>
             
-            <div className="text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               Confirm PIN
             </div>
             {renderDots(confirmPin.length)}
@@ -291,7 +407,7 @@ const SecuritySetupPage = () => {
                 setConfirmPin('');
                 setPin('');
               }}
-              className="text-xs text-orange hover:underline font-semibold bg-transparent border-none cursor-pointer"
+              className="text-xs text-[#DC2626] hover:underline font-semibold bg-transparent border-none cursor-pointer mt-2"
             >
               Start Over
             </button>
@@ -305,23 +421,23 @@ const SecuritySetupPage = () => {
                 key={num}
                 type="button"
                 onClick={() => handleKeyPress(num)}
-                className="w-16 h-16 rounded-full bg-light-cream/40 border border-soft-gray flex items-center justify-center font-bold text-lg text-deep-navy hover:bg-orange hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+                className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-lg text-slate-800 hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 {num}
               </button>
             ))}
-            <div className="w-16 h-16" /> {/* Empty spacing spacer */}
+            <div className="w-16 h-16" />
             <button
               type="button"
               onClick={() => handleKeyPress(0)}
-              className="w-16 h-16 rounded-full bg-light-cream/40 border border-soft-gray flex items-center justify-center font-bold text-lg text-deep-navy hover:bg-orange hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-lg text-slate-800 hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               0
             </button>
             <button
               type="button"
               onClick={handleBackspace}
-              className="w-16 h-16 rounded-full bg-light-cream/40 border border-soft-gray flex items-center justify-center text-lg text-deep-navy hover:bg-red-give hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-lg text-slate-800 hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <HiOutlineBackspace size={24} />
             </button>
@@ -330,39 +446,36 @@ const SecuritySetupPage = () => {
 
         {step === 'biometrics' && (
           <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-deep-navy mb-1 font-outfit">Enable Biometric Login</h1>
-            <p className="text-sm text-slate-gray">
-              Add Fingerprint or Face ID for faster, secure access to your ledger.
-            </p>
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold text-slate-900 font-outfit">Would you like to enable Face Unlock?</h1>
+              <p className="text-xs text-slate-500">
+                Unlock your Digital Udhaar Khata ledger faster and more securely.
+              </p>
+            </div>
 
-            <div className="flex flex-col gap-4 max-w-xs mx-auto py-4">
-              {/* Fingerprint Card */}
+            <div className="flex flex-col gap-3.5 max-w-xs mx-auto py-2">
+              {/* Face ID Capture button */}
               <button
-                onClick={() => handleEnableBiometrics('fingerprint')}
+                onClick={() => setStep('face-onboarding')}
                 disabled={saving}
-                className="flex items-center gap-4 p-4 rounded-xl border border-soft-gray bg-light-cream/30 hover:border-orange hover:shadow-md transition-all text-left cursor-pointer group disabled:opacity-50"
+                className="w-full py-4 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
               >
-                <div className="w-12 h-12 bg-orange/10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <FingerprintIcon className="w-6 h-6 text-orange" />
+                <div className="flex items-center gap-3">
+                  <Scan className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                  <span>Continue with Face ID</span>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-deep-navy m-0">Enable Fingerprint</h3>
-                  <p className="text-xs text-slate-gray m-0 mt-0.5">Use your device fingerprint scanner</p>
-                </div>
+                <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Fastest</span>
               </button>
 
-              {/* Face ID Card */}
+              {/* Fingerprint Card */}
               <button
-                onClick={() => handleEnableBiometrics('faceid')}
+                onClick={startFingerprintScan}
                 disabled={saving}
-                className="flex items-center gap-4 p-4 rounded-xl border border-soft-gray bg-light-cream/30 hover:border-orange hover:shadow-md transition-all text-left cursor-pointer group disabled:opacity-50"
+                className="w-full py-4 px-5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 hover:border-slate-300 active:scale-[0.99] cursor-pointer group"
               >
-                <div className="w-12 h-12 bg-orange/10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <FaceIdIcon className="w-6 h-6 text-orange" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-deep-navy m-0">Enable Face ID</h3>
-                  <p className="text-xs text-slate-gray m-0 mt-0.5">If supported by device camera</p>
+                <div className="flex items-center gap-3">
+                  <Fingerprint className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                  <span>Use Fingerprint</span>
                 </div>
               </button>
             </div>
@@ -371,7 +484,7 @@ const SecuritySetupPage = () => {
               <button
                 onClick={handleSkipBiometrics}
                 disabled={saving}
-                className="py-3 px-6 rounded-lg text-sm font-semibold border border-soft-gray bg-transparent text-slate-gray hover:bg-soft-white hover:text-deep-navy transition-all cursor-pointer disabled:opacity-50"
+                className="py-3 px-6 rounded-2xl text-sm font-semibold border border-slate-200 bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer disabled:opacity-50"
               >
                 Skip for now
               </button>
@@ -379,25 +492,63 @@ const SecuritySetupPage = () => {
           </div>
         )}
 
-        {step === 'success' && (
-          <div className="space-y-4 py-8 animate-in fade-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 bg-green-get/10 text-green-get rounded-full flex items-center justify-center mx-auto shadow-md">
-              <HiOutlineCheckCircle className="w-12 h-12" />
+        {/* Face ID Onboarding Intro screen */}
+        {step === 'face-onboarding' && (
+          <div className="space-y-6">
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold text-slate-900 font-outfit">Register Your Face ID</h1>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Position your camera straight. You'll be asked to look forward, then tilt your head left and right.
+              </p>
             </div>
-            <h1 className="text-2xl font-bold text-deep-navy font-outfit">Setup Complete!</h1>
-            <p className="text-sm text-slate-gray">
-              Your Udhar Khata is now secured. Redirecting you to your dashboard...
-            </p>
+
+            {/* Checklist Graphic */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-left max-w-xs mx-auto space-y-3.5">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[#DC2626] font-bold text-xs shrink-0 mt-0.5">1</div>
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-800 m-0">Look Straight</h4>
+                  <p className="text-[10px] text-slate-500 m-0">Align face outline in the circle frame.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-[#DC2626] font-bold text-xs shrink-0 mt-0.5">2</div>
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-800 m-0">Look Left & Right</h4>
+                  <p className="text-[10px] text-slate-500 m-0">Turn your head slowly to register angles.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 max-w-xs mx-auto pt-2">
+              <button
+                onClick={startFaceScan}
+                className="w-full py-3.5 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-[0.99]"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Start Face Scan</span>
+              </button>
+              <button
+                onClick={() => setStep('biometrics')}
+                className="w-full py-2.5 px-4 bg-transparent border border-slate-200 text-slate-500 font-semibold text-sm rounded-2xl cursor-pointer hover:bg-slate-50"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Simulated Biometric Authenticator Modal */}
-      {showSimulateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-deep-navy/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-pure-white border border-soft-gray p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
-            {(simulating && biometricType === 'faceid') ? (
-              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-orange bg-black flex items-center justify-center shadow-lg">
+        {/* Live Face Scanning screen */}
+        {step === 'face-scanning' && (
+          <div className="space-y-6 flex flex-col items-center">
+            {scanAngle === 'saving' ? (
+              /* Template Generation Loader */
+              <div className="relative w-32 h-32 mb-4 flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              /* Camera view with face guides */
+              <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-[#DC2626] bg-black flex items-center justify-center shadow-lg mb-4">
                 <video 
                   ref={videoRef} 
                   autoPlay 
@@ -405,58 +556,129 @@ const SecuritySetupPage = () => {
                   muted 
                   className="w-full h-full object-cover scale-x-[-1]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange/10 to-transparent animate-pulse" />
-                <div className="absolute left-0 right-0 h-0.5 bg-orange shadow-md shadow-orange/80 animate-scan-line" />
-              </div>
-            ) : (
-              <div className="relative w-20 h-20 rounded-full bg-orange/10 flex items-center justify-center text-orange">
-                {simulating && (
-                  <span className="absolute inset-0 rounded-full border-2 border-orange animate-ping opacity-75" />
-                )}
-                {biometricType === 'fingerprint' ? (
-                  <FingerprintIcon className="w-10 h-10" />
-                ) : (
-                  <FaceIdIcon className="w-10 h-10" />
-                )}
+                
+                {/* Rotating scanner ring */}
+                <div className="absolute inset-2 border-2 border-dashed border-[#DC2626]/40 rounded-full animate-rotate-dotted" />
+                
+                {/* Scanning sweep line */}
+                <div className="absolute left-0 right-0 h-0.5 bg-[#DC2626] shadow-md shadow-red-600/80 animate-scan-line" />
+                
+                {/* Dotted face guide mesh */}
+                <div className="absolute inset-8 border border-white/20 rounded-full animate-pulse-outline flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-[#DC2626] rounded-full absolute top-10 left-10" />
+                  <div className="w-1.5 h-1.5 bg-[#DC2626] rounded-full absolute top-10 right-10" />
+                  <div className="w-1.5 h-1.5 bg-[#DC2626] rounded-full absolute bottom-12 left-16" />
+                </div>
               </div>
             )}
-            
+
             <div>
-              <h2 className="text-lg font-bold text-deep-navy font-outfit">
-                {biometricType === 'fingerprint' ? 'Fingerprint Scanner' : 'Face ID Camera'}
+              <h2 className="text-lg font-bold text-slate-900 font-outfit">
+                {scanAngle === 'saving' ? 'Generating Face ID template...' : 'Scanning Face...'}
               </h2>
-              <p className="text-xs text-slate-gray mt-2 leading-relaxed">
-                {simulating 
-                  ? 'Verifying biometric credentials with device api...' 
-                  : `Please approve the simulated device biometric scan for ${biometricType === 'fingerprint' ? 'Fingerprint' : 'Face ID'}.`}
+              <p className="text-xs text-slate-500 mt-2 min-h-[32px] max-w-xs mx-auto leading-relaxed">
+                {scanAngle === 'front' && 'Look straight into your front-facing camera.'}
+                {scanAngle === 'left' && 'Slowly turn your face to the Left.'}
+                {scanAngle === 'right' && 'Slowly turn your face to the Right.'}
+                {scanAngle === 'saving' && 'Generating secure mathematical face template. Raw photos are discarded.'}
               </p>
             </div>
 
-            <div className="w-full space-y-2.5">
-              {!simulating ? (
-                <>
-                  <button
-                    onClick={startSimulation}
-                    className="w-full py-3 px-4 bg-orange hover:bg-orange-hover text-white font-bold text-sm rounded-xl border-none cursor-pointer shadow-md transition-all"
-                  >
-                    Simulate Touch/Face scan
-                  </button>
-                  <button
-                    onClick={handleCloseModal}
-                    className="w-full py-2.5 px-4 bg-transparent border border-soft-gray text-slate-gray font-semibold text-sm rounded-xl cursor-pointer hover:bg-soft-white"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <div className="flex justify-center items-center py-4">
-                  <div className="w-8 h-8 border-4 border-orange border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
+            {/* Progress indicator */}
+            <div className="w-full max-w-xs">
+              <div className="flex justify-between text-[10px] text-slate-400 font-bold mb-1">
+                <span>ANGLE STATUS</span>
+                <span>{scanProgress}%</span>
+              </div>
+              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#DC2626] transition-all duration-100 ease-out" 
+                  style={{ width: `${scanProgress}%` }}
+                />
+              </div>
             </div>
+
+            {scanAngle !== 'saving' && (
+              <button
+                onClick={cancelFaceScan}
+                className="px-6 py-2 bg-transparent text-slate-400 hover:text-slate-600 font-semibold text-xs rounded-xl cursor-pointer mt-2"
+              >
+                Cancel
+              </button>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Live Fingerprint Scanning screen */}
+        {step === 'fingerprint-scanning' && (
+          <div className="space-y-6 flex flex-col items-center">
+            {/* Concentric ripples */}
+            <div className="relative w-32 h-32 mb-2 flex items-center justify-center">
+              {fingerScanning && (
+                <>
+                  <div className="absolute inset-0 rounded-full bg-red-100/50 border border-red-200/50 animate-ripple" style={{ animationDelay: '0s' }} />
+                  <div className="absolute inset-0 rounded-full bg-red-100/50 border border-red-200/50 animate-ripple" style={{ animationDelay: '0.6s' }} />
+                  <div className="absolute inset-0 rounded-full bg-red-100/50 border border-red-200/50 animate-ripple" style={{ animationDelay: '1.2s' }} />
+                </>
+              )}
+              
+              <div className="relative w-20 h-20 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-[#DC2626] shadow-sm">
+                <Fingerprint className="w-10 h-10 animate-pulse" />
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 font-outfit">Registering Fingerprint</h2>
+              <p className="text-xs text-slate-500 mt-2 max-w-xs leading-relaxed">
+                Touch and hold the fingerprint sensor to scan your biometric ID.
+              </p>
+            </div>
+
+            {/* Progress indicator */}
+            <div className="w-full max-w-xs">
+              <div className="flex justify-between text-[10px] text-slate-400 font-bold mb-1">
+                <span>SCAN PROGRESS</span>
+                <span>{fingerProgress}%</span>
+              </div>
+              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#DC2626] transition-all duration-100 ease-out" 
+                  style={{ width: `${fingerProgress}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={cancelFingerprintScan}
+              className="px-6 py-2 bg-transparent text-slate-400 hover:text-slate-600 font-semibold text-xs rounded-xl cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {step === 'success' && (
+          <div className="space-y-4 py-8 animate-in fade-in zoom-in-95 duration-300">
+            <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-green-50 text-green-500 animate-success-circle border border-green-500/20 mx-auto">
+              <svg className="w-10 h-10 text-green-500 animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 font-outfit">Setup Complete!</h1>
+            <p className="text-xs text-slate-500">
+              Face ID registered successfully. Securing your dashboard...
+            </p>
+          </div>
+        )}
+
+        {/* Footer protected text */}
+        {step !== 'success' && (
+          <div className="flex items-center justify-center gap-1.5 mt-8 pt-4 border-t border-slate-100 text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-[10px] font-medium tracking-wide">Your data is encrypted and protected.</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

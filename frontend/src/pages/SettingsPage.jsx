@@ -19,6 +19,8 @@ import {
   FiAlertOctagon,
   FiClock
 } from 'react-icons/fi';
+import { Shield, Fingerprint as LucideFingerprint, Scan as LucideScan, Lock as LucideLock } from 'lucide-react';
+import { loadFaceApiModels, detectFaceInVideo, getFaceAngle, compareDescriptors } from '../utils/biometricScanner';
 
 // Helper to safely convert raw ASCII SVG to a standard Base64 Data URL
 const svgToBase64 = (svgMarkup) => {
@@ -109,6 +111,11 @@ const scanStyles = `
     50% { top: 100%; }
     100% { top: 0%; }
   }
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.35); opacity: 0.3; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
   .animate-draw-check {
     stroke-dasharray: 50;
     stroke-dashoffset: 50;
@@ -119,6 +126,9 @@ const scanStyles = `
   }
   .animate-scan-line {
     animation: scanLine 2.5s ease-in-out infinite;
+  }
+  .animate-ripple {
+    animation: ripple 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 `;
 
@@ -421,10 +431,18 @@ const SettingsPage = () => {
     });
   };
 
-  // Security Toggling States
+  // Real-Time Biometric Registration States
   const [deviceSupportsBio, setDeviceSupportsBio] = useState(false);
-  const [showSimulateModal, setShowSimulateModal] = useState(false);
-  const [simulating, setSimulating] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerStep, setRegisterStep] = useState('choice'); // 'choice' | 'scanning_face' | 'success' | 'fingerprint'
+  const [activeFaceAngle, setActiveFaceAngle] = useState('front'); // 'front' | 'left' | 'right'
+  const [faceScanStatus, setFaceScanStatus] = useState('Position your face in the circle');
+  const [registrationProgress, setRegistrationProgress] = useState(0);
+  const [faceTemplates, setFaceTemplates] = useState({ front: '', left: '', right: '' });
+
+  const registerCanvasRef = useRef(null);
+  const registerFrameId = useRef(null);
+  const [registerStream, setRegisterStream] = useState(null);
 
   // UPI Lock States
   const [isUpiUnlocked, setIsUpiUnlocked] = useState(false);
@@ -454,6 +472,7 @@ const SettingsPage = () => {
   const [cameraStream, setCameraStream] = useState(null);
   const videoRef = useRef(null);
   const [showUnlockSimulateModal, setShowUnlockSimulateModal] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
   const verifyBiometricOnServer = useCallback(async (credentialId) => {
     setVerifyingPassword(true);
@@ -527,15 +546,98 @@ const SettingsPage = () => {
 
     if (isFaceId) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        const loaded = await loadFaceApiModels();
+        if (!loaded) {
+          toast.error('Failed to load Face ID models');
+          return;
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' } });
         setCameraStream(stream);
         setSimulating(true);
         
         setTimeout(() => {
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
+            videoRef.current.play();
           }
-        }, 100);
+        }, 150);
+
+        let checkCount = 0;
+        let consecutiveMatches = 0;
+
+        const processVerificationFrame = async () => {
+          if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+            registerFrameId.current = requestAnimationFrame(processVerificationFrame);
+            return;
+          }
+
+          const detection = await detectFaceInVideo(videoRef.current);
+          if (!detection) {
+            checkCount++;
+            if (checkCount > 60) {
+              if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+              }
+              setCameraStream(null);
+              setSimulating(false);
+              setShowUnlockSimulateModal(false);
+              toast.error('Face verification timed out: No face detected');
+              return;
+            }
+            registerFrameId.current = requestAnimationFrame(processVerificationFrame);
+            return;
+          }
+
+          let registeredTemplate = user?.biometricFaceTemplate;
+          if (registeredTemplate) {
+            try {
+              const parsed = JSON.parse(registeredTemplate);
+              if (parsed && typeof parsed === 'object' && parsed.front) {
+                registeredTemplate = parsed.front;
+              }
+            } catch {
+              // Not an object
+            }
+          }
+
+          const { matched } = compareDescriptors(detection.descriptor, registeredTemplate);
+          if (matched) {
+            consecutiveMatches++;
+            if (consecutiveMatches >= 2) {
+              if (registerFrameId.current) {
+                cancelAnimationFrame(registerFrameId.current);
+                registerFrameId.current = null;
+              }
+              if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+              }
+              setCameraStream(null);
+              setSimulating(false);
+              setShowUnlockSimulateModal(false);
+              await verifyBiometricOnServer(user.biometricCredentialId);
+              return;
+            }
+          } else {
+            consecutiveMatches = 0;
+            checkCount++;
+            if (checkCount > 60) {
+              if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+              }
+              setCameraStream(null);
+              setSimulating(false);
+              setShowUnlockSimulateModal(false);
+              toast.error('Face verification failed: Identity not matched');
+              return;
+            }
+          }
+
+          registerFrameId.current = requestAnimationFrame(processVerificationFrame);
+        };
+
+        registerFrameId.current = requestAnimationFrame(processVerificationFrame);
+
       } catch (err) {
         console.error("Camera access failed:", err);
         toast.error("Camera access is required for Face ID verification");
@@ -543,16 +645,11 @@ const SettingsPage = () => {
       }
     } else {
       setSimulating(true);
+      setTimeout(async () => {
+        setSimulating(false);
+        await verifyBiometricOnServer(user.biometricCredentialId);
+      }, 3500);
     }
-
-    setTimeout(async () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setCameraStream(null);
-      }
-      setSimulating(false);
-      await verifyBiometricOnServer(user.biometricCredentialId);
-    }, 3500);
   }, [user, verifyBiometricOnServer]);
 
   const handleCloseUnlockModal = useCallback(() => {
@@ -607,73 +704,224 @@ const SettingsPage = () => {
     }
   };
 
-  const startSimulation = async () => {
-    setSimulating(true);
-    setTimeout(async () => {
-      setSimulating(false);
-      setShowSimulateModal(false);
-      try {
-        const mockCredentialId = `mock-fingerprint-id-${Date.now()}`;
+  // Refs for tracking active registration values without stale closures in animation frame loops
+  const activeFaceAngleRef = useRef('front');
+  const registrationProgressRef = useRef(0);
+  const faceTemplatesRef = useRef({ front: '', left: '', right: '' });
+
+  const cancelRegisterScan = useCallback(() => {
+    if (registerFrameId.current) {
+      cancelAnimationFrame(registerFrameId.current);
+      registerFrameId.current = null;
+    }
+    if (registerStream) {
+      registerStream.getTracks().forEach(track => track.stop());
+      setRegisterStream(null);
+    }
+  }, [registerStream]);
+
+  const startRegisterCameraScan = async () => {
+    activeFaceAngleRef.current = 'front';
+    setActiveFaceAngle('front');
+    registrationProgressRef.current = 0;
+    setRegistrationProgress(0);
+    faceTemplatesRef.current = { front: '', left: '', right: '' };
+    setFaceTemplates({ front: '', left: '', right: '' });
+    setFaceScanStatus('Loading Face ID AI models...');
+    setRegisterStep('scanning_face');
+
+    try {
+      const loaded = await loadFaceApiModels();
+      if (!loaded) {
+        toast.error('Failed to load Face ID AI models');
+        setRegisterStep('choice');
+        return;
+      }
+
+      setFaceScanStatus('Look straight at the camera');
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240, facingMode: 'user' }
+      });
+      setRegisterStream(stream);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 150);
+
+      const descriptors = { front: null, left: null, right: null };
+      let currentAngle = 'front';
+      let currentProgress = 0;
+
+      const processRegisterFrame = async () => {
+        if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+          registerFrameId.current = requestAnimationFrame(processRegisterFrame);
+          return;
+        }
+
+        const detection = await detectFaceInVideo(videoRef.current);
+
+        if (!detection) {
+          setFaceScanStatus('No Face Detected. Position your face in the circle.');
+          currentProgress = Math.max(0, currentProgress - 2);
+          setRegistrationProgress(currentProgress);
+        } else {
+          const angle = getFaceAngle(detection.landmarks);
+
+          if (currentAngle === 'front') {
+            setFaceScanStatus('Look straight at the camera (Aligning...)');
+            if (angle === 'front') {
+              currentProgress = Math.min(33, currentProgress + 4);
+              setRegistrationProgress(currentProgress);
+
+              if (currentProgress >= 33) {
+                descriptors.front = Array.from(detection.descriptor);
+                faceTemplatesRef.current.front = JSON.stringify(descriptors.front);
+                setFaceTemplates({ ...faceTemplatesRef.current });
+                
+                toast.success('Front face captured! Now slowly turn your head to the LEFT.');
+                currentAngle = 'left';
+                activeFaceAngleRef.current = 'left';
+                setActiveFaceAngle('left');
+              }
+            }
+          } else if (currentAngle === 'left') {
+            setFaceScanStatus('Slowly turn your head to the LEFT.');
+            if (angle === 'left') {
+              currentProgress = Math.min(66, currentProgress + 4);
+              setRegistrationProgress(currentProgress);
+
+              if (currentProgress >= 66) {
+                descriptors.left = Array.from(detection.descriptor);
+                faceTemplatesRef.current.left = JSON.stringify(descriptors.left);
+                setFaceTemplates({ ...faceTemplatesRef.current });
+                
+                toast.success('Left angle captured! Now slowly turn your head to the RIGHT.');
+                currentAngle = 'right';
+                activeFaceAngleRef.current = 'right';
+                setActiveFaceAngle('right');
+              }
+            }
+          } else if (currentAngle === 'right') {
+            setFaceScanStatus('Slowly turn your head to the RIGHT.');
+            if (angle === 'right') {
+              currentProgress = Math.min(100, currentProgress + 4);
+              setRegistrationProgress(currentProgress);
+
+              if (currentProgress >= 100) {
+                descriptors.right = Array.from(detection.descriptor);
+                faceTemplatesRef.current.right = JSON.stringify(descriptors.right);
+                setFaceTemplates({ ...faceTemplatesRef.current });
+
+                // Successfully captured all three angles
+                if (registerFrameId.current) {
+                  cancelAnimationFrame(registerFrameId.current);
+                  registerFrameId.current = null;
+                }
+                if (stream) {
+                  stream.getTracks().forEach(track => track.stop());
+                }
+                setRegisterStream(null);
+
+                // Save to backend database
+                try {
+                  const faceIdCredential = `face-id-${Date.now()}`;
+                  const faceTemplateJSON = JSON.stringify({
+                    front: descriptors.front,
+                    left: descriptors.left,
+                    right: descriptors.right
+                  });
+                  const { data } = await API.post('/auth/setup-security', {
+                    isBiometricEnabled: true,
+                    biometricCredentialId: faceIdCredential,
+                    biometricFaceTemplate: faceTemplateJSON
+                  });
+                  updateUser(data.data);
+                  toast.success('Face ID registered successfully!');
+                  setRegisterStep('success');
+                } catch (err) {
+                  toast.error('Failed to save Face ID settings');
+                  setRegisterStep('choice');
+                }
+                return;
+              }
+            }
+          }
+        }
+
+        registerFrameId.current = requestAnimationFrame(processRegisterFrame);
+      };
+
+      registerFrameId.current = requestAnimationFrame(processRegisterFrame);
+
+    } catch (err) {
+      console.error('Camera stream error:', err);
+      toast.error('Unable to access camera for Face ID registration');
+    }
+  };
+
+  const handleRegisterFingerprint = async () => {
+    if (!deviceSupportsBio) {
+      toast.error('Biometrics not supported on this device');
+      return;
+    }
+    
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const createOptions = {
+        publicKey: {
+          challenge,
+          rp: { name: "Digital Udhaar Khata" },
+          user: {
+            id: new TextEncoder().encode(user._id),
+            name: user.email,
+            displayName: user.name
+          },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+          authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            userVerification: "required"
+          },
+          timeout: 60000
+        }
+      };
+      
+      const credential = await navigator.credentials.create(createOptions);
+      if (credential) {
         const { data } = await API.post('/auth/setup-security', {
           isBiometricEnabled: true,
-          biometricCredentialId: mockCredentialId
+          biometricCredentialId: credential.id
         });
         updateUser(data.data);
-        toast.success('Biometric login enabled (Simulated)');
-      } catch (err) {
-        toast.error('Failed to enable biometric setting');
+        toast.success('Fingerprint registered successfully!');
+        setRegisterStep('success');
       }
-    }, 2000);
+    } catch (err) {
+      console.error('WebAuthn registration error:', err);
+      toast.error('Failed to register Fingerprint passkey');
+    }
   };
 
   const handleToggleBiometrics = async () => {
     if (user?.isBiometricEnabled) {
       try {
-        const { data } = await API.post('/auth/setup-security', { isBiometricEnabled: false });
+        const { data } = await API.post('/auth/setup-security', { 
+          isBiometricEnabled: false,
+          biometricFaceTemplate: '',
+          biometricCredentialId: ''
+        });
         updateUser(data.data);
         toast.success('Biometric login disabled');
       } catch (err) {
         toast.error('Failed to update biometric setting');
       }
     } else {
-      if (deviceSupportsBio) {
-        try {
-          const challenge = new Uint8Array(32);
-          window.crypto.getRandomValues(challenge);
-          const createOptions = {
-            publicKey: {
-              challenge,
-              rp: { name: "Udhaar Khata" },
-              user: {
-                id: new TextEncoder().encode(user._id),
-                name: user.email,
-                displayName: user.name
-              },
-              pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-              authenticatorSelection: {
-                authenticatorAttachment: "platform",
-                userVerification: "required"
-              },
-              timeout: 60000
-            }
-          };
-          const credential = await navigator.credentials.create(createOptions);
-          if (credential) {
-            const { data } = await API.post('/auth/setup-security', {
-              isBiometricEnabled: true,
-              biometricCredentialId: credential.id
-            });
-            updateUser(data.data);
-            toast.success('Biometric login enabled');
-          }
-        } catch (err) {
-          console.warn("WebAuthn error, falling back to simulated prompt:", err);
-          setShowSimulateModal(true);
-        }
-      } else {
-        // Fallback to simulated prompt directly if device doesn't support WebAuthn
-        setShowSimulateModal(true);
-      }
+      setRegisterStep('choice');
+      setShowRegisterModal(true);
     }
   };
 
@@ -863,6 +1111,7 @@ const SettingsPage = () => {
                 </label>
               </div>
             </div>
+
 
           </div>
         </div>
@@ -1112,50 +1361,140 @@ const SettingsPage = () => {
 
       </div>
 
-      {/* Simulated Biometric Authenticator Modal */}
-      {showSimulateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-deep-navy/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-pure-white border border-soft-gray p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
-            <div className="relative w-20 h-20 rounded-full bg-orange/10 flex items-center justify-center text-orange">
-              {simulating && (
-                <span className="absolute inset-0 rounded-full border-2 border-orange animate-ping opacity-75" />
-              )}
-              <svg className="w-10 h-10 text-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0-1.105-1.343-2-3-2s-3 .895-3 2M12 11c0 1.105 1.343 2 3 2s3-.895 3-2M12 11V7a3 3 0 10-6 0v4M12 11v4a3 3 0 106 0v-4m-6 8a7 7 0 100-14 7 7 0 000 14z" />
-              </svg>
-            </div>
+      {/* Real-time Biometric Registration Wizard Modal */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
             
-            <div>
-              <h2 className="text-lg font-bold text-deep-navy font-outfit">Biometric Verification</h2>
-              <p className="text-xs text-slate-gray mt-2 leading-relaxed">
-                {simulating 
-                  ? 'Configuring device authenticators...' 
-                  : 'Please approve the simulated device biometric request to enable biometric login.'}
-              </p>
-            </div>
-
-            <div className="w-full space-y-2.5">
-              {!simulating ? (
-                <>
-                  <button
-                    onClick={startSimulation}
-                    className="w-full py-3 px-4 bg-orange hover:bg-orange-hover text-white font-bold text-sm rounded-xl border-none cursor-pointer shadow-md transition-all"
-                  >
-                   Fingerprint Scan
-                  </button>
-                  <button
-                    onClick={() => setShowSimulateModal(false)}
-                    className="w-full py-2.5 px-4 bg-transparent border border-soft-gray text-slate-gray font-semibold text-sm rounded-xl cursor-pointer hover:bg-soft-white"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <div className="flex justify-center items-center py-4">
-                  <div className="w-8 h-8 border-4 border-orange border-t-transparent rounded-full animate-spin" />
+            {registerStep === 'choice' && (
+              <>
+                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mb-4 border border-red-100/50">
+                  <Shield className="w-6 h-6" />
                 </div>
-              )}
-            </div>
+                <h2 className="text-xl font-bold text-slate-900 font-outfit">Enable Secure Unlock</h2>
+                <p className="text-xs text-slate-500 mt-2 mb-6">Choose a biometric method to set up secure unlock for Digital Udhaar Khata.</p>
+
+                <div className="w-full space-y-3">
+                  <button
+                    onClick={startRegisterCameraScan}
+                    className="w-full py-3.5 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <LucideScan className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                      <span>Register Face ID</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handleRegisterFingerprint}
+                    disabled={!deviceSupportsBio}
+                    className={`w-full py-3.5 px-5 font-semibold text-sm rounded-2xl flex items-center justify-between border transition-all duration-200 active:scale-[0.99] cursor-pointer group ${
+                      deviceSupportsBio 
+                        ? 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300' 
+                        : 'bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <LucideFingerprint className={`w-5 h-5 ${deviceSupportsBio ? 'text-[#DC2626] group-hover:scale-110' : 'text-slate-300'} transition-all`} />
+                      <span>Register Fingerprint</span>
+                    </div>
+                    {!deviceSupportsBio && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-md">Unsupported</span>}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      cancelRegisterScan();
+                      setShowRegisterModal(false);
+                    }}
+                    className="w-full py-3 bg-transparent text-slate-400 hover:text-slate-600 font-semibold text-xs rounded-xl cursor-pointer transition-colors"
+                  >
+                    Cancel Setup
+                  </button>
+                </div>
+              </>
+            )}
+
+            {registerStep === 'scanning_face' && (
+              <>
+                <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#DC2626] bg-black flex items-center justify-center shadow-lg mb-6">
+                  {/* Real camera video preview */}
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#DC2626]/5 to-transparent animate-pulse" />
+                  
+                  {/* Concentric targets */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="absolute w-28 h-28 rounded-full border border-dashed border-[#DC2626]/40 animate-[spin_20s_linear_infinite]" />
+                    <div className="absolute w-32 h-32 rounded-full border border-dashed border-[#DC2626]/20 animate-[spin_30s_linear_infinite_reverse]" />
+                  </div>
+                  
+                  {/* Sliding scanning line */}
+                  {faceScanStatus.indexOf('No Face') === -1 && (
+                    <div className="absolute left-0 right-0 h-0.5 bg-[#DC2626] shadow-md shadow-red-600/80 animate-scan-line" />
+                  )}
+                </div>
+
+                <div className="px-4 py-1.5 rounded-full bg-red-50 text-[#DC2626] text-[10px] font-bold uppercase tracking-wider mb-3">
+                  Capture Angle: {activeFaceAngle}
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-900 font-outfit">
+                  {activeFaceAngle === 'front' && 'Position Front Angle'}
+                  {activeFaceAngle === 'left' && 'Slowly Look Left'}
+                  {activeFaceAngle === 'right' && 'Slowly Look Right'}
+                </h3>
+
+                <p className="text-xs text-slate-500 mt-2 mb-6 min-h-[32px] max-w-[280px]">
+                  {faceScanStatus}
+                </p>
+
+                {/* Progress bar */}
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-6">
+                  <div 
+                    className="bg-[#DC2626] h-full transition-all duration-150" 
+                    style={{ width: `${registrationProgress}%` }}
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    cancelRegisterScan();
+                    setRegisterStep('choice');
+                  }}
+                  className="w-full py-2.5 bg-transparent border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl cursor-pointer transition-colors"
+                >
+                  Back to Methods
+                </button>
+              </>
+            )}
+
+            {registerStep === 'success' && (
+              <>
+                <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-green-50 text-green-500 animate-success-circle border border-green-500/20 mb-6">
+                  <svg className="w-10 h-10 text-green-500 animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+
+                <h2 className="text-xl font-bold text-slate-900 font-outfit">Setup Successful</h2>
+                <p className="text-xs text-slate-500 mt-2 mb-6 leading-relaxed">
+                  Your secure biometrics have been registered and stored as encrypted signatures in your profile. You can now use them to unlock your account.
+                </p>
+
+                <button
+                  onClick={() => setShowRegisterModal(false)}
+                  className="w-full py-3 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl shadow-md transition-all cursor-pointer"
+                >
+                  Done
+                </button>
+              </>
+            )}
+
           </div>
         </div>
       )}
@@ -1318,80 +1657,136 @@ const SettingsPage = () => {
       )}
       {/* Simulated Biometric Lock Verification Modal */}
       {showUnlockSimulateModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-deep-navy/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-pure-white border border-soft-gray p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-5 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
-            <style>{scanStyles}</style>
-            {unlockSuccess ? (
-              <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-green-50 text-green-500 animate-success-circle border border-green-500/20">
-                <svg className="w-10 h-10 text-green-500 animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            ) : (simulating && !user?.biometricCredentialId?.includes('fingerprint')) ? (
-              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-orange bg-black flex items-center justify-center shadow-lg">
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  className="w-full h-full object-cover scale-x-[-1]"
-                />
-                <FaceBiometricGrid />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange/10 to-transparent animate-pulse" />
-                <div className="absolute left-0 right-0 h-0.5 bg-orange shadow-md shadow-orange/80 animate-scan-line" />
-              </div>
-            ) : (
-              <div className="relative w-20 h-20 rounded-full bg-orange/10 flex items-center justify-center text-orange">
-                {simulating && (
-                  <span className="absolute inset-0 rounded-full border-2 border-orange animate-ping opacity-75" />
-                )}
-                {user?.biometricCredentialId?.includes('fingerprint') ? (
-                  <FingerprintIcon className="w-10 h-10" />
-                ) : (
-                  <FaceIdIcon className="w-10 h-10" />
-                )}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
+            {/* Top Shield Icon Badge (visible when not scanning/success) */}
+            {!simulating && !unlockSuccess && (
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mb-4 border border-red-100/50">
+                <Shield className="w-5 h-5" />
               </div>
             )}
-            
-            <div>
-              <h2 className="text-lg font-bold text-deep-navy font-outfit">
-                {unlockSuccess ? 'Identity Verified' : 'Biometric Unlock'}
-              </h2>
-              <p className="text-xs text-slate-gray mt-2 leading-relaxed">
-                {unlockSuccess 
-                  ? 'Access granted. Identity confirmed!' 
-                  : simulating 
-                    ? 'Verifying biometric scan...' 
-                    : 'Place your finger on the scanner or check your camera to unlock.'}
-              </p>
-            </div>
 
-            <div className="w-full space-y-2.5">
-              {unlockSuccess ? (
-                <div className="text-green-500 font-bold text-sm py-2 flex items-center justify-center gap-2 animate-bounce">
+            {unlockSuccess ? (
+              /* Success View */
+              <>
+                <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-green-50 text-green-500 animate-success-circle border border-green-500/20 mb-4">
+                  <svg className="w-10 h-10 text-green-500 animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 font-outfit">Identity Verified</h2>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  Access granted. Identity confirmed!
+                </p>
+                <div className="w-full mt-6 text-green-600 font-semibold text-sm py-2 flex items-center justify-center gap-2 animate-bounce">
                   <span>Unlocking field...</span>
                 </div>
-              ) : !simulating ? (
-                <>
-                  <button
-                    onClick={startUnlockSimulation}
-                    className="w-full py-3 px-4 bg-orange hover:bg-orange-hover text-white font-bold text-sm rounded-xl border-none cursor-pointer shadow-md transition-all"
-                  >
-                    Unlock with {user?.biometricCredentialId?.includes('fingerprint') ? 'Fingerprint' : 'Face'} ID
-                  </button>
+              </>
+            ) : simulating ? (
+              /* Simulated Verification Scan View */
+              <>
+                {/* Visual Scanner */}
+                {!user?.biometricCredentialId?.includes('fingerprint') ? (
+                  /* Face ID Scanner Video view */
+                  <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#DC2626] bg-black flex items-center justify-center shadow-lg mb-6">
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      muted 
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                    <FaceBiometricGrid />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#DC2626]/10 to-transparent animate-pulse" />
+                    <div className="absolute left-0 right-0 h-0.5 bg-[#DC2626] shadow-md shadow-red-600/80 animate-scan-line" />
+                  </div>
+                ) : (
+                  /* Fingerprint Ripple view */
+                  <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+                    {/* Concentric ripples */}
+                    <div className="absolute inset-0 rounded-full bg-red-100/50 border border-red-200/50 animate-ripple" style={{ animationDelay: '0s' }} />
+                    <div className="absolute inset-0 rounded-full bg-red-100/50 border border-red-200/50 animate-ripple" style={{ animationDelay: '0.6s' }} />
+                    <div className="absolute inset-0 rounded-full bg-red-100/50 border border-red-200/50 animate-ripple" style={{ animationDelay: '1.2s' }} />
+                    
+                    <div className="relative w-16 h-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-[#DC2626] shadow-sm">
+                      <LucideFingerprint className="w-8 h-8" />
+                    </div>
+                  </div>
+                )}
+                
+                <h2 className="text-lg font-bold text-slate-900 font-outfit">
+                  {!user?.biometricCredentialId?.includes('fingerprint') ? 'Scanning Face ID' : 'Verifying Fingerprint'}
+                </h2>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  {!user?.biometricCredentialId?.includes('fingerprint') 
+                    ? 'Please position your face in the camera frame.' 
+                    : 'Place your finger on the device fingerprint reader.'}
+                </p>
+
+                <div className="w-full mt-6 space-y-2">
+                  <div className="flex justify-center items-center py-2">
+                    <div className="w-6 h-6 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+                  </div>
                   <button
                     onClick={handleCloseUnlockModal}
-                    className="w-full py-2.5 px-4 bg-transparent border border-soft-gray text-slate-gray font-semibold text-sm rounded-xl cursor-pointer hover:bg-soft-white"
+                    className="w-full py-2 bg-transparent text-slate-400 hover:text-slate-600 font-semibold text-xs rounded-xl cursor-pointer transition-colors"
                   >
-                    Cancel
+                    Cancel Scan
                   </button>
-                </>
-              ) : (
-                <div className="flex justify-center items-center py-4">
-                  <div className="w-8 h-8 border-4 border-orange border-t-transparent rounded-full animate-spin" />
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              /* Menu: Unlock Methods Selection View */
+              <>
+                <h2 className="text-lg font-bold text-slate-900 font-outfit">Unlock Your Account</h2>
+                <p className="text-xs text-slate-500 mt-1.5 mb-6">Choose a secure way to continue.</p>
+
+                <div className="w-full space-y-3">
+                  {/* Face ID Button - visible only if supported/setup */}
+                  {user?.isBiometricEnabled && !user?.biometricCredentialId?.includes('fingerprint') && (
+                    <button
+                      onClick={startUnlockSimulation}
+                      className="w-full py-3.5 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <LucideScan className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                        <span>Continue with Face ID</span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Fingerprint Button - visible only if supported/setup */}
+                  {user?.isBiometricEnabled && user?.biometricCredentialId?.includes('fingerprint') && (
+                    <button
+                      onClick={startUnlockSimulation}
+                      className="w-full py-3.5 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <LucideFingerprint className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                        <span>Use Fingerprint</span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Cancel Button */}
+                  <button
+                    onClick={handleCloseUnlockModal}
+                    className="w-full py-3.5 px-5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 hover:border-slate-300 active:scale-[0.99] cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <LucideLock className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                      <span>Cancel</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Footer Protected Message */}
+                <div className="flex items-center gap-1.5 mt-6 text-slate-400">
+                  <Shield className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[11px] font-medium tracking-wide">Your data is protected and encrypted</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
