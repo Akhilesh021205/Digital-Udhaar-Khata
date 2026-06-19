@@ -911,44 +911,51 @@ const CustomerDetailPage = () => {
             />
           </div>
 
-          {/* Camera Capture for Product Photo / Proof */}
-          <div className="space-y-1.5 pt-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Product or Bill Photo</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                id="txn-camera-input"
-                className="hidden"
-                onChange={handleTxnPhotoChange}
-              />
+          {/* Add Image (camera / gallery) button */}
+          <div className="pt-1">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Product / Bill Photo</label>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              id="txn-camera-input"
+              className="hidden"
+              onChange={handleTxnPhotoChange}
+            />
+            {!billImageBase64 ? (
               <button
                 type="button"
                 onClick={() => document.getElementById('txn-camera-input').click()}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-soft-gray hover:border-slate-350 text-deep-navy rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 hover:border-orange text-gray-600 hover:text-orange rounded-xl text-sm font-medium cursor-pointer transition-colors"
               >
-                <HiOutlineCamera size={15} className="text-orange" />
-                <span>Take Product Photo</span>
+                <HiOutlineCamera size={18} className="text-orange" />
+                <span>Add Image</span>
               </button>
-
-              {billImageBase64 && (
-                <button
-                  type="button"
-                  onClick={() => setBillImageBase64('')}
-                  className="px-3 py-2 bg-red-give/10 hover:bg-red-give/20 border border-red-give/20 hover:border-red-give/30 text-red-give rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
-                >
-                  Remove Photo
-                </button>
-              )}
-            </div>
-            {billImageBase64 && (
-              <div className="mt-2 relative w-24 h-24 border border-soft-gray rounded-xl overflow-hidden shadow-sm">
-                <img
-                  src={billImageBase64}
-                  alt="Product/Bill Preview"
-                  className="w-full h-full object-cover"
-                />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="relative w-20 h-20 shrink-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <img
+                    src={billImageBase64}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('txn-camera-input').click()}
+                    className="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg cursor-pointer transition-colors border-none"
+                  >
+                    Change Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillImageBase64('')}
+                    className="px-3 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg cursor-pointer transition-colors border-none"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1102,44 +1109,51 @@ const CustomerDetailPage = () => {
             </div>
           )}
 
-          {/* Camera Capture for Product Photo / Proof in edit */}
-          <div className="space-y-1.5 pt-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Product or Bill Photo</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                id="edit-txn-camera-input"
-                className="hidden"
-                onChange={handleEditTxnPhotoChange}
-              />
+          {/* Add Image (camera / gallery) button – edit modal */}
+          <div className="pt-1">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Product / Bill Photo</label>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              id="edit-txn-camera-input"
+              className="hidden"
+              onChange={handleEditTxnPhotoChange}
+            />
+            {!editBillImageBase64 ? (
               <button
                 type="button"
                 onClick={() => document.getElementById('edit-txn-camera-input').click()}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-soft-gray hover:border-slate-350 text-deep-navy rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 hover:border-orange text-gray-600 hover:text-orange rounded-xl text-sm font-medium cursor-pointer transition-colors"
               >
-                <HiOutlineCamera size={15} className="text-orange" />
-                <span>Take Product Photo</span>
+                <HiOutlineCamera size={18} className="text-orange" />
+                <span>Add Image</span>
               </button>
-
-              {editBillImageBase64 && (
-                <button
-                  type="button"
-                  onClick={() => setEditBillImageBase64('')}
-                  className="px-3 py-2 bg-red-give/10 hover:bg-red-give/20 border border-red-give/20 hover:border-red-give/30 text-red-give rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
-                >
-                  Remove Photo
-                </button>
-              )}
-            </div>
-            {editBillImageBase64 && (
-              <div className="mt-2 relative w-24 h-24 border border-soft-gray rounded-xl overflow-hidden shadow-sm">
-                <img
-                  src={editBillImageBase64}
-                  alt="Product/Bill Preview"
-                  className="w-full h-full object-cover"
-                />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="relative w-20 h-20 shrink-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <img
+                    src={editBillImageBase64}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('edit-txn-camera-input').click()}
+                    className="px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg cursor-pointer transition-colors border-none"
+                  >
+                    Change Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditBillImageBase64('')}
+                    className="px-3 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg cursor-pointer transition-colors border-none"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             )}
           </div>

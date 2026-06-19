@@ -85,16 +85,8 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
 
   return (
     <>
-      <header className="fixed top-0 right-0 left-0 h-18 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-soft-white/80 backdrop-blur-md border-b border-soft-gray z-40">
-      <div className="flex items-center">
-        <button 
-          className="lg:hidden mr-3 p-2 text-slate-gray hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-none" 
-          onClick={toggleSidebar}
-          id="menu-toggle"
-        >
-          <HiOutlineMenuAlt2 size={22} />
-        </button>
-
+      <header className="fixed top-0 right-0 left-0 h-18 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm z-40">
+      <div className="flex items-center gap-3">
         {/* Logo and App Name (Desktop only) */}
         <div className="hidden lg:flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-pure-white border border-soft-gray flex items-center justify-center p-1.5 shadow-sm shrink-0">
@@ -106,13 +98,18 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
           </div>
         </div>
 
-        {/* Vertical Divider */}
-        <div className="hidden lg:block w-px h-8 bg-soft-gray/80 mx-4" />
+        {/* Mobile: show logo icon */}
+        <div className="lg:hidden w-9 h-9 rounded-xl bg-pure-white border border-soft-gray flex items-center justify-center p-1.5 shadow-sm shrink-0">
+          <Logo />
+        </div>
+
+        {/* Vertical Divider – desktop only */}
+        <div className="hidden lg:block w-px h-8 bg-soft-gray/80 mx-1" />
 
         <div>
-          <h1 className="text-base lg:text-lg font-bold text-deep-navy leading-none">{title}</h1>
+          <h1 className="text-base lg:text-lg font-semibold text-deep-navy leading-tight tracking-tight">{title}</h1>
           {subtitle && (
-            <p className="text-[10px] lg:text-xs text-slate-gray mt-1 leading-none">
+            <p className="hidden sm:block text-[10px] lg:text-xs text-slate-gray mt-0.5 leading-none">
               {subtitle}
             </p>
           )}

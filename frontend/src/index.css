@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Mobile safe area (iPhone notch / home indicator) */
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Mobile: optimize font rendering and disable tap highlight */
+@media (max-width: 1024px) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
