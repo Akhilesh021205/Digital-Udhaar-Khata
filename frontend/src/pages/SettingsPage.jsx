@@ -5,8 +5,9 @@ import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import Header from '../components/Layout/Header';
 import { toast } from 'react-toastify';
-import { HiPlus, HiEye, HiEyeOff } from 'react-icons/hi';
+import { HiPlus, HiEye, HiEyeOff, HiOutlineX } from 'react-icons/hi';
 import { HiOutlineFingerPrint } from 'react-icons/hi';
+import { FaQrcode } from 'react-icons/fa';
 import { 
   FiCloud, 
   FiRefreshCw, 
@@ -446,13 +447,15 @@ const SettingsPage = () => {
 
   // UPI Lock States
   const [isUpiUnlocked, setIsUpiUnlocked] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [upiView, setUpiView] = useState('lock'); // 'lock' | 'otp' | 'form'
   const [verifyPasswordInput, setVerifyPasswordInput] = useState('');
   const [verifyingPassword, setVerifyingPassword] = useState(false);
-  const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [showModalPassword, setShowModalPassword] = useState(false);
+  const [upiIdInput, setUpiIdInput] = useState(user?.upiId || '');
+  const [savingUpi, setSavingUpi] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   useEffect(() => {
     const checkBiometricSupport = async () => {
@@ -483,7 +486,7 @@ const SettingsPage = () => {
       
       setTimeout(() => {
         setIsUpiUnlocked(true);
-        setShowPasswordModal(false);
+        setUpiView('form');
         setShowUnlockSimulateModal(false);
         setUnlockSuccess(false);
         toast.success('UPI ID settings unlocked');
@@ -669,15 +672,244 @@ const SettingsPage = () => {
     };
   }, [cameraStream]);
 
-  // Auto trigger biometrics on mount/open of modal if enabled
+  // Auto trigger biometrics when mobile drawer opens if enabled
   useEffect(() => {
-    if (showPasswordModal && user?.isBiometricEnabled) {
+    if (mobileDrawerOpen && upiView === 'lock' && user?.isBiometricEnabled) {
       const timer = setTimeout(() => {
         handleBiometricAuth();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [showPasswordModal, user, handleBiometricAuth]);
+  }, [mobileDrawerOpen, upiView, user, handleBiometricAuth]);
+
+  const handleVerifyPassword = async (e) => {
+    e.preventDefault();
+    setVerifyingPassword(true);
+    try {
+      await API.post('/auth/verify-password', { password: verifyPasswordInput });
+      setIsUpiUnlocked(true);
+      setUpiView('form');
+      toast.success('UPI ID settings unlocked');
+    } catch (err) {
+      if (err.response?.data?.requireEmailOtp) {
+        setUpiView('otp');
+        setOtpInput('');
+        toast.info('Verification OTP sent to your registered email address.');
+      } else {
+        toast.error(err.response?.data?.message || 'Incorrect password.');
+      }
+    } finally {
+      setVerifyingPassword(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setVerifyingOtp(true);
+    try {
+      await API.post('/auth/verify-email-otp', { otp: otpInput });
+      setIsUpiUnlocked(true);
+      setUpiView('form');
+      toast.success('UPI ID settings unlocked');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Invalid or expired OTP.');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleSaveUpi = async (e) => {
+    e.preventDefault();
+    setSavingUpi(true);
+    try {
+      const { data } = await API.put('/auth/me', {
+        ...form,
+        upiId: upiIdInput
+      });
+      updateUser(data.data);
+      setForm(prev => ({ ...prev, upiId: upiIdInput }));
+      toast.success('UPI ID updated successfully');
+      setMobileDrawerOpen(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update UPI ID');
+    } finally {
+      setSavingUpi(false);
+    }
+  };
+
+  const renderUpiSettingsContent = () => {
+    return (
+      <div className="text-left">
+        {/* Lock View */}
+        {!isUpiUnlocked && upiView === 'lock' && (
+          <form onSubmit={handleVerifyPassword} className="space-y-5">
+            <div className="flex items-start gap-3 p-4 bg-light-cream/40 border border-soft-gray rounded-xl">
+              <div className="w-9 h-9 rounded-lg bg-orange/10 flex items-center justify-center text-orange flex-shrink-0 mt-0.5">
+                <LucideLock size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-deep-navy m-0">Security Unlock Required</h4>
+                <p className="text-[10px] text-slate-gray m-0 mt-1 leading-relaxed">
+                  UPI settings routing controls settlement payments. Please enter your password to unlock.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-gray uppercase tracking-wider">Account Password</label>
+              <div className="relative flex items-center">
+                <input
+                  type={showModalPassword ? "text" : "password"}
+                  required
+                  placeholder="Enter login password"
+                  value={verifyPasswordInput}
+                  onChange={(e) => setVerifyPasswordInput(e.target.value)}
+                  className="w-full pl-4 pr-12 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowModalPassword(!showModalPassword)}
+                  className="absolute right-3 text-slate-gray/70 hover:text-deep-navy cursor-pointer flex items-center justify-center p-1.5 hover:bg-soft-gray/20 rounded-lg transition-all border-none bg-none"
+                >
+                  {showModalPassword ? <HiEye size={18} /> : <HiEyeOff size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={verifyingPassword}
+              className="w-full py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl border-none cursor-pointer shadow-sm transition-colors flex items-center justify-center"
+            >
+              {verifyingPassword ? (
+                <span className="w-4 h-4 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                'Verify & Unlock'
+              )}
+            </button>
+
+            {user?.isBiometricEnabled && (
+              <div className="flex flex-col items-center justify-center pt-4 border-t border-soft-gray/50 mt-4">
+                <span className="text-[10px] font-bold text-slate-gray uppercase tracking-wider mb-2.5">Or Unlock With Biometrics</span>
+                <button
+                  type="button"
+                  onClick={handleBiometricAuth}
+                  disabled={verifyingPassword}
+                  className="w-12 h-12 rounded-full bg-orange/10 border border-orange/20 flex items-center justify-center text-orange hover:bg-orange hover:text-white hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  title="Unlock with Fingerprint or Face ID"
+                >
+                  <HiOutlineFingerPrint size={24} />
+                </button>
+              </div>
+            )}
+          </form>
+        )}
+
+        {/* OTP Verification View */}
+        {!isUpiUnlocked && upiView === 'otp' && (
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-red-give/10 border border-red-give/20 rounded-xl">
+              <div className="w-9 h-9 rounded-lg bg-red-give/10 flex items-center justify-center text-red-give flex-shrink-0 mt-0.5">
+                <LucideLock size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-deep-navy m-0">Email Verification Required</h4>
+                <p className="text-[10px] text-slate-gray m-0 mt-1 leading-relaxed">
+                  We've sent a 6-digit verification code to your email. Enter it below to unlock.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-slate-gray uppercase tracking-wider">6-Digit Verification Code</label>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                placeholder="e.g. 123456"
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm text-center font-bold tracking-[8px] focus:outline-none focus:border-orange transition-all"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={verifyingOtp}
+                className="flex-1 py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl border-none cursor-pointer shadow-sm transition-colors flex items-center justify-center"
+              >
+                {verifyingOtp ? (
+                  <span className="w-4 h-4 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  'Verify Code'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUpiView('lock')}
+                className="flex-1 py-2.5 bg-transparent border border-soft-gray text-slate-gray font-semibold text-xs rounded-xl cursor-pointer hover:bg-soft-white transition-colors"
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Unlocked Form / QR View */}
+        {isUpiUnlocked && upiView === 'form' && (
+          <form onSubmit={handleSaveUpi} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Your UPI ID (VPA)</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g., storeowner@upi"
+                value={upiIdInput}
+                onChange={(e) => setUpiIdInput(e.target.value)}
+                className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all"
+              />
+              <p className="text-[9.5px] text-slate-gray leading-relaxed">
+                Used to automatically generate secure settlement QR links for ledger transactions.
+              </p>
+            </div>
+
+            {/* QR Code Preview Block */}
+            {upiIdInput && (
+              <div className="p-4 bg-light-cream/40 border border-soft-gray rounded-xl flex flex-col items-center gap-3 mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="bg-pure-white border border-soft-gray/60 p-2.5 rounded-xl shadow-xs animate-in zoom-in-95 duration-300">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                      `upi://pay?pa=${upiIdInput}&pn=${encodeURIComponent(user?.storeName || 'Merchant')}&cu=INR`
+                    )}`} 
+                    alt="Store UPI QR Code" 
+                    className="w-28 h-28 object-contain block bg-pure-white rounded-lg"
+                  />
+                </div>
+                <div className="text-center">
+                  <span className="text-[10px] font-bold text-deep-navy block">Store Payment QR Preview</span>
+                  <span className="text-[9px] text-slate-gray mt-0.5 block font-mono font-bold text-orange">{upiIdInput}</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={savingUpi}
+              className="w-full py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl border-none cursor-pointer shadow-sm transition-colors flex items-center justify-center"
+            >
+              {savingUpi ? (
+                <span className="w-4 h-4 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+          </form>
+        )}
+      </div>
+    );
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -928,7 +1160,8 @@ const SettingsPage = () => {
   return (
     <>
       <Header title={t('settings')} subtitle={t('manageProfile')} />
-      <div className="space-y-6 max-w-xl mx-auto md:mx-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto lg:mx-0">
+        <div className="lg:col-span-7 space-y-6">
         
         {/* Profile Card */}
         <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
@@ -1047,6 +1280,33 @@ const SettingsPage = () => {
             </div>
 
 
+          </div>
+        </div>
+
+        {/* Mobile UPI Card (visible only on mobile) */}
+        <div className="block lg:hidden bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
+                <FaQrcode size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-deep-navy m-0">UPI Payments & QR</h4>
+                <p className="text-xs text-slate-gray m-0 mt-0.5 leading-relaxed">
+                  {user?.upiId ? `Active VPA: ${user.upiId}` : 'Set up UPI to generate dynamic customer payment QR codes.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setUpiIdInput(user?.upiId || '');
+                setMobileDrawerOpen(true);
+              }}
+              className="px-4 py-2 bg-light-cream border border-soft-gray hover:border-orange rounded-xl text-xs font-bold text-deep-navy hover:text-orange transition-colors cursor-pointer"
+            >
+              Configure
+            </button>
           </div>
         </div>
 
@@ -1292,7 +1552,33 @@ const SettingsPage = () => {
             )}
           </button>
         </div>
+      </div>
 
+        {/* Right Column: UPI Settings (Desktop View - hidden on mobile) */}
+        <div className="hidden lg:block lg:col-span-5">
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm sticky top-24">
+            <div className="flex items-center justify-between pb-4 border-b border-soft-gray/50 mb-5">
+              <h3 className="text-lg font-bold text-deep-navy m-0 flex items-center gap-2">
+                <FaQrcode className="text-orange" size={20} />
+                <span>UPI Payment Settings</span>
+              </h3>
+              {isUpiUnlocked && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUpiUnlocked(false);
+                    setUpiView('lock');
+                  }}
+                  className="text-xs font-bold text-slate-gray hover:text-orange transition-colors cursor-pointer border-none bg-none flex items-center gap-1"
+                >
+                  <LucideLock size={14} /> Lock Settings
+                </button>
+              )}
+            </div>
+
+            {renderUpiSettingsContent()}
+          </div>
+        </div>
       </div>
 
       {/* Real-time Biometric Registration Wizard Modal */}
@@ -1566,6 +1852,41 @@ const SettingsPage = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile UPI Bottom Sheet Drawer */}
+      {mobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center lg:hidden">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setMobileDrawerOpen(false)}
+            className="absolute inset-0 bg-deep-navy/40 backdrop-blur-xs animate-in fade-in duration-200" 
+          />
+          {/* Drawer Panel */}
+          <div className="relative w-full max-h-[85vh] bg-pure-white rounded-t-[32px] border-t border-soft-gray p-6 shadow-2xl overflow-y-auto z-10 animate-in slide-in-from-bottom duration-300 flex flex-col font-sans text-deep-navy">
+            {/* Swiper handle */}
+            <div className="w-12 h-1.5 bg-soft-gray rounded-full mx-auto mb-5 shrink-0" onClick={() => setMobileDrawerOpen(false)} />
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-soft-gray/50 mb-5 shrink-0">
+              <h3 className="text-base font-bold text-deep-navy m-0 flex items-center gap-2">
+                <FaQrcode className="text-orange" size={18} />
+                <span>UPI Payment Settings</span>
+              </h3>
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                className="p-1 hover:bg-soft-gray/20 rounded-lg cursor-pointer transition-colors border-none bg-none text-slate-gray"
+              >
+                <HiOutlineX size={18} />
+              </button>
+            </div>
+
+            {/* Inner Content */}
+            <div className="flex-1 overflow-y-auto pb-4">
+              {renderUpiSettingsContent()}
+            </div>
           </div>
         </div>
       )}

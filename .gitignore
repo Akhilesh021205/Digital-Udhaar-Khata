@@ -3,6 +3,8 @@ node_modules/
 *.log
 build/
 .DS_Store
+Backend/mongodb-data/
+Backend/scratch/
 
 
 

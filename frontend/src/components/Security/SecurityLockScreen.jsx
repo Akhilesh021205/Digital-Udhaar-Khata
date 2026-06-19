@@ -73,7 +73,6 @@ const SecurityLockScreen = ({ onUnlock }) => {
   const [cameraStream, setCameraStream] = useState(null);
 
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const animationFrameId = useRef(null);
   const livenessDetector = useRef(new FaceLivenessChecker());
 
@@ -163,8 +162,17 @@ const SecurityLockScreen = ({ onUnlock }) => {
   const startCameraScan = async () => {
     setLivenessVerified(false);
     setMatchScore(0);
-    setBiometricStatus('Waiting for Face');
+    setBiometricStatus('Loading security AI models...');
     livenessDetector.current.reset();
+
+    const loaded = await loadFaceApiModels();
+    if (!loaded) {
+      toast.error('Failed to load Face ID AI models');
+      setShowBiometricModal(false);
+      return;
+    }
+
+    setBiometricStatus('Waiting for Face');
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -177,50 +185,64 @@ const SecurityLockScreen = ({ onUnlock }) => {
         videoRef.current.play();
       }
 
-      // Initialize hidden processing canvas
-      if (!canvasRef.current) {
-        canvasRef.current = document.createElement('canvas');
-        canvasRef.current.width = 160;
-        canvasRef.current.height = 120;
-      }
-
       // Process loop
       let consecutiveMatches = 0;
       let checkCount = 0;
 
-      const processFrame = () => {
-        if (!videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended) {
+      const processFrame = async () => {
+        if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
           animationFrameId.current = requestAnimationFrame(processFrame);
           return;
         }
 
-        const res = detectFaceInFrame(videoRef.current, canvasRef.current);
+        const detection = await detectFaceInVideo(videoRef.current);
 
-        if (!res.facePresent) {
+        if (!detection) {
           setBiometricStatus('No Face Detected');
           consecutiveMatches = 0;
         } else {
           setBiometricStatus('Face Detected');
           checkCount++;
 
-          // 1. Analyze Liveness (Require blink, turn, or smile)
-          const liveness = livenessDetector.current.analyzeFrame(canvasRef.current, res.boundingBox, res.centroid);
+          // 1. Process Liveness
+          livenessDetector.current.processFrame(detection);
+          const livenessValid = livenessDetector.current.isLivenessValid();
 
-          if (!livenessVerified) {
-            setBiometricStatus('Face Detected. Please blink to verify liveness.');
-            if (liveness.blink || liveness.smile || liveness.headTurnLeft || liveness.headTurnRight) {
-              setLivenessVerified(true);
-              toast.success('Liveness Verified!');
-            }
+          if (!livenessValid) {
+            setBiometricStatus('Face Detected. Please blink or move head to verify liveness.');
           } else {
-            // 2. Perform template comparison
+            setLivenessVerified(true);
             setBiometricStatus('Verifying Identity');
 
-            const liveTemplate = extractFaceTemplate(videoRef.current, res.boundingBox);
-            const score = compareFaceTemplates(liveTemplate, user?.biometricFaceTemplate);
-            setMatchScore(score);
+            // 2. Perform template comparison
+            let bestScore = 0;
+            let isMatched = false;
+            try {
+              const templates = typeof user?.biometricFaceTemplate === 'string'
+                ? JSON.parse(user.biometricFaceTemplate)
+                : user?.biometricFaceTemplate;
 
-            if (score >= 75) {
+              if (templates) {
+                const angles = ['front', 'left', 'right'];
+                for (const angle of angles) {
+                  if (templates[angle]) {
+                    const comparison = compareDescriptors(detection.descriptor, templates[angle]);
+                    if (comparison.score > bestScore) {
+                      bestScore = comparison.score;
+                    }
+                    if (comparison.matched) {
+                      isMatched = true;
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("Template parse/compare error:", err);
+            }
+
+            setMatchScore(bestScore);
+
+            if (isMatched || bestScore >= 75) {
               consecutiveMatches++;
               if (consecutiveMatches >= 3) {
                 // Verified successfully
@@ -310,13 +332,30 @@ const SecurityLockScreen = ({ onUnlock }) => {
     }
   };
 
-  // Open modal and show selection of biometric unlock methods
+  // Open modal and immediately trigger registered biometric unlock method
   const triggerBiometricSelection = () => {
-    if (user?.isBiometricEnabled) {
-      setActiveScanType('choice');
-      setShowBiometricModal(true);
-    } else {
+    if (!user?.isBiometricEnabled) {
       toast.warning('Biometric authentication is not enabled or registered for this account');
+      return;
+    }
+
+    const isFaceId = user.biometricCredentialId?.startsWith('face-id-');
+    if (isFaceId) {
+      if (!hasCamera) {
+        toast.error('Camera is not available for Face ID unlock.');
+        return;
+      }
+      setActiveScanType('face');
+      setShowBiometricModal(true);
+      setTimeout(() => startCameraScan(), 150);
+    } else {
+      if (!deviceSupportsBio) {
+        toast.error('Device does not support fingerprint/platform unlock.');
+        return;
+      }
+      setActiveScanType('fingerprint');
+      setShowBiometricModal(true);
+      setTimeout(() => handleFingerprintAuth(), 150);
     }
   };
 
@@ -396,7 +435,10 @@ const SecurityLockScreen = ({ onUnlock }) => {
           ))}
 
           {/* Biometrics key */}
-          {user?.isBiometricEnabled && (hasCamera || deviceSupportsBio) ? (
+          {user?.isBiometricEnabled && (
+            (user.biometricCredentialId?.startsWith('face-id-') && hasCamera) ||
+            (!user.biometricCredentialId?.startsWith('face-id-') && deviceSupportsBio)
+          ) ? (
             <button
               type="button"
               onClick={triggerBiometricSelection}
@@ -404,7 +446,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
               className="w-16 h-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
               title="Authenticate using Device Biometrics"
             >
-              {hasCamera ? (
+              {user.biometricCredentialId?.startsWith('face-id-') ? (
                 <LucideScan size={24} />
               ) : (
                 <LucideFingerprint size={24} />
@@ -446,178 +488,95 @@ const SecurityLockScreen = ({ onUnlock }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
 
-            {activeScanType === 'choice' && (
-              <>
-                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mb-4 border border-red-100/50">
-                  <Shield className="w-6 h-6" />
+            {unlockSuccess ? (
+              /* Success View */
+              <div className="py-6 flex flex-col items-center">
+                <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-green-50 text-green-500 animate-success-circle border border-green-500/20 mb-4">
+                  <svg className="w-10 h-10 text-green-500 animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 font-outfit">Unlock Your Account</h2>
-                <p className="text-xs text-slate-500 mt-2 mb-6">Choose a secure way to continue.</p>
-
-                <div className="w-full space-y-3">
-                  {/* Face ID option */}
-                  {hasCamera && (
-                    <button
-                      onClick={() => {
-                        if (!user?.biometricFaceTemplate && !user?.biometricCredentialId?.startsWith('face-id-')) {
-                          toast.error('Face ID is not registered for this account. Please enable it in Settings.');
-                          return;
-                        }
-                        setActiveScanType('face');
-                        setTimeout(() => startCameraScan(), 150);
-                      }}
-                      className="w-full py-3.5 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <LucideScan className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                        <span>Continue with Face ID</span>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Fingerprint option */}
-                  {deviceSupportsBio && (
-                    <button
-                      onClick={() => {
-                        if (!user?.biometricCredentialId || user?.biometricCredentialId?.startsWith('face-id-')) {
-                          toast.error('Fingerprint is not registered for this account. Please enable it in Settings.');
-                          return;
-                        }
-                        setActiveScanType('fingerprint');
-                        setTimeout(() => handleFingerprintAuth(), 150);
-                      }}
-                      className="w-full py-3.5 px-5 font-semibold text-sm rounded-2xl flex items-center justify-between border bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300 transition-all duration-200 active:scale-[0.99] cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <LucideFingerprint className="w-5 h-5 text-[#DC2626] group-hover:scale-110 transition-all" />
-                        <span>Use Fingerprint</span>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* PIN Option - Always visible */}
-                  <button
-                    onClick={handleCloseBiometricModal}
-                    className="w-full py-3.5 px-5 font-semibold text-sm rounded-2xl flex items-center justify-between border bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300 transition-all duration-200 active:scale-[0.99] cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <LucideLock className="w-5 h-5 text-[#DC2626] group-hover:scale-110 transition-all" />
-                      <span>Enter PIN</span>
-                    </div>
-                  </button>
-
-                  <div className="pt-4 border-t border-slate-100 mt-2 text-center">
-                    <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1">
-                      <Shield className="w-3 h-3 text-[#DC2626]" /> Your data is encrypted and protected
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeScanType !== 'choice' && (
+                <h2 className="text-xl font-bold text-slate-900 font-outfit">Identity Verified</h2>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  Unlocking your account...
+                </p>
+              </div>
+            ) : (
+              /* Scanning/Processing View */
               <>
-                {unlockSuccess ? (
-                  /* Success View */
-                  <div className="py-6 flex flex-col items-center">
-                    <div className="relative w-20 h-20 rounded-full flex items-center justify-center bg-green-50 text-green-500 animate-success-circle border border-green-500/20 mb-4">
-                      <svg className="w-10 h-10 text-green-500 animate-draw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 font-outfit">Identity Verified</h2>
-                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                      Unlocking your account...
-                    </p>
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mb-4 border border-red-100/50">
+                  <Shield className="w-5 h-5" />
+                </div>
+
+                {activeScanType === 'face' ? (
+                  /* Real-time Camera Preview inside custom circular mask */
+                  <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#DC2626] bg-black flex items-center justify-center shadow-lg mb-6">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#DC2626]/5 to-transparent animate-pulse" />
+                    {biometricStatus !== 'No Face Detected' && biometricStatus !== 'Face Not Recognized' && (
+                      <div className="absolute left-0 right-0 h-0.5 bg-[#DC2626] shadow-md shadow-red-600/80 animate-scan-line" />
+                    )}
                   </div>
                 ) : (
-                  /* Scanning/Processing View */
-                  <>
-                    <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mb-4 border border-red-100/50">
-                      <Shield className="w-5 h-5" />
+                  /* Fingerprint Ripple View */
+                  <div className="relative w-32 h-32 mb-6 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-red-100/40 border border-red-200/40 animate-ripple" style={{ animationDelay: '0s' }} />
+                    <div className="absolute inset-0 rounded-full bg-red-100/40 border border-red-200/40 animate-ripple" style={{ animationDelay: '0.6s' }} />
+                    <div className="absolute inset-0 rounded-full bg-red-100/40 border border-red-200/40 animate-ripple" style={{ animationDelay: '1.2s' }} />
+
+                    <div className="relative w-20 h-20 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-[#DC2626] shadow-sm">
+                      <LucideFingerprint className="w-10 h-10" />
                     </div>
-
-                    {activeScanType === 'face' ? (
-                      /* Real-time Camera Preview inside custom circular mask */
-                      <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#DC2626] bg-black flex items-center justify-center shadow-lg mb-6">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          className="w-full h-full object-cover scale-x-[-1]"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#DC2626]/5 to-transparent animate-pulse" />
-                        {biometricStatus !== 'No Face Detected' && biometricStatus !== 'Face Not Recognized' && (
-                          <div className="absolute left-0 right-0 h-0.5 bg-[#DC2626] shadow-md shadow-red-600/80 animate-scan-line" />
-                        )}
-                      </div>
-                    ) : (
-                      /* Fingerprint Ripple View */
-                      <div className="relative w-32 h-32 mb-6 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-red-100/40 border border-red-200/40 animate-ripple" style={{ animationDelay: '0s' }} />
-                        <div className="absolute inset-0 rounded-full bg-red-100/40 border border-red-200/40 animate-ripple" style={{ animationDelay: '0.6s' }} />
-                        <div className="absolute inset-0 rounded-full bg-red-100/40 border border-red-200/40 animate-ripple" style={{ animationDelay: '1.2s' }} />
-
-                        <div className="relative w-20 h-20 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-[#DC2626] shadow-sm">
-                          <LucideFingerprint className="w-10 h-10" />
-                        </div>
-                      </div>
-                    )}
-
-                    <h2 className="text-lg font-bold text-slate-900 font-outfit">
-                      {activeScanType === 'face' ? 'Face Verification' : 'Fingerprint Verification'}
-                    </h2>
-
-                    {/* Real-time status tracker */}
-                    <div className="mt-2 min-h-[48px] flex flex-col items-center">
-                      <p className="text-xs text-slate-500 font-medium max-w-[280px] leading-relaxed">
-                        {biometricStatus}
-                      </p>
-                      {activeScanType === 'face' && livenessVerified && biometricStatus === 'Verifying Identity' && (
-                        <div className="text-[10px] text-red-600 font-semibold mt-1">
-                          {matchScore}%
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Cancel or Fallback buttons */}
-                    <div className="w-full mt-6 space-y-2">
-                      {biometricStatus === 'Face Not Recognized' ? (
-                        <button
-                          onClick={startCameraScan}
-                          className="w-full py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" /> Retry Scan
-                        </button>
-                      ) : activeScanType === 'fingerprint' && biometricStatus === 'Fingerprint Not Recognized' ? (
-                        <button
-                          onClick={handleFingerprintAuth}
-                          className="w-full py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" /> Try Fingerprint Again
-                        </button>
-                      ) : null}
-
-                      <button
-                        onClick={() => {
-                          cancelScan();
-                          setActiveScanType('choice');
-                        }}
-                        className="w-full py-2.5 bg-transparent border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl cursor-pointer transition-colors"
-                      >
-                        Back
-                      </button>
-
-                      <button
-                        onClick={handleCloseBiometricModal}
-                        className="w-full py-2 bg-transparent text-[#DC2626] hover:underline font-bold text-xs rounded-xl cursor-pointer transition-all"
-                      >
-                        Use PIN 
-                      </button>
-                    </div>
-                  </>
+                  </div>
                 )}
+
+                <h2 className="text-lg font-bold text-slate-900 font-outfit">
+                  {activeScanType === 'face' ? 'Face Verification' : 'Fingerprint Verification'}
+                </h2>
+
+                {/* Real-time status tracker */}
+                <div className="mt-2 min-h-[48px] flex flex-col items-center">
+                  <p className="text-xs text-slate-500 font-medium max-w-[280px] leading-relaxed">
+                    {biometricStatus}
+                  </p>
+                  {activeScanType === 'face' && livenessVerified && biometricStatus === 'Verifying Identity' && (
+                    <div className="text-[10px] text-red-600 font-semibold mt-1">
+                      {matchScore}%
+                    </div>
+                  )}
+                </div>
+
+                {/* Cancel or Fallback buttons */}
+                <div className="w-full mt-6 space-y-2">
+                  {biometricStatus === 'Face Not Recognized' ? (
+                    <button
+                      onClick={startCameraScan}
+                      className="w-full py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> Retry Scan
+                    </button>
+                  ) : activeScanType === 'fingerprint' && biometricStatus === 'Fingerprint Not Recognized' ? (
+                    <button
+                      onClick={handleFingerprintAuth}
+                      className="w-full py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> Try Fingerprint Again
+                    </button>
+                  ) : null}
+
+                  <button
+                    onClick={handleCloseBiometricModal}
+                    className="w-full py-2.5 bg-transparent border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl cursor-pointer transition-colors"
+                  >
+                    Cancel & Use PIN
+                  </button>
+                </div>
               </>
             )}
 
