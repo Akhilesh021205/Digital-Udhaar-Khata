@@ -52,14 +52,16 @@ export const SecurityLockProvider = ({ children }) => {
     return null; // Let the main router handle loading
   }
 
-  // Show lock screen if user is logged in, has setup a PIN, and app is locked
-  if (user && user.hasPin && !unlocked) {
-    return <SecurityLockScreen onUnlock={handleUnlock} />;
-  }
+  const isLocked = user && user.hasPin && !unlocked;
 
   return (
     <SecurityLockContext.Provider value={{ unlocked, setUnlocked: handleUnlock }}>
-      {children}
+      <div inert={isLocked ? "" : undefined} className={isLocked ? "select-none pointer-events-none" : ""}>
+        {children}
+      </div>
+      {isLocked && (
+        <SecurityLockScreen onUnlock={handleUnlock} />
+      )}
     </SecurityLockContext.Provider>
   );
 };
