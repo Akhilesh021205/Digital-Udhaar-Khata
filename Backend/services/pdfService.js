@@ -1,17 +1,15 @@
 const PDFDocument = require('pdfkit');
-const axios = require('axios');
+const QRCode = require('qrcode');
 
 async function getQrCodeBuffer(upiId, storeName, amount) {
   if (!upiId || amount <= 0) return null;
   try {
     const trimmedUpi = upiId.trim();
-    console.log(`Generating direct UPI QR Code for UPI ID: "${trimmedUpi}", Store: "${storeName}", Amount: ${amount}`);
+    console.log(`Generating direct UPI QR Code locally for UPI ID: "${trimmedUpi}", Store: "${storeName}", Amount: ${amount}`);
     const upiUri = `upi://pay?pa=${trimmedUpi}&pn=${encodeURIComponent(storeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Clearance of Dues')}`;
-    const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUri)}`;
-    const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 5000 });
-    return Buffer.from(response.data);
+    return await QRCode.toBuffer(upiUri, { width: 150, margin: 1 });
   } catch (err) {
-    console.error('Failed to fetch real UPI QR code buffer:', err.message);
+    console.error('Failed to generate real UPI QR code locally:', err.message);
     return null;
   }
 }
@@ -21,11 +19,10 @@ async function getVerificationQrBuffer(customerId) {
   try {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const verifyUrl = `${frontendUrl}/pay/${customerId}`;
-    const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`;
-    const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 5000 });
-    return Buffer.from(response.data);
+    console.log(`Generating verification QR Code locally for customer: ${customerId}`);
+    return await QRCode.toBuffer(verifyUrl, { width: 150, margin: 1 });
   } catch (err) {
-    console.error('Failed to fetch verification QR code buffer:', err.message);
+    console.error('Failed to generate verification QR code locally:', err.message);
     return null;
   }
 }
