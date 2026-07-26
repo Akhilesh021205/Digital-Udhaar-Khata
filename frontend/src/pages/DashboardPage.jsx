@@ -94,6 +94,7 @@ const DashboardPage = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [custFilter, setCustFilter] = useState('all');
   const [custSearch, setCustSearch] = useState('');
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
 
   const [showCustModal, setShowCustModal] = useState(false);
   const [custForm, setCustForm] = useState({ name: '', phone: '', email: '', address: '', avatar: customerPresets[0].value, paymentDueDate: '' });
@@ -447,24 +448,32 @@ const DashboardPage = () => {
                           <tr 
                             key={c._id} 
                             onClick={() => setSelectedCustomerId(c._id)}
-                            className={`hover:bg-slate-gray/5 transition-colors cursor-pointer ${
-                              activeCustomer?._id === c._id ? 'bg-orange/5' : ''
+                            className={`hover:bg-slate-gray/5 transition-all duration-200 cursor-pointer ${
+                              activeCustomer?._id === c._id ? 'bg-orange/5 font-semibold' : ''
                             }`}
                           >
                             <td className="px-4 py-3 text-sm font-semibold text-deep-navy flex items-center gap-3">
-                              <div 
-                                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner" 
-                                style={{ background: getAvatarColor(c.name) }}
-                              >
-                                {c.name.charAt(0).toUpperCase()}
-                              </div>
+                              {c.avatar ? (
+                                <img 
+                                  src={c.avatar} 
+                                  alt={c.name} 
+                                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-soft-gray shadow-xs" 
+                                />
+                              ) : (
+                                <div 
+                                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner" 
+                                  style={{ background: getAvatarColor(c.name) }}
+                                >
+                                  {c.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               <div>
                                 <span className="block">{c.name}</span>
                                 <span className="text-[10px] text-slate-gray font-normal block mt-0.5">{c.phone}</span>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-xs">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                 c.balance >= 0 ? 'bg-green-get/10 text-green-get' : 'bg-red-give/10 text-red-give'
                               }`}>
                                 {c.balance >= 0 ? 'You Will Get' : 'You Will Pay'}
@@ -476,18 +485,81 @@ const DashboardPage = () => {
                               ₹{Math.abs(c.balance).toLocaleString('en-IN')}
                             </td>
                             <td className="px-4 py-3 text-xs">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                                c.duePrediction === 'trusted' ? 'bg-green-get/10 text-green-get' :
-                                c.duePrediction === 'delay' ? 'bg-warning-pending/10 text-warning-pending' :
-                                'bg-red-give/10 text-red-give'
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase border ${
+                                c.duePrediction === 'trusted' ? 'bg-green-50 text-green-700 border-green-200' :
+                                c.duePrediction === 'delay' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                'bg-red-50 text-red-700 border-red-200'
                               }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  c.duePrediction === 'trusted' ? 'bg-green-500' :
+                                  c.duePrediction === 'delay' ? 'bg-amber-500' :
+                                  'bg-red-500'
+                                }`} />
                                 {c.duePrediction === 'trusted' ? 'Trusted' : c.duePrediction === 'delay' ? 'Delay' : 'Risky'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                              <button className="p-1 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer">
+                            <td className="px-4 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                onClick={() => setActiveDropdownId(activeDropdownId === c._id ? null : c._id)}
+                                className={`p-1.5 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer transition-colors ${
+                                  activeDropdownId === c._id ? 'bg-slate-gray/10 text-deep-navy' : ''
+                                }`}
+                              >
                                 <HiOutlineDotsVertical size={16} />
                               </button>
+
+                              {activeDropdownId === c._id && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-40 cursor-default" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveDropdownId(null);
+                                    }}
+                                  />
+                                  <div className="absolute right-4 top-10 bg-pure-white border border-soft-gray/80 rounded-xl shadow-lg py-1.5 min-w-[160px] z-50 animate-in fade-in slide-in-from-top-2 duration-100 text-left">
+                                    <button 
+                                      onClick={() => {
+                                        navigate(`/customers/${c._id}`);
+                                        setActiveDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-slate-gray/5 text-xs text-deep-navy font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                                    >
+                                      <HiOutlineUser size={14} className="text-slate-gray" />
+                                      View Ledger
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setTxnForm({ 
+                                          customer: c._id, 
+                                          type: 'credit', 
+                                          amount: '', 
+                                          description: '', 
+                                          date: new Date().toISOString().split('T')[0], 
+                                          paymentMode: 'cash' 
+                                        });
+                                        setShowTxnModal(true);
+                                        setActiveDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-slate-gray/5 text-xs text-deep-navy font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                                    >
+                                      <HiOutlinePlus size={14} className="text-slate-gray" />
+                                      Add Entry
+                                    </button>
+                                    <button 
+                                      onClick={(e) => {
+                                        handleEmailRemind(e, c);
+                                        setActiveDropdownId(null);
+                                      }}
+                                      disabled={sendingEmail[c._id]}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-slate-gray/5 text-xs text-deep-navy font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer disabled:opacity-50"
+                                    >
+                                      <HiOutlineBell size={14} className="text-slate-gray" />
+                                      {sendingEmail[c._id] ? 'Sending...' : 'Send Reminder'}
+                                    </button>
+                                  </div>
+                                </>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -635,43 +707,54 @@ const DashboardPage = () => {
             ) : (
               <>
                 <div className="flex items-center gap-4">
-                  <div 
-                    className="w-14 h-14 rounded-full flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-md"
-                    style={{ background: getAvatarColor(activeCustomer.name) }}
-                  >
-                    {activeCustomer.name.charAt(0).toUpperCase()}
-                  </div>
+                  {activeCustomer.avatar ? (
+                    <img 
+                      src={activeCustomer.avatar} 
+                      alt={activeCustomer.name} 
+                      className="w-14 h-14 rounded-full object-cover shrink-0 border border-soft-gray shadow-md" 
+                    />
+                  ) : (
+                    <div 
+                      className="w-14 h-14 rounded-full flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-md"
+                      style={{ background: getAvatarColor(activeCustomer.name) }}
+                    >
+                      {activeCustomer.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <h4 className="text-base font-bold text-deep-navy truncate">{activeCustomer.name}</h4>
                     <p className="text-xs text-slate-gray font-medium mt-0.5">{activeCustomer.phone}</p>
                   </div>
                 </div>
-                <div className="bg-zinc-800 text-white p-5 rounded-2xl shadow-xs border border-zinc-900 flex flex-col justify-between relative overflow-hidden">
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Transactions</span>
-                  <span className="text-2xl font-black font-outfit mt-2">
-                    ₹{activeCustomer.balance.toLocaleString('en-IN')}
+                <div className="bg-gradient-to-br from-slate-950 to-slate-800 text-white p-5 rounded-2xl shadow-md border border-slate-900 flex flex-col justify-between relative overflow-hidden">
+                  <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest">Net Outstanding Balance</span>
+                  <span className="text-3xl font-black font-outfit mt-2 tracking-tight">
+                    ₹{Math.abs(activeCustomer.balance).toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[10px] text-zinc-500 mt-2.5 font-semibold">
-                    {activeCustomer.balance >= 0 ? 'You Will Get' : 'You Will Give'}
-                  </span>
+                  <div className="flex items-center gap-1.5 mt-3">
+                    <span className={`w-2 h-2 rounded-full ${activeCustomer.balance >= 0 ? 'bg-red-give animate-pulse' : 'bg-green-get'}`} />
+                    <span className="text-[10px] text-zinc-300 font-bold uppercase tracking-wider">
+                      {activeCustomer.balance >= 0 ? 'You Will Get (Due)' : 'You Will Give (Advance)'}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="p-3 bg-light-cream border border-soft-gray rounded-xl">
                     <span className="text-[9px] font-semibold text-slate-gray uppercase block tracking-wider">Added</span>
                     <span className="text-xs font-bold text-red-give block mt-1 font-outfit">
-                      ₹{activeCustomer.balance.toLocaleString('en-IN')}
+                      ₹{activeCustomer.balance >= 0 ? activeCustomer.balance.toLocaleString('en-IN') : '0'}
                     </span>
                   </div>
                   <div className="p-3 bg-light-cream border border-soft-gray rounded-xl">
                     <span className="text-[9px] font-semibold text-slate-gray uppercase block tracking-wider">Paid</span>
                     <span className="text-xs font-bold text-green-get block mt-1 font-outfit">
-                      ₹0
+                      ₹{activeCustomer.balance < 0 ? Math.abs(activeCustomer.balance).toLocaleString('en-IN') : '0'}
                     </span>
                   </div>
                   <div className="p-3 bg-light-cream border border-soft-gray rounded-xl">
                     <span className="text-[9px] font-semibold text-slate-gray uppercase block tracking-wider">Txns</span>
                     <span className="text-xs font-bold text-deep-navy block mt-1 font-outfit">
-                      {activeCustomerTxns.length}
+                      {activeCustomer.totalTransactions || 0}
                     </span>
                   </div>
                 </div>
