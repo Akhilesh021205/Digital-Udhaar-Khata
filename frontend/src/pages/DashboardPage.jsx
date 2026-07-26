@@ -98,6 +98,42 @@ const DashboardPage = () => {
   const [activeCustomerTxns, setActiveCustomerTxns] = useState([]);
   const [loadingTxns, setLoadingTxns] = useState(false);
 
+  const customerList = Array.isArray(customers) ? customers : [];
+
+  const activeCustomer = selectedCustomerId
+    ? (customerList.find(c => c._id === selectedCustomerId) || customerList[0] || null)
+    : (customerList[0] || null);
+
+  useEffect(() => {
+    if (!activeCustomer?._id) {
+      setActiveCustomerTxns([]);
+      return;
+    }
+    
+    let isMounted = true;
+    const fetchCustTxns = async () => {
+      setLoadingTxns(true);
+      try {
+        const res = await API.get(`/transactions?customer=${activeCustomer._id}`);
+        if (isMounted) {
+          setActiveCustomerTxns(res.data?.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch active customer txns:', err);
+      } finally {
+        if (isMounted) {
+          setLoadingTxns(false);
+        }
+      }
+    };
+
+    fetchCustTxns();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeCustomer?._id]);
+
   const [showCustModal, setShowCustModal] = useState(false);
   const [custForm, setCustForm] = useState({ name: '', phone: '', email: '', address: '', avatar: customerPresets[0].value, paymentDueDate: '' });
   const [custSubmitting, setCustSubmitting] = useState(false);
@@ -247,7 +283,6 @@ const DashboardPage = () => {
     </div>
   );
 
-  const customerList = Array.isArray(customers) ? customers : [];
   const transactionList = Array.isArray(transactions) ? transactions : [];
 
   const filteredCustomers = customerList.filter(c => {
@@ -263,40 +298,6 @@ const DashboardPage = () => {
     }
     return matchesSearch;
   });
-
-  const activeCustomer = selectedCustomerId
-    ? (customerList.find(c => c._id === selectedCustomerId) || customerList[0] || null)
-    : (customerList[0] || null);
-
-  useEffect(() => {
-    if (!activeCustomer?._id) {
-      setActiveCustomerTxns([]);
-      return;
-    }
-    
-    let isMounted = true;
-    const fetchCustTxns = async () => {
-      setLoadingTxns(true);
-      try {
-        const res = await API.get(`/transactions?customer=${activeCustomer._id}`);
-        if (isMounted) {
-          setActiveCustomerTxns(res.data?.data || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch active customer txns:', err);
-      } finally {
-        if (isMounted) {
-          setLoadingTxns(false);
-        }
-      }
-    };
-
-    fetchCustTxns();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeCustomer?._id]);
 
   const youWillGet = stats?.youWillGet || 0;
   const youWillGive = stats?.youWillGive || 0;
