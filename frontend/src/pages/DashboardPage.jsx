@@ -95,6 +95,8 @@ const DashboardPage = () => {
   const [custFilter, setCustFilter] = useState('all');
   const [custSearch, setCustSearch] = useState('');
   const [activeDropdownId, setActiveDropdownId] = useState(null);
+  const [activeCustomerTxns, setActiveCustomerTxns] = useState([]);
+  const [loadingTxns, setLoadingTxns] = useState(false);
 
   const [showCustModal, setShowCustModal] = useState(false);
   const [custForm, setCustForm] = useState({ name: '', phone: '', email: '', address: '', avatar: customerPresets[0].value, paymentDueDate: '' });
@@ -266,9 +268,35 @@ const DashboardPage = () => {
     ? (customerList.find(c => c._id === selectedCustomerId) || customerList[0] || null)
     : (customerList[0] || null);
 
-  const activeCustomerTxns = activeCustomer
-    ? transactionList.filter(txn => txn.customer?._id === activeCustomer._id)
-    : [];
+  useEffect(() => {
+    if (!activeCustomer?._id) {
+      setActiveCustomerTxns([]);
+      return;
+    }
+    
+    let isMounted = true;
+    const fetchCustTxns = async () => {
+      setLoadingTxns(true);
+      try {
+        const res = await API.get(`/transactions?customer=${activeCustomer._id}`);
+        if (isMounted) {
+          setActiveCustomerTxns(res.data?.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch active customer txns:', err);
+      } finally {
+        if (isMounted) {
+          setLoadingTxns(false);
+        }
+      }
+    };
+
+    fetchCustTxns();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeCustomer?._id]);
 
   const youWillGet = stats?.youWillGet || 0;
   const youWillGive = stats?.youWillGive || 0;
@@ -760,7 +788,11 @@ const DashboardPage = () => {
                 </div>
                 <div className="space-y-2">
                   <span className="text-[10px] font-semibold text-slate-gray uppercase tracking-wider block">Activity Logs</span>
-                  {activeCustomerTxns.length === 0 ? (
+                  {loadingTxns ? (
+                    <div className="flex items-center justify-center py-6 bg-light-cream/20 border border-soft-gray/30 rounded-xl">
+                      <div className="w-5 h-5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : activeCustomerTxns.length === 0 ? (
                     <div className="text-center py-4 bg-light-cream/40 border border-dashed border-soft-gray rounded-xl">
                       <span className="text-[10px] text-slate-gray">No activity logged</span>
                     </div>

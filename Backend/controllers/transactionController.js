@@ -372,59 +372,60 @@ const getStats = async (req, res, next) => {
   try {
     const ownerId = req.user._id;
 
-    const totalCustomers = await Customer.countDocuments({ owner: ownerId });
-
-    const balanceAgg = await Customer.aggregate([
-      { $match: { owner: ownerId } },
-      {
-        $group: {
-          _id: null,
-          youWillGet: { $sum: { $cond: [{ $gt: ['$balance', 0] }, '$balance', 0] } },
-          youWillGive: { $sum: { $cond: [{ $lt: ['$balance', 0] }, { $abs: '$balance' }, 0] } },
-        },
-      },
-    ]);
-
-    // Today's transactions
+    // Today's transactions start time
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const todayTransactions = await Transaction.countDocuments({
-      owner: ownerId,
-      date: { $gte: todayStart },
-    });
-
-    const todayAgg = await Transaction.aggregate([
-      { $match: { owner: ownerId, date: { $gte: todayStart } } },
-      {
-        $group: {
-          _id: '$type',
-          total: { $sum: '$amount' },
+    const [
+      totalCustomers,
+      balanceAgg,
+      todayTransactions,
+      todayAgg,
+      customersWithDues,
+      highRiskCount,
+      pendingTransactions
+    ] = await Promise.all([
+      Customer.countDocuments({ owner: ownerId }),
+      Customer.aggregate([
+        { $match: { owner: ownerId } },
+        {
+          $group: {
+            _id: null,
+            youWillGet: { $sum: { $cond: [{ $gt: ['$balance', 0] }, '$balance', 0] } },
+            youWillGive: { $sum: { $cond: [{ $lt: ['$balance', 0] }, { $abs: '$balance' }, 0] } },
+          },
         },
-      },
+      ]),
+      Transaction.countDocuments({
+        owner: ownerId,
+        date: { $gte: todayStart },
+      }),
+      Transaction.aggregate([
+        { $match: { owner: ownerId, date: { $gte: todayStart } } },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' },
+          },
+        },
+      ]),
+      Customer.countDocuments({
+        owner: ownerId,
+        balance: { $gt: 0 },
+      }),
+      Customer.countDocuments({
+        owner: ownerId,
+        riskLevel: 'high',
+      }),
+      Transaction.countDocuments({
+        owner: ownerId,
+        paymentStatus: 'PENDING',
+        type: 'credit',
+      })
     ]);
 
     const todayCredit = todayAgg.find((a) => a._id === 'credit')?.total || 0;
     const todayDebit = todayAgg.find((a) => a._id === 'debit')?.total || 0;
-
-    // Customers with outstanding balance
-    const customersWithDues = await Customer.countDocuments({
-      owner: ownerId,
-      balance: { $gt: 0 },
-    });
-
-    // High risk customers count
-    const highRiskCount = await Customer.countDocuments({
-      owner: ownerId,
-      riskLevel: 'high',
-    });
-
-    // Pending transactions
-    const pendingTransactions = await Transaction.countDocuments({
-      owner: ownerId,
-      paymentStatus: 'PENDING',
-      type: 'credit',
-    });
 
     res.status(200).json({
       success: true,
