@@ -3,6 +3,7 @@ const Customer = require('../models/Customer');
 const CustomerHistory = require('../models/CustomerHistory');
 const { updateRiskLevel } = require('../services/riskService');
 const socketService = require('../services/socketService');
+const { BlockchainService } = require('../services/blockchainService');
 
 // @desc    Get all transactions for logged-in owner
 // @route   GET /api/transactions
@@ -77,6 +78,9 @@ const createTransaction = async (req, res, next) => {
       paymentMode: paymentMode || (type === 'debit' ? 'cash' : 'none'),
       date: date || Date.now(),
     });
+
+    // Create block in private blockchain for tamper-evident ledger
+    await BlockchainService.addTransactionBlock(req.user._id, transaction, transaction._id);
 
     // Update customer balance
     if (type === 'credit') {

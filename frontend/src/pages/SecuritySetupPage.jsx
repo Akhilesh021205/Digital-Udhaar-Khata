@@ -79,6 +79,7 @@ const SecuritySetupPage = () => {
   const [shake, setShake] = useState(false);
   const [deviceSupportsBio, setDeviceSupportsBio] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [registeredType, setRegisteredType] = useState('pin'); // 'pin' | 'face' | 'fingerprint'
   
   // Face ID scan states
   const [scanProgress, setScanProgress] = useState(0);
@@ -170,6 +171,7 @@ const SecuritySetupPage = () => {
 
   // Handle skip biometrics
   const handleSkipBiometrics = async () => {
+    setRegisteredType('pin');
     await saveSecuritySettings(false);
   };
 
@@ -281,6 +283,7 @@ const SecuritySetupPage = () => {
               });
               const mockCredentialId = `face-id-${Date.now()}`;
               toast.success("Face ID registered successfully.");
+              setRegisteredType('face');
               await saveSecuritySettings(true, mockCredentialId, faceTemplateJSON);
             }, 1200);
             return;
@@ -310,26 +313,90 @@ const SecuritySetupPage = () => {
   };
 
   // Start Fingerprint Scan Flow
-  const startFingerprintScan = () => {
+  const startFingerprintScan = async () => {
+    if (!window.PublicKeyCredential) {
+      toast.error("WebAuthn (Biometrics) is not supported by this browser.");
+      return;
+    }
+
+    try {
+      const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!isAvailable) {
+        toast.error("Your device does not support fingerprint or platform biometric login/setup.");
+        return;
+      }
+    } catch (err) {
+      toast.error("Could not check biometric availability on this device.");
+      return;
+    }
+
     setStep('fingerprint-scanning');
     setFingerProgress(0);
     setFingerScanning(true);
-    
+
     let progress = 0;
-    const interval = setInterval(() => {
-      progress += 4;
-      setFingerProgress(Math.min(progress, 100));
-      
-      if (progress >= 100) {
-        clearInterval(interval);
-        setFingerScanning(false);
-        setTimeout(async () => {
-          toast.success("Fingerprint registered successfully.");
-          const mockCredentialId = `mock-fingerprint-id-${Date.now()}`;
-          await saveSecuritySettings(true, mockCredentialId);
-        }, 800);
+    const progressInterval = setInterval(() => {
+      if (progress < 90) {
+        progress += 5;
+        setFingerProgress(progress);
       }
-    }, 120);
+    }, 100);
+
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+
+      const userIdString = user?._id || user?.id || `user-${Date.now()}`;
+      const userBuffer = new TextEncoder().encode(userIdString);
+
+      const createOptions = {
+        publicKey: {
+          challenge,
+          rp: {
+            name: "Digital Udhaar Khata",
+            id: window.location.hostname
+          },
+          user: {
+            id: userBuffer,
+            name: user?.email || "user@example.com",
+            displayName: user?.name || "Udhaar User"
+          },
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 },   // ES256
+            { type: "public-key", alg: -257 }  // RS256
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: "platform", // forces Touch ID, Face ID, Windows Hello (biometrics/PIN)
+            userVerification: "required"
+          },
+          timeout: 60000
+        }
+      };
+
+      const credential = await navigator.credentials.create(createOptions);
+      
+      clearInterval(progressInterval);
+      setFingerProgress(100);
+      setFingerScanning(false);
+
+      if (credential) {
+        toast.success("Fingerprint registered successfully.");
+        setRegisteredType('fingerprint');
+        await saveSecuritySettings(true, credential.id);
+      } else {
+        throw new Error("Failed to create credential");
+      }
+    } catch (err) {
+      clearInterval(progressInterval);
+      setFingerScanning(false);
+      setStep('biometrics');
+      console.error("Fingerprint registration error:", err);
+      if (err.name === 'NotAllowedError') {
+        toast.error("Biometric registration was canceled or denied.");
+      } else {
+        toast.error("Failed to register fingerprint biometrics: " + (err.message || err.name));
+      }
+    }
   };
 
 
@@ -666,7 +733,9 @@ const SecuritySetupPage = () => {
             </div>
             <h1 className="text-xl font-bold text-slate-900 font-outfit">Setup Complete!</h1>
             <p className="text-xs text-slate-500">
-              Face ID registered successfully. Securing your dashboard...
+              {registeredType === 'face' && 'Face ID registered successfully. Securing your dashboard...'}
+              {registeredType === 'fingerprint' && 'Fingerprint registered successfully. Securing your dashboard...'}
+              {registeredType === 'pin' && 'Security PIN setup complete. Securing your dashboard...'}
             </p>
           </div>
         )}

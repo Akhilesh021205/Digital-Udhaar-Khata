@@ -164,7 +164,7 @@ const CustomersPage = () => {
       const params = {};
       if (search) params.search = search;
       const { data } = await API.get('/customers', { params });
-      setCustomers(data.data);
+      setCustomers(data?.data || []);
     } catch (err) { toast.error('Failed to load'); }
     finally { setLoading(false); }
   };
@@ -217,6 +217,8 @@ const CustomersPage = () => {
 
   if (loading) return <><Header title={t('customers')} subtitle={t('manageCustomers')} /><Loader fullPage /></>;
 
+  const customerList = Array.isArray(customers) ? customers : [];
+
   return (
     <>
       <Header title={t('customers')} subtitle={t('manageCustomers')} />
@@ -252,7 +254,7 @@ const CustomersPage = () => {
         </button>
       </div>
 
-      {customers.length === 0 ? (
+      {customerList.length === 0 ? (
         search ? (
           <div className="bg-pure-white border border-soft-gray rounded-2xl p-12 text-center shadow-sm space-y-4 max-w-xl mx-auto">
             <h3 className="text-lg font-bold text-deep-navy mb-0">No customer found matching "{search}"</h3>
@@ -293,7 +295,7 @@ const CustomersPage = () => {
               </tr>
             </thead>
             <tbody>
-              {customers.map((c) => (
+              {customerList.map((c) => (
                 <tr key={c._id} className="border-b border-soft-gray/50 hover:bg-light-cream/10 transition-colors">
                   <td className="px-6 py-4 text-sm align-middle">
                     <div className="flex items-center gap-3">

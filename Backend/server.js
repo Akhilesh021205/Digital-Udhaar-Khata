@@ -20,7 +20,14 @@ initAutoReminderScheduler();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://digital-udhaar-khata-qcyviongw-akhilesh021205s-projects.vercel.app",
+    "http://digital-udhar-khata-frontend-458697683921-ap-south-2-an.s3-website.ap-south-2.amazonaws.com"
+  ],
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -34,6 +41,7 @@ app.use('/api/cashbook', require('./routes/cashbookRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/history', require('./routes/historyRoutes'));
 app.use('/api/backup', require('./routes/backupRoutes'));
+app.use('/api/blockchain', require('./routes/blockchainRoutes'));
 
 
 // Webhook verification for WhatsApp Cloud API

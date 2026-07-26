@@ -1,8 +1,9 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { toast } from 'react-toastify'
-import './index.css'
-import App from './App.jsx'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { toast } from 'react-toastify';
+import './index.css';
+import App from './App.jsx';
 
 // Overriding default toast functions to automatically format string messages as title/subtitle
 const originalSuccess = toast.success;
@@ -13,7 +14,7 @@ const originalInfo = toast.info;
 
 const getNotificationTitle = (message, type) => {
   const msg = message.toLowerCase();
-  
+
   if (type === 'success') {
     if (msg.includes('udhaar') || msg.includes('gave')) return 'Udhaar Recorded';
     if (msg.includes('jama') || msg.includes('got') || msg.includes('settled')) return 'Payment Received';
@@ -32,7 +33,7 @@ const getNotificationTitle = (message, type) => {
     if (msg.includes('pin') && msg.includes('setup')) return 'PIN Configured';
     if (msg.includes('pin') && msg.includes('change')) return 'PIN Updated';
     if (msg.includes('trash') || msg.includes('clear')) return 'Trash Cleared';
-    
+
     return 'Success';
   } else if (type === 'error') {
     if (msg.includes('udhaar') || msg.includes('entry') || msg.includes('transaction')) return 'Transaction Failed';
@@ -42,7 +43,7 @@ const getNotificationTitle = (message, type) => {
     if (msg.includes('password')) return 'Password Error';
     if (msg.includes('pin')) return 'PIN Error';
     if (msg.includes('login') || msg.includes('auth')) return 'Authentication Failed';
-    
+
     return 'Error';
   } else if (type === 'warning') {
     return 'Warning';
@@ -68,12 +69,17 @@ const wrapToast = (originalFn, type) => {
   return (content, options) => {
     const formatted = formatMessage(content, type);
     const toastId = originalFn(formatted, options);
-    const delay = (options && typeof options.autoClose === 'number') ? options.autoClose : 1500;
+    const delay =
+      options && typeof options.autoClose === 'number'
+        ? options.autoClose
+        : 1500;
+
     if (delay !== false) {
       setTimeout(() => {
         toast.dismiss(toastId);
       }, delay);
     }
+
     return toastId;
   };
 };
@@ -84,8 +90,16 @@ toast.warn = wrapToast(originalWarn, 'warning');
 toast.warning = wrapToast(originalWarning, 'warning');
 toast.info = wrapToast(originalInfo, 'info');
 
+console.log("Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
+
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
-  </StrictMode>,
-)
+    <GoogleOAuthProvider
+      clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
+    >
+      <App />
+    </GoogleOAuthProvider>
+  </StrictMode>
+);

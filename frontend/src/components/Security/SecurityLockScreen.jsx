@@ -327,8 +327,13 @@ const SecurityLockScreen = ({ onUnlock }) => {
       }
     } catch (err) {
       console.error('Fingerprint auth failed:', err);
-      toast.error('Fingerprint recognition failed');
-      setBiometricStatus('Fingerprint Not Recognized');
+      if (err.name === 'NotAllowedError') {
+        toast.warning('Biometric authentication canceled.');
+        setBiometricStatus('Verification Canceled');
+      } else {
+        toast.error('Fingerprint recognition failed');
+        setBiometricStatus('Fingerprint Not Recognized');
+      }
     }
   };
 

@@ -47,6 +47,23 @@ const transactionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // Blockchain Metadata
+    blockIndex: {
+      type: Number,
+      default: null,
+    },
+    previousHash: {
+      type: String,
+      default: '',
+    },
+    blockHash: {
+      type: String,
+      default: '',
+    },
+    blockTimestamp: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

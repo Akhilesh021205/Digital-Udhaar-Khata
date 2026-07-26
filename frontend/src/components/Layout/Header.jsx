@@ -19,7 +19,8 @@ import {
   HiEyeOff,
   HiOutlineFingerPrint,
   HiOutlineX,
-  HiOutlineLockClosed
+  HiOutlineLockClosed,
+  HiOutlineShieldCheck
 } from 'react-icons/hi';
 import { FaQrcode } from 'react-icons/fa';
 import Logo from '../Common/Logo';
@@ -81,6 +82,7 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
     { to: '/reminders', icon: <HiOutlineBell size={18} />, label: t('reminders') },
     { to: '/settings', icon: <HiOutlineCog size={18} />, label: t('settings') },
     { to: '/history', icon: <HiOutlineClock size={18} />, label: 'History' },
+    { to: '/blockchain', icon: <HiOutlineShieldCheck size={18} />, label: 'Blockchain' },
   ];
 
   return (

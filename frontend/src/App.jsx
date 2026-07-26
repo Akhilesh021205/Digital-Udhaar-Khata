@@ -23,6 +23,7 @@ import LandingPage from './pages/LandingPage';
 import PermanentHistoryPage from './pages/PermanentHistoryPage';
 import SecurityLockSetup from './pages/SecuritySetupPage';
 import BiometricDemoPage from './pages/BiometricDemoPage';
+import BlockchainPage from './pages/BlockchainPage';
 import { SecurityLockProvider } from './context/SecurityLockContext';
 import PaymentCheckoutPage from './pages/PaymentCheckoutPage';
 import { initSocket } from './services/socket';
@@ -84,6 +85,7 @@ const AppRoutes = () => (
     <Route path="/reminders" element={<ProtectedRoute><Layout><RemindersPage /></Layout></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
     <Route path="/history" element={<ProtectedRoute><Layout><PermanentHistoryPage /></Layout></ProtectedRoute>} />
+    <Route path="/blockchain" element={<ProtectedRoute><Layout><BlockchainPage /></Layout></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/" />} />
   </Routes>
 );

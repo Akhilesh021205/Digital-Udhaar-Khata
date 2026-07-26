@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { HiOutlineHome, HiOutlineUsers, HiOutlineCog, HiOutlineBell, HiOutlineBookOpen, HiOutlineClock } from 'react-icons/hi';
+import { HiOutlineHome, HiOutlineUsers, HiOutlineCog, HiOutlineBell, HiOutlineBookOpen, HiOutlineClock, HiOutlineShieldCheck } from 'react-icons/hi';
 import Logo from '../Common/Logo';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -13,6 +13,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/reminders', icon: <HiOutlineBell size={20} />, label: t('reminders') },
     { to: '/settings', icon: <HiOutlineCog size={20} />, label: t('settings') },
     { to: '/history', icon: <HiOutlineClock size={20} />, label: 'Transaction History' },
+    { to: '/blockchain', icon: <HiOutlineShieldCheck size={20} />, label: 'Blockchain Audit' },
   ];
 
   return (

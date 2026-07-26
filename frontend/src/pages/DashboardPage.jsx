@@ -125,9 +125,9 @@ const DashboardPage = () => {
         API.get('/transactions?limit=5'),
         API.get('/customers?sort=balance-high'),
       ]);
-      setStats(statsRes.data.data);
-      setTransactions(txnRes.data.data);
-      setCustomers(custRes.data.data);
+      setStats(statsRes.data?.data || {});
+      setTransactions(txnRes.data?.data || []);
+      setCustomers(custRes.data?.data || []);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to add customer');
     } finally {
@@ -155,9 +155,9 @@ const DashboardPage = () => {
           API.get('/transactions?limit=5'),
           API.get('/customers?sort=balance-high'),
         ]);
-        setStats(statsRes.data.data);
-        setTransactions(txnRes.data.data);
-        setCustomers(custRes.data.data);
+        setStats(statsRes.data?.data || {});
+        setTransactions(txnRes.data?.data || []);
+        setCustomers(custRes.data?.data || []);
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to parse voice entry');
       }
@@ -193,9 +193,9 @@ const DashboardPage = () => {
         API.get('/transactions?limit=5'),
         API.get('/customers?sort=balance-high'),
       ]);
-      setStats(statsRes.data.data);
-      setTransactions(txnRes.data.data);
-      setCustomers(custRes.data.data);
+      setStats(statsRes.data?.data || {});
+      setTransactions(txnRes.data?.data || []);
+      setCustomers(custRes.data?.data || []);
     } catch (err) { toast.error('Failed to load dashboard'); }
     finally { setLoading(false); }
   };
@@ -227,7 +227,7 @@ const DashboardPage = () => {
       const [statsRes, txnRes, custRes] = await Promise.all([
         API.get('/transactions/stats'), API.get('/transactions?limit=5'), API.get('/customers?sort=balance-high'),
       ]);
-      setStats(statsRes.data.data); setTransactions(txnRes.data.data); setCustomers(custRes.data.data);
+      setStats(statsRes.data?.data || {}); setTransactions(txnRes.data?.data || []); setCustomers(custRes.data?.data || []);
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setSubmitting(false); }
   };
@@ -244,7 +244,10 @@ const DashboardPage = () => {
     </div>
   );
 
-  const filteredCustomers = customers.filter(c => {
+  const customerList = Array.isArray(customers) ? customers : [];
+  const transactionList = Array.isArray(transactions) ? transactions : [];
+
+  const filteredCustomers = customerList.filter(c => {
     const name = c.name || '';
     const phone = c.phone || '';
     const matchesSearch = name.toLowerCase().includes(custSearch.toLowerCase()) || 
@@ -259,11 +262,11 @@ const DashboardPage = () => {
   });
 
   const activeCustomer = selectedCustomerId
-    ? (customers.find(c => c._id === selectedCustomerId) || customers[0] || null)
-    : (customers[0] || null);
+    ? (customerList.find(c => c._id === selectedCustomerId) || customerList[0] || null)
+    : (customerList[0] || null);
 
   const activeCustomerTxns = activeCustomer
-    ? transactions.filter(txn => txn.customer?._id === activeCustomer._id)
+    ? transactionList.filter(txn => txn.customer?._id === activeCustomer._id)
     : [];
 
   const youWillGet = stats?.youWillGet || 0;
@@ -361,7 +364,7 @@ const DashboardPage = () => {
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
-            {customers.length === 0 ? (
+            {customerList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-gray/10 text-slate-gray flex items-center justify-center mb-4">
                   <HiOutlineUsers size={32} />
@@ -502,14 +505,14 @@ const DashboardPage = () => {
                 <h3 className="text-base font-bold text-deep-navy">{t('recentTransactions')}</h3>
                 <Link to="/transactions" className="text-xs font-semibold text-orange hover:underline">{t('viewAll')}</Link>
               </div>
-              {transactions.length === 0 ? (
+              {transactionList.length === 0 ? (
                 <div className="text-center py-10 space-y-2">
                   <h3 className="text-xs font-semibold text-slate-gray">No transactions yet</h3>
                   <p className="text-[11px] text-slate-gray/60">Create transaction to view stats</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {transactions.slice(0, 4).map((txn) => (
+                  {transactionList.slice(0, 4).map((txn) => (
                     <div key={txn._id} className="flex items-center justify-between p-3 hover:bg-slate-gray/5 rounded-xl border border-soft-gray/40 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-light-cream flex items-center justify-center font-bold text-xs text-deep-navy shrink-0 shadow-inner">
@@ -793,7 +796,7 @@ const DashboardPage = () => {
               onChange={(e) => setTxnForm({...txnForm, customer: e.target.value})}
             >
               <option value="">{t('selectCustomer')}</option>
-              {customers.map((c) => (
+              {customerList.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.name} (Outstanding: ₹{Math.abs(c.balance).toLocaleString('en-IN')} {c.balance >= 0 ? 'Due' : 'Advance'})
                 </option>
