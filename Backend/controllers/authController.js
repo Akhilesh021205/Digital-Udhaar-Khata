@@ -489,10 +489,6 @@ const forgotPassword = async (req, res, next) => {
             <a href="${resetUrl}" class="btn" target="_blank">Reset Password</a>
           </div>
           <p class="text">This link is valid for 10 minutes. If you did not request this password reset, please ignore this email and your password will remain unchanged.</p>
-          <div class="link-text">
-            <strong>If the button above does not work, copy and paste this URL into your browser:</strong><br/>
-            <span style="color: #ea580c;">${resetUrl}</span>
-          </div>
         </div>
         <div class="footer">Digital Udhaar &copy; 2026. All rights reserved.</div>
       </body>

@@ -92,7 +92,7 @@ const runAutoReminders = async () => {
 
       if (isWarningPeriod) {
         const daysLeftText = daysDiff === 0 ? 'today' : `in ${daysDiff} days`;
-        textMessage = `Namaste ${customerFirstName}!\n\nThis is an automated payment reminder from KathaGPT.\n\nYour outstanding balance of ₹${customer.balance.toFixed(2)} at ${storeName} is due ${daysLeftText} on ${dueDate.toLocaleDateString('en-IN')}.\n\nKindly clear your dues at your earliest convenience to maintain a healthy credit score. Your transaction statement is attached as a PDF. Thank you! 🙏`;
+        textMessage = `Namaste ${customerFirstName}!\n\nThis is an automated payment reminder from Digital Udhaar.\n\nYour outstanding balance of ₹${customer.balance.toFixed(2)} at ${storeName} is due ${daysLeftText} on ${dueDate.toLocaleDateString('en-IN')}.\n\nKindly clear your dues at your earliest convenience to maintain a healthy credit score. Your transaction statement is attached as a PDF. Thank you! 🙏`;
         
         if (upiId) {
           textMessage += `\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
@@ -102,11 +102,11 @@ const runAutoReminders = async () => {
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e4e4e7; border-radius: 16px; background-color: #ffffff; color: #18181b;">
             <div style="text-align: center; margin-bottom: 24px;">
               <h2 style="color: #f97316; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.025em;">${storeName}</h2>
-              <p style="color: #71717a; font-size: 14px; margin: 4px 0 0 0;">KathaGPT Automatic Payment Reminder</p>
+              <p style="color: #71717a; font-size: 14px; margin: 4px 0 0 0;">Digital Udhaar Automatic Payment Reminder</p>
             </div>
             
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Namaste <strong>${customerFirstName}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an automated reminder from <strong>KathaGPT</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is due <strong>${daysLeftText}</strong> on <strong>${dueDate.toLocaleDateString('en-IN')}</strong>.</p>
+            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an automated reminder from <strong>Digital Udhaar</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is due <strong>${daysLeftText}</strong> on <strong>${dueDate.toLocaleDateString('en-IN')}</strong>.</p>
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Please clear your payment soon to keep your credit profile in excellent standing.</p>
             
             <div style="background-color: #fff7ed; border: 1px solid #ffedd5; padding: 20px; border-radius: 12px; margin: 24px 0; text-align: center;">
@@ -133,7 +133,7 @@ const runAutoReminders = async () => {
             ` : ''}
             
             <hr style="border: 0; border-top: 1px solid #e4e4e7; margin: 32px 0 24px 0;" />
-            <p style="font-size: 11px; color: #a1a1aa; text-align: center; margin: 0;">This is a pre-due payment alert sent automatically by KathaGPT.</p>
+            <p style="font-size: 11px; color: #a1a1aa; text-align: center; margin: 0;">This is a pre-due payment alert sent automatically by Digital Udhaar.</p>
           </div>
         `;
       } else if (isOverduePeriod) {
@@ -152,7 +152,7 @@ const runAutoReminders = async () => {
             </div>
             
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Namaste <strong>${customerFirstName}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an urgent notification from <strong>KathaGPT</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is now <strong>OVERDUE by ${daysOverdue} day(s)</strong> (Scheduled due date: ${dueDate.toLocaleDateString('en-IN')}).</p>
+            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an urgent notification from <strong>Digital Udhaar</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is now <strong>OVERDUE by ${daysOverdue} day(s)</strong> (Scheduled due date: ${dueDate.toLocaleDateString('en-IN')}).</p>
             
             <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 20px; border-radius: 12px; margin: 24px 0; text-align: center;">
               <span style="font-size: 11px; color: #ef4444; display: block; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">Total Overdue Amount</span>
@@ -179,7 +179,7 @@ const runAutoReminders = async () => {
             ` : ''}
             
             <hr style="border: 0; border-top: 1px solid #fca5a5; margin: 32px 0 24px 0;" />
-            <p style="font-size: 11px; color: #f87171; text-align: center; margin: 0;">This is a continuous overdue notification sent daily by KathaGPT until the balance is paid.</p>
+            <p style="font-size: 11px; color: #f87171; text-align: center; margin: 0;">This is a continuous overdue notification sent daily by Digital Udhaar until the balance is paid.</p>
           </div>
         `;
       }
