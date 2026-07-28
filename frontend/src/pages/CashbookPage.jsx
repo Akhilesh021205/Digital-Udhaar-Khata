@@ -589,7 +589,7 @@ const CashbookPage = () => {
       </div>
 
       {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex gap-3 z-30 shadow-lg p-2 bg-pure-white/80 backdrop-blur-md rounded-2xl border border-soft-gray">
+      <div className="fixed bottom-20 lg:bottom-6 right-6 flex gap-3 z-30 shadow-lg p-2 bg-pure-white/80 backdrop-blur-md rounded-2xl border border-soft-gray">
         <button
           className="inline-flex items-center gap-2 px-5 py-3 bg-green-get hover:bg-green-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-md"
           onClick={() => handleOpenAddModal('in')}

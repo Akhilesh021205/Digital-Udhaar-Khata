@@ -10,8 +10,10 @@ const {
   restoreCustomer,
 } = require('../controllers/customerController');
 const { protect } = require('../middleware/authMiddleware');
+const verifyBlockchain = require('../middleware/verifyBlockchain');
 
 router.use(protect);
+router.use(verifyBlockchain);
 
 router.route('/trash').get(getTrash);
 router.route('/').get(getCustomers).post(createCustomer);

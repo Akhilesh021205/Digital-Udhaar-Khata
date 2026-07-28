@@ -11,13 +11,20 @@ dotenv.config();
 // Disable SSL certificate verification rejection for local development
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-// Connect to database
+// Connect to database (restarted after starting MongoDB)
 connectDB();
 
 // Initialize AI Auto-Reminder Bot Scheduler
 initAutoReminderScheduler();
 
 const app = express();
+
+// Performance Timing & Compression Middleware
+const apiTimer = require('./middleware/apiTimer');
+const compression = require('compression');
+
+app.use(apiTimer);
+app.use(compression());
 
 // Middleware
 app.use(cors({
@@ -64,6 +71,49 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Udhaar Khata API is running' });
 });
 
+// Admin-only Hidden Blockchain Status Endpoint
+const BlockchainService = require('./services/blockchainService');
+const { protect } = require('./middleware/authMiddleware');
+const { authorizeRoles } = require('./middleware/roleMiddleware');
+const BlockchainModel = require('./models/Blockchain');
+
+let lastVerificationTime = new Date();
+
+app.get('/admin/blockchain-status', protect, authorizeRoles('Admin'), async (req, res, next) => {
+  try {
+    // Run verification first to ensure data accuracy
+    await BlockchainService.runScheduledAudit();
+    lastVerificationTime = new Date();
+
+    const totalBlocks = await BlockchainModel.countDocuments({});
+    const verifiedBlocks = await BlockchainModel.countDocuments({ verificationStatus: true });
+    const failedBlocks = await BlockchainModel.countDocuments({ verificationStatus: false });
+
+    res.status(200).json({
+      totalBlocks,
+      verifiedBlocks,
+      failedBlocks,
+      lastVerification: lastVerificationTime.toISOString()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Run scheduled blockchain verification every 10 minutes
+setInterval(() => {
+  BlockchainService.runScheduledAudit().then(() => {
+    lastVerificationTime = new Date();
+  });
+}, 10 * 60 * 1000);
+
+// Run initial audit on startup
+setTimeout(() => {
+  BlockchainService.runScheduledAudit().then(() => {
+    lastVerificationTime = new Date();
+  });
+}, 5000);
+
 // Error handler
 app.use(errorHandler);
 
@@ -71,6 +121,8 @@ const http = require('http');
 const socketService = require('./services/socketService');
 
 const server = http.createServer(app);
+server.keepAliveTimeout = 65000; // 65 seconds keep-alive timeout
+server.headersTimeout = 66000;    // 66 seconds headers timeout
 socketService.init(server);
 
 const PORT = process.env.PORT || 4000;

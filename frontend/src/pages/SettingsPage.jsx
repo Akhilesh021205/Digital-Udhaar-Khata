@@ -214,6 +214,10 @@ const SettingsPage = () => {
   const [loadingTrash, setLoadingTrash] = useState(false);
   const [loginActivities, setLoginActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [processingActivity, setProcessingActivity] = useState(false);
+  const [sendingResetLink, setSendingResetLink] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [locking, setLocking] = useState(false);
@@ -271,6 +275,52 @@ const SettingsPage = () => {
       console.error('Failed to fetch login activities:', err);
     } finally {
       setLoadingActivities(false);
+    }
+  };
+
+  const handleRemoveDevice = async () => {
+    if (!selectedActivity) return;
+    setProcessingActivity(true);
+    try {
+      const { data } = await API.delete(`/auth/login-activities/${selectedActivity._id}`);
+      setLoginActivities(data.data || []);
+      toast.success('Device session removed successfully');
+      setShowActivityModal(false);
+      
+      if (selectedActivity.isCurrent) {
+        toast.info('Current device session removed. Logging out...');
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 1500);
+      }
+    } catch (err) {
+      toast.error('Failed to remove device session');
+    } finally {
+      setProcessingActivity(false);
+    }
+  };
+
+  const handleBlockDevice = async () => {
+    if (!selectedActivity) return;
+    setProcessingActivity(true);
+    try {
+      const { data } = await API.post(`/auth/login-activities/${selectedActivity._id}/block`);
+      setLoginActivities(data.data || []);
+      toast.success('Device blocked successfully');
+      setShowActivityModal(false);
+      
+      if (selectedActivity.isCurrent) {
+        toast.info('Current device blocked. Logging out...');
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 1500);
+      }
+    } catch (err) {
+      toast.error('Failed to block device');
+    } finally {
+      setProcessingActivity(false);
     }
   };
 
@@ -703,6 +753,18 @@ const SettingsPage = () => {
     }
   };
 
+  const handleForgotModalPassword = async () => {
+    setSendingResetLink(true);
+    try {
+      await API.post('/auth/forgot-password', { email: user.email });
+      toast.success(`Password reset link sent to ${user.email}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send password reset email.');
+    } finally {
+      setSendingResetLink(false);
+    }
+  };
+
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setVerifyingOtp(true);
@@ -756,7 +818,17 @@ const SettingsPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-slate-gray uppercase tracking-wider">Account Password</label>
+              <div className="flex justify-between items-center">
+                <label className="block text-[10px] font-bold text-slate-gray uppercase tracking-wider">Account Password</label>
+                <button
+                  type="button"
+                  disabled={sendingResetLink}
+                  onClick={handleForgotModalPassword}
+                  className="text-[10px] font-bold text-orange hover:text-orange-hover cursor-pointer border-none bg-transparent p-0 transition-colors disabled:opacity-50"
+                >
+                  {sendingResetLink ? 'Sending Link...' : 'Forgot Password?'}
+                </button>
+              </div>
               <div className="relative flex items-center">
                 <input
                   type={showModalPassword ? "text" : "password"}
@@ -1510,10 +1582,17 @@ const SettingsPage = () => {
           ) : (
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {loginActivities.map((activity, idx) => (
-                <div key={idx} className="p-3.5 bg-soft-white/60 border border-soft-gray/50 rounded-xl flex justify-between items-start text-left">
+                <div 
+                  key={idx} 
+                  onClick={() => {
+                    setSelectedActivity({ ...activity, isCurrent: idx === 0 });
+                    setShowActivityModal(true);
+                  }}
+                  className="p-3.5 bg-soft-white/60 hover:bg-soft-white border border-soft-gray/50 hover:border-orange/30 rounded-xl flex justify-between items-start text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group"
+                >
                   <div className="space-y-1">
-                    <span className="text-xs font-bold text-deep-navy block flex items-center gap-1.5">
-                      <FiSmartphone className="w-3.5 h-3.5 text-slate-gray" /> {activity.deviceName} ({activity.browser})
+                    <span className="text-xs font-bold text-deep-navy group-hover:text-orange block flex items-center gap-1.5 transition-colors">
+                      <FiSmartphone className="w-3.5 h-3.5 text-slate-gray group-hover:text-orange transition-colors" /> {activity.deviceName} ({activity.browser})
                       {idx === 0 && (
                         <span className="bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
                           Current
@@ -1524,9 +1603,14 @@ const SettingsPage = () => {
                       <FiMapPin className="w-3 h-3 text-slate-gray/80" /> IP: {activity.ipAddress} • {activity.location}
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-gray font-medium">
-                    {new Date(activity.loginTime).toLocaleString()}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[10px] text-slate-gray font-medium">
+                      {new Date(activity.loginTime).toLocaleString()}
+                    </span>
+                    <span className="text-[9px] text-orange opacity-0 group-hover:opacity-100 transition-opacity font-bold uppercase tracking-wider">
+                      Manage Options &rarr;
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1928,6 +2012,68 @@ const SettingsPage = () => {
                 }`}
               >
                 {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Device Login Session Options Modal */}
+      {showActivityModal && selectedActivity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-100 p-7 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <button 
+              onClick={() => setShowActivityModal(false)}
+              className="absolute top-4 right-4 bg-transparent border-none text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              <HiOutlineX size={18} />
+            </button>
+
+            <div className="w-12 h-12 rounded-full bg-orange/10 flex items-center justify-center text-orange mb-4 border border-orange/10">
+              <FiSmartphone className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-deep-navy font-outfit m-0">
+              {selectedActivity.deviceName}
+            </h3>
+            <p className="text-xs text-slate-gray m-0 mt-1">
+              {selectedActivity.browser} • IP: {selectedActivity.ipAddress}
+            </p>
+            <p className="text-[10px] text-slate-gray/70 mt-0.5">
+              Logged in: {new Date(selectedActivity.loginTime).toLocaleString()}
+            </p>
+
+            {selectedActivity.isCurrent && (
+              <span className="mt-3 bg-green-100 text-green-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                This is your current device
+              </span>
+            )}
+
+            <div className="w-full space-y-2.5 mt-6">
+              <button
+                type="button"
+                disabled={processingActivity}
+                onClick={handleRemoveDevice}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-deep-navy font-bold text-xs rounded-xl border border-soft-gray cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+              >
+                {processingActivity ? (
+                  <span className="w-4 h-4 border-2 border-deep-navy border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  'Remove Device Session'
+                )}
+              </button>
+
+              <button
+                type="button"
+                disabled={processingActivity}
+                onClick={handleBlockDevice}
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                {processingActivity ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  'Block Device'
+                )}
               </button>
             </div>
           </div>

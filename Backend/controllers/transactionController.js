@@ -3,7 +3,8 @@ const Customer = require('../models/Customer');
 const CustomerHistory = require('../models/CustomerHistory');
 const { updateRiskLevel } = require('../services/riskService');
 const socketService = require('../services/socketService');
-const { BlockchainService } = require('../services/blockchainService');
+const BlockchainService = require('../services/blockchainService');
+const cache = require('../utils/cache');
 
 // @desc    Get all transactions for logged-in owner
 // @route   GET /api/transactions
@@ -20,7 +21,7 @@ const getTransactions = async (req, res, next) => {
       query.customer = customer;
     }
 
-    if (status && ['PENDING', 'SETTLED'].includes(status)) {
+    if (status && ['PENDING', 'SETTLED', 'FAILED', 'Cancelled', 'CANCELLED'].includes(status)) {
       query.paymentStatus = status;
     }
 
@@ -35,12 +36,21 @@ const getTransactions = async (req, res, next) => {
     const transactions = await Transaction.find(query)
       .populate('customer', 'name phone')
       .sort({ date: -1 })
-      .limit(queryLimit);
+      .limit(queryLimit)
+      .lean();
+
+    const decryptCustomerField = Customer.decryptCustomerField;
+    const processedTransactions = transactions.map(tx => {
+      if (tx.customer && tx.customer.phone) {
+        tx.customer.phone = decryptCustomerField(tx.customer.phone);
+      }
+      return tx;
+    });
 
     res.status(200).json({
       success: true,
-      count: transactions.length,
-      data: transactions,
+      count: processedTransactions.length,
+      data: processedTransactions,
     });
   } catch (error) {
     next(error);
@@ -79,8 +89,12 @@ const createTransaction = async (req, res, next) => {
       date: date || Date.now(),
     });
 
-    // Create block in private blockchain for tamper-evident ledger
-    await BlockchainService.addTransactionBlock(req.user._id, transaction, transaction._id);
+    // Create block in private blockchain for tamper-evident ledger (runs in background)
+    BlockchainService.createBlock(req.user._id, transaction._id, customerId, transaction.amount, transaction.type)
+      .catch(err => console.error('Background blockchain block creation failed in createTransaction:', err));
+
+    // Invalidate stats cache since transaction was added
+    cache.invalidatePrefix(`stats_${req.user._id}`);
 
     // Update customer balance
     if (type === 'credit') {
@@ -134,6 +148,13 @@ const createTransaction = async (req, res, next) => {
 // @route   PUT /api/transactions/:id/settle
 const settleTransaction = async (req, res, next) => {
   try {
+    if (req.user.role === 'Employee') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Employees are not authorized to modify ledger records.',
+      });
+    }
+
     const transaction = await Transaction.findOne({
       _id: req.params.id,
       owner: req.user._id,
@@ -155,6 +176,13 @@ const settleTransaction = async (req, res, next) => {
 
     transaction.paymentStatus = 'SETTLED';
     await transaction.save();
+
+    // Create a new block representing the updated settled state (runs in background)
+    BlockchainService.createBlock(req.user._id, transaction._id, transaction.customer, transaction.amount, 'SETTLE')
+      .catch(err => console.error('Background blockchain block creation failed in settleTransaction:', err));
+
+    // Invalidate stats cache
+    cache.invalidatePrefix(`stats_${req.user._id}`);
 
     // Adjust the customer's balance
     const customer = await Customer.findOne({ _id: transaction.customer, owner: req.user._id });
@@ -208,6 +236,13 @@ const settleTransaction = async (req, res, next) => {
 // @route   DELETE /api/transactions/:id
 const deleteTransaction = async (req, res, next) => {
   try {
+    if (req.user.role === 'Employee') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Employees are not authorized to modify ledger records.',
+      });
+    }
+
     const transaction = await Transaction.findOne({
       _id: req.params.id,
       owner: req.user._id,
@@ -249,7 +284,16 @@ const deleteTransaction = async (req, res, next) => {
       updateRiskLevel(customer._id).catch(() => {});
     }
 
-    await Transaction.findByIdAndDelete(transaction._id);
+    // Instead of deleting the record, mark it as Cancelled
+    transaction.paymentStatus = 'Cancelled';
+    await transaction.save();
+
+    // Create a new block representing the cancelled state (runs in background)
+    BlockchainService.createBlock(req.user._id, transaction._id, transaction.customer, transaction.amount, 'CANCEL')
+      .catch(err => console.error('Background blockchain block creation failed in deleteTransaction:', err));
+
+    // Invalidate stats cache
+    cache.invalidatePrefix(`stats_${req.user._id}`);
 
     socketService.emitRefresh('transactions');
 
@@ -267,6 +311,13 @@ const deleteTransaction = async (req, res, next) => {
 // @route   PUT /api/transactions/:id
 const updateTransaction = async (req, res, next) => {
   try {
+    if (req.user.role === 'Employee') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Employees are not authorized to modify ledger records.',
+      });
+    }
+
     const { amount, description, date, paymentStatus, paymentMode, billImageUrl } = req.body;
     const transaction = await Transaction.findOne({
       _id: req.params.id,
@@ -331,6 +382,13 @@ const updateTransaction = async (req, res, next) => {
 
     await transaction.save();
 
+    // Create a new block representing the updated state (runs in background)
+    BlockchainService.createBlock(req.user._id, transaction._id, transaction.customer, transaction.amount, 'UPDATE')
+      .catch(err => console.error('Background blockchain block creation failed in updateTransaction:', err));
+
+    // Invalidate stats cache
+    cache.invalidatePrefix(`stats_${req.user._id}`);
+
     // Trigger immediate automated transaction notification (Bill or Payment Receipt) via AI Bot
     if (customer && customer.email) {
       const { sendTransactionEmail } = require('../services/transactionMailService');
@@ -371,6 +429,16 @@ const updateTransaction = async (req, res, next) => {
 const getStats = async (req, res, next) => {
   try {
     const ownerId = req.user._id;
+    const cacheKey = `stats_${ownerId}`;
+
+    // Check Cache
+    const cachedStats = cache.get(cacheKey);
+    if (cachedStats) {
+      return res.status(200).json({
+        success: true,
+        data: cachedStats,
+      });
+    }
 
     // Today's transactions start time
     const todayStart = new Date();
@@ -427,19 +495,24 @@ const getStats = async (req, res, next) => {
     const todayCredit = todayAgg.find((a) => a._id === 'credit')?.total || 0;
     const todayDebit = todayAgg.find((a) => a._id === 'debit')?.total || 0;
 
+    const statsData = {
+      totalCustomers,
+      youWillGet: balanceAgg[0]?.youWillGet || 0,
+      youWillGive: balanceAgg[0]?.youWillGive || 0,
+      todayTransactions,
+      todayCredit,
+      todayDebit,
+      customersWithDues,
+      highRiskCount,
+      pendingTransactions,
+    };
+
+    // Cache stats for 15 seconds
+    cache.set(cacheKey, statsData, 15000);
+
     res.status(200).json({
       success: true,
-      data: {
-        totalCustomers,
-        youWillGet: balanceAgg[0]?.youWillGet || 0,
-        youWillGive: balanceAgg[0]?.youWillGive || 0,
-        todayTransactions,
-        todayCredit,
-        todayDebit,
-        customersWithDues,
-        highRiskCount,
-        pendingTransactions,
-      },
+      data: statsData,
     });
   } catch (error) {
     next(error);
@@ -450,6 +523,13 @@ const getStats = async (req, res, next) => {
 // @route   PUT /api/transactions/:id/approve
 const approveTransaction = async (req, res, next) => {
   try {
+    if (req.user.role === 'Employee') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Employees are not authorized to modify ledger records.',
+      });
+    }
+
     const transaction = await Transaction.findOne({
       _id: req.params.id,
       owner: req.user._id,
@@ -471,6 +551,13 @@ const approveTransaction = async (req, res, next) => {
 
     transaction.paymentStatus = 'SETTLED';
     await transaction.save();
+
+    // Create a new block representing the approved state (runs in background)
+    BlockchainService.createBlock(req.user._id, transaction._id, transaction.customer, transaction.amount, 'APPROVE')
+      .catch(err => console.error('Background blockchain block creation failed in approveTransaction:', err));
+
+    // Invalidate stats cache
+    cache.invalidatePrefix(`stats_${req.user._id}`);
 
     const customer = await Customer.findOne({ _id: transaction.customer, owner: req.user._id });
     if (customer) {
@@ -523,6 +610,13 @@ const approveTransaction = async (req, res, next) => {
 // @route   PUT /api/transactions/:id/decline
 const declineTransaction = async (req, res, next) => {
   try {
+    if (req.user.role === 'Employee') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Employees are not authorized to modify ledger records.',
+      });
+    }
+
     const transaction = await Transaction.findOne({
       _id: req.params.id,
       owner: req.user._id,
@@ -544,6 +638,13 @@ const declineTransaction = async (req, res, next) => {
 
     transaction.paymentStatus = 'FAILED';
     await transaction.save();
+
+    // Create a new block representing the declined state (runs in background)
+    BlockchainService.createBlock(req.user._id, transaction._id, transaction.customer, transaction.amount, 'DECLINE')
+      .catch(err => console.error('Background blockchain block creation failed in declineTransaction:', err));
+
+    // Invalidate stats cache
+    cache.invalidatePrefix(`stats_${req.user._id}`);
 
     const customer = await Customer.findOne({ _id: transaction.customer, owner: req.user._id });
     if (customer) {

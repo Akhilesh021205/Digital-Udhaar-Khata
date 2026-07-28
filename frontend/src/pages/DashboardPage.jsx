@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import API from '../api/axios';
 import { useSocketSync } from '../hooks/useSocketSync';
@@ -245,6 +245,60 @@ const DashboardPage = () => {
 
   useSocketSync(fetchAll, ['transactions', 'customers']);
 
+  const filteredCustomers = useMemo(() => {
+    return customerList.filter(c => {
+      const name = c.name || '';
+      const phone = c.phone || '';
+      const matchesSearch = name.toLowerCase().includes(custSearch.toLowerCase()) || 
+                            phone.includes(custSearch);
+      if (custFilter === 'get') {
+        return matchesSearch && c.balance > 0;
+      }
+      if (custFilter === 'pay') {
+        return matchesSearch && c.balance < 0;
+      }
+      return matchesSearch;
+    });
+  }, [customerList, custSearch, custFilter]);
+
+  const statsMeta = useMemo(() => {
+    const youWillGet = stats?.youWillGet || 0;
+    const youWillGive = stats?.youWillGive || 0;
+    const totalUdharVal = youWillGet + youWillGive || 1;
+    const creditPct = (youWillGet / totalUdharVal) * 100;
+    const debitPct = (youWillGive / totalUdharVal) * 100;
+    const radius = 35;
+    const strokeWidth = 10;
+    const circumference = 2 * Math.PI * radius; 
+    const creditStroke = (youWillGet / totalUdharVal) * circumference;
+    const debitStroke = (youWillGive / totalUdharVal) * circumference;
+    return {
+      youWillGet,
+      youWillGive,
+      totalUdharVal,
+      creditPct,
+      debitPct,
+      radius,
+      strokeWidth,
+      circumference,
+      creditStroke,
+      debitStroke
+    };
+  }, [stats]);
+
+  const {
+    youWillGet,
+    youWillGive,
+    totalUdharVal,
+    creditPct,
+    debitPct,
+    radius,
+    strokeWidth,
+    circumference,
+    creditStroke,
+    debitStroke
+  } = statsMeta;
+
   const handleVoice = () => {
     if (listening) {
       stopListening();
@@ -284,31 +338,6 @@ const DashboardPage = () => {
   );
 
   const transactionList = Array.isArray(transactions) ? transactions : [];
-
-  const filteredCustomers = customerList.filter(c => {
-    const name = c.name || '';
-    const phone = c.phone || '';
-    const matchesSearch = name.toLowerCase().includes(custSearch.toLowerCase()) || 
-                          phone.includes(custSearch);
-    if (custFilter === 'get') {
-      return matchesSearch && c.balance > 0;
-    }
-    if (custFilter === 'pay') {
-      return matchesSearch && c.balance < 0;
-    }
-    return matchesSearch;
-  });
-
-  const youWillGet = stats?.youWillGet || 0;
-  const youWillGive = stats?.youWillGive || 0;
-  const totalUdharVal = youWillGet + youWillGive || 1;
-  const creditPct = (youWillGet / totalUdharVal) * 100;
-  const debitPct = (youWillGive / totalUdharVal) * 100;
-  const radius = 35;
-  const strokeWidth = 10;
-  const circumference = 2 * Math.PI * radius; 
-  const creditStroke = (youWillGet / totalUdharVal) * circumference;
-  const debitStroke = (youWillGive / totalUdharVal) * circumference;
 
   const handleBackup = () => {
     toast.success('Database backup completed successfully.');
@@ -710,6 +739,68 @@ const DashboardPage = () => {
         </div>
 
         <div className="col-span-12 lg:col-span-4 space-y-6">
+          {/* Quick Actions */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
+            <h3 className="text-base font-bold text-deep-navy mb-4">{t('quickActions') || 'Quick Actions'}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setShowCustModal(true)}
+                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
+              >
+                <div className="w-8 h-8 rounded-lg bg-orange/10 text-orange flex items-center justify-center text-lg">
+                  <HiOutlineUserAdd />
+                </div>
+                <span>Add Customer</span>
+              </button>
+              <button 
+                onClick={() => openTxnModal('credit')}
+                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
+              >
+                <div className="w-8 h-8 rounded-lg bg-green-get/10 text-green-get flex items-center justify-center text-lg">
+                  <HiOutlineCreditCard />
+                </div>
+                <span>Add Entry</span>
+              </button>
+              <button 
+                onClick={() => navigate('/transactions')}
+                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
+              >
+                <div className="w-8 h-8 rounded-lg bg-info-analytics/10 text-info-analytics flex items-center justify-center text-lg">
+                  <HiOutlineDocumentText />
+                </div>
+                <span>Reports</span>
+              </button>
+              <button 
+                onClick={() => navigate('/reminders')}
+                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
+              >
+                <div className="w-8 h-8 rounded-lg bg-warning-pending/10 text-warning-pending flex items-center justify-center text-lg">
+                  <HiOutlineBell />
+                </div>
+                <span>Reminders</span>
+              </button>
+              <button 
+                onClick={handleBackup}
+                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-gray/10 text-slate-gray flex items-center justify-center text-lg">
+                  <HiOutlineDatabase />
+                </div>
+                <span>Backup</span>
+              </button>
+              <button 
+                onClick={() => navigate('/settings')}
+                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-gray/10 text-slate-gray flex items-center justify-center text-lg">
+                  <HiOutlineCog />
+                </div>
+                <span>Settings</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Customer Details */}
           <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6 flex flex-col gap-5">
             <div className="flex justify-between items-center pb-2 border-b border-soft-gray/30">
               <h3 className="text-base font-bold text-deep-navy">{t('customerDetails') || 'Customer Details'}</h3>
@@ -827,77 +918,18 @@ const DashboardPage = () => {
               </>
             )}
           </div>
-          <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
-            <h3 className="text-base font-bold text-deep-navy mb-4">{t('quickActions') || 'Quick Actions'}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setShowCustModal(true)}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-orange/10 text-orange flex items-center justify-center text-lg">
-                  <HiOutlineUserAdd />
-                </div>
-                <span>Add Customer</span>
-              </button>
-              <button 
-                onClick={() => openTxnModal('credit')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-green-get/10 text-green-get flex items-center justify-center text-lg">
-                  <HiOutlineCreditCard />
-                </div>
-                <span>Add Entry</span>
-              </button>
-              <button 
-                onClick={() => navigate('/transactions')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-info-analytics/10 text-info-analytics flex items-center justify-center text-lg">
-                  <HiOutlineDocumentText />
-                </div>
-                <span>Reports</span>
-              </button>
-              <button 
-                onClick={() => navigate('/reminders')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-warning-pending/10 text-warning-pending flex items-center justify-center text-lg">
-                  <HiOutlineBell />
-                </div>
-                <span>Reminders</span>
-              </button>
-              <button 
-                onClick={handleBackup}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-gray/10 text-slate-gray flex items-center justify-center text-lg">
-                  <HiOutlineDatabase />
-                </div>
-                <span>Backup</span>
-              </button>
-              <button 
-                onClick={() => navigate('/settings')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-gray/10 text-slate-gray flex items-center justify-center text-lg">
-                  <HiOutlineCog />
-                </div>
-                <span>Settings</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
       {isSupported && (
         <button 
-          className={`fixed bottom-4 right-18 md:bottom-6 md:right-24 w-12 h-12 md:w-14 md:h-14 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
+          className={`fixed bottom-20 right-20 lg:bottom-6 lg:right-24 w-12 h-12 lg:w-14 lg:h-14 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
             listening ? 'ring-4 ring-red-give/30 bg-red-give animate-pulse' : ''
           }`} 
           onClick={handleVoice} 
           title={listening ? "Stop Listening" : "Voice Entry"}
         >
-          {listening ? <HiOutlineX className="w-5 h-5 md:w-6 md:h-6" /> : <HiOutlineMicrophone className="w-5 h-5 md:w-6 md:h-6" />}
+          {listening ? <HiOutlineX className="w-5 h-5 lg:w-6 lg:h-6" /> : <HiOutlineMicrophone className="w-5 h-5 lg:w-6 lg:h-6" />}
         </button>
       )}
 

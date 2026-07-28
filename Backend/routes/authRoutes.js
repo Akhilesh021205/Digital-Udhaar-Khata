@@ -15,7 +15,9 @@ const {
   forgotPassword,
   resetPassword,
   emergencyLock,
-  getLoginActivities
+  getLoginActivities,
+  removeLoginActivity,
+  blockLoginActivity
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -34,5 +36,7 @@ router.post('/verify-email-otp', protect, verifyEmailOtp);
 router.post('/verify-biometric', protect, verifyBiometric);
 router.post('/emergency-lock', protect, emergencyLock);
 router.get('/login-activities', protect, getLoginActivities);
+router.delete('/login-activities/:id', protect, removeLoginActivity);
+router.post('/login-activities/:id/block', protect, blockLoginActivity);
 
 module.exports = router;

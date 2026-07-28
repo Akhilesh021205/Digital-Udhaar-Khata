@@ -11,8 +11,10 @@ const {
   getStats,
 } = require('../controllers/transactionController');
 const { protect } = require('../middleware/authMiddleware');
+const verifyBlockchain = require('../middleware/verifyBlockchain');
 
 router.use(protect);
+router.use(verifyBlockchain);
 
 router.get('/stats', getStats);
 router.route('/').get(getTransactions).post(createTransaction);

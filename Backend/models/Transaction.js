@@ -35,7 +35,7 @@ const transactionSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['PENDING', 'SETTLED'],
+      enum: ['PENDING', 'SETTLED', 'FAILED', 'Cancelled', 'CANCELLED'],
       default: 'PENDING',
     },
     paymentMode: {
@@ -47,22 +47,26 @@ const transactionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    // Blockchain Metadata
+    // Blockchain Metadata (select: false prevents returning to frontend)
     blockIndex: {
       type: Number,
       default: null,
+      select: false,
     },
     previousHash: {
       type: String,
       default: '',
+      select: false,
     },
     blockHash: {
       type: String,
       default: '',
+      select: false,
     },
     blockTimestamp: {
       type: String,
       default: '',
+      select: false,
     },
   },
   {

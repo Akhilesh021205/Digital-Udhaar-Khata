@@ -82,7 +82,6 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
     { to: '/reminders', icon: <HiOutlineBell size={18} />, label: t('reminders') },
     { to: '/settings', icon: <HiOutlineCog size={18} />, label: t('settings') },
     { to: '/history', icon: <HiOutlineClock size={18} />, label: 'History' },
-    { to: '/blockchain', icon: <HiOutlineShieldCheck size={18} />, label: 'Blockchain' },
   ];
 
   return (

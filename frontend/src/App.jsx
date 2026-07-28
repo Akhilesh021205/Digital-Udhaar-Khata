@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -8,25 +8,27 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import Layout from './components/Layout/Layout';
-import LoginPage from './pages/LoginPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import CustomersPage from './pages/CustomersPage';
-import CustomerDetailPage from './pages/CustomerDetailPage';
-import CashbookPage from './pages/CashbookPage';
-import RemindersPage from './pages/RemindersPage';
-import SettingsPage from './pages/SettingsPage';
 import Loader from './components/Common/Loader';
-import LandingPage from './pages/LandingPage';
-import PermanentHistoryPage from './pages/PermanentHistoryPage';
-import SecurityLockSetup from './pages/SecuritySetupPage';
-import BiometricDemoPage from './pages/BiometricDemoPage';
-import BlockchainPage from './pages/BlockchainPage';
 import { SecurityLockProvider } from './context/SecurityLockContext';
-import PaymentCheckoutPage from './pages/PaymentCheckoutPage';
 import { initSocket } from './services/socket';
+
+// Lazy load pages for lower initial bundle size and faster initial load times
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const CustomersPage = lazy(() => import('./pages/CustomersPage'));
+const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'));
+const CashbookPage = lazy(() => import('./pages/CashbookPage'));
+const RemindersPage = lazy(() => import('./pages/RemindersPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const PermanentHistoryPage = lazy(() => import('./pages/PermanentHistoryPage'));
+const SecurityLockSetup = lazy(() => import('./pages/SecuritySetupPage'));
+const BiometricDemoPage = lazy(() => import('./pages/BiometricDemoPage'));
+const BlockchainPage = lazy(() => import('./pages/BlockchainPage'));
+const PaymentCheckoutPage = lazy(() => import('./pages/PaymentCheckoutPage'));
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -102,7 +104,9 @@ function App() {
           <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "1023724395376-dummyclientid.apps.googleusercontent.com"}>
             <LanguageProvider>
               <SecurityLockProvider>
-                <AppRoutes />
+                <Suspense fallback={<Loader fullPage />}>
+                  <AppRoutes />
+                </Suspense>
                 <ToastContainer
                   position="top-center"
                   style={{ top: '10vh', left: '50%', transform: 'translateX(-50%)' }}

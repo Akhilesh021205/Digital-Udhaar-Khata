@@ -800,7 +800,7 @@ const CustomerDetailPage = () => {
       </div>
 
       {/* Fixed Action Buttons */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-30 w-full max-w-md px-4 items-center">
+      <div className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-30 w-full max-w-md px-4 items-center">
         <button 
           className="flex-1 py-3.5 bg-red-give hover:bg-red-hover text-white rounded-xl shadow-lg flex items-center justify-center gap-2 font-bold text-sm border-none cursor-pointer transition-transform hover:-translate-y-0.5 animate-in slide-in-from-bottom duration-300" 
           onClick={() => openTxnModal('credit')}

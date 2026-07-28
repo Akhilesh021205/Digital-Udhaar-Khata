@@ -13,7 +13,6 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/reminders', icon: <HiOutlineBell size={20} />, label: t('reminders') },
     { to: '/settings', icon: <HiOutlineCog size={20} />, label: t('settings') },
     { to: '/history', icon: <HiOutlineClock size={20} />, label: 'Transaction History' },
-    { to: '/blockchain', icon: <HiOutlineShieldCheck size={20} />, label: 'Blockchain Audit' },
   ];
 
   return (

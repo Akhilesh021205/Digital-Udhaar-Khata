@@ -39,6 +39,29 @@ const parseUserAgent = (uaString = '') => {
   return { deviceName, browser };
 };
 
+const getIpLocation = async (ip) => {
+  let queryIp = ip;
+  if (!ip || ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
+    queryIp = ''; 
+  }
+  try {
+    const response = await axios.get(`http://ip-api.com/json/${queryIp}`, { timeout: 3000 });
+    if (response.data && response.data.status === 'success') {
+      const { city, regionName, country } = response.data;
+      return {
+        ip: response.data.query,
+        location: `${city}, ${regionName}, ${country}`
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching IP location:', error.message);
+  }
+  return {
+    ip: ip || '127.0.0.1',
+    location: 'New Delhi, Delhi, India'
+  };
+};
+
 // Generate JWT
 const generateToken = (id, tokenVersion = 0) => {
   return jwt.sign({ id, tokenVersion }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -106,6 +129,39 @@ const login = async (req, res, next) => {
         message: 'Invalid email or password',
       });
     }
+
+    // Check if device is blocked
+    const ua = req.headers['user-agent'] || '';
+    const { deviceName, browser } = parseUserAgent(ua);
+    const ipAddress = req.ip || req.connection.remoteAddress || '127.0.0.1';
+    
+    const isBlocked = user.blockedDevices && user.blockedDevices.some(
+      blocked => blocked.deviceName === deviceName && blocked.browser === browser
+    );
+    
+    if (isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'This device has been blocked from accessing this account.'
+      });
+    }
+
+    // Record login activity
+    const geo = await getIpLocation(ipAddress);
+    user.loginActivities = user.loginActivities || [];
+    user.loginActivities.unshift({
+      deviceName,
+      browser,
+      loginTime: new Date(),
+      ipAddress: geo.ip,
+      location: geo.location
+    });
+    
+    if (user.loginActivities.length > 20) {
+      user.loginActivities = user.loginActivities.slice(0, 20);
+    }
+    
+    await user.save();
 
     const token = generateToken(user._id, user.tokenVersion || 0);
 
@@ -654,13 +710,25 @@ const googleLogin = async (req, res, next) => {
     const { deviceName, browser } = parseUserAgent(ua);
     const ipAddress = req.ip || req.connection.remoteAddress || '127.0.0.1';
     
+    const isBlocked = user.blockedDevices && user.blockedDevices.some(
+      blocked => blocked.deviceName === deviceName && blocked.browser === browser
+    );
+    
+    if (isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'This device has been blocked from accessing this account.'
+      });
+    }
+    
+    const geo = await getIpLocation(ipAddress);
     user.loginActivities = user.loginActivities || [];
     user.loginActivities.unshift({
       deviceName,
       browser,
       loginTime: new Date(),
-      ipAddress,
-      location: 'Google Sign-In'
+      ipAddress: geo.ip,
+      location: geo.location
     });
     
     // Limit to 20 activities
@@ -735,13 +803,25 @@ const googleLoginMock = async (req, res, next) => {
     const { deviceName, browser } = parseUserAgent(ua);
     const ipAddress = req.ip || req.connection.remoteAddress || '127.0.0.1';
     
+    const isBlocked = user.blockedDevices && user.blockedDevices.some(
+      blocked => blocked.deviceName === deviceName && blocked.browser === browser
+    );
+    
+    if (isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'This device has been blocked from accessing this account.'
+      });
+    }
+    
+    const geo = await getIpLocation(ipAddress);
     user.loginActivities = user.loginActivities || [];
     user.loginActivities.unshift({
       deviceName,
       browser,
       loginTime: new Date(),
-      ipAddress,
-      location: 'Google Sign-In (Simulated)'
+      ipAddress: geo.ip,
+      location: geo.location
     });
     
     if (user.loginActivities.length > 20) {
@@ -794,6 +874,73 @@ const getLoginActivities = async (req, res, next) => {
   }
 };
 
+// @desc    Remove a login activity (remove device)
+// @route   DELETE /api/auth/login-activities/:id
+const removeLoginActivity = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    user.loginActivities = user.loginActivities.filter(
+      activity => activity._id.toString() !== req.params.id
+    );
+    
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Device session removed successfully',
+      data: user.loginActivities
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Block a device
+// @route   POST /api/auth/login-activities/:id/block
+const blockLoginActivity = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const activityToBlock = user.loginActivities.find(
+      activity => activity._id.toString() === req.params.id
+    );
+    
+    if (!activityToBlock) {
+      return res.status(404).json({ success: false, message: 'Login activity not found' });
+    }
+    
+    // Add to blocked list
+    user.blockedDevices = user.blockedDevices || [];
+    user.blockedDevices.push({
+      deviceName: activityToBlock.deviceName,
+      browser: activityToBlock.browser,
+      ipAddress: activityToBlock.ipAddress
+    });
+    
+    // Remove from login activities
+    user.loginActivities = user.loginActivities.filter(
+      activity => activity._id.toString() !== req.params.id
+    );
+    
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Device blocked and session terminated successfully',
+      data: user.loginActivities
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   register, 
   login, 
@@ -809,5 +956,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   emergencyLock,
-  getLoginActivities
+  getLoginActivities,
+  removeLoginActivity,
+  blockLoginActivity
 };

@@ -76,6 +76,7 @@ const CustomersPage = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', avatar: customerPresets[0].value });
@@ -134,7 +135,7 @@ const CustomersPage = () => {
       cleaned = cleaned.replace(prefixRegex, "").trim();
       
       if (cleaned) {
-        setSearch(cleaned);
+        setSearchInput(cleaned);
         toast.success(`Searching for "${cleaned}"`);
       }
     }
@@ -168,6 +169,15 @@ const CustomersPage = () => {
     } catch (err) { toast.error('Failed to load'); }
     finally { setLoading(false); }
   };
+
+  // Debounce search input changes by 300ms
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setSearch(searchInput);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchInput]);
 
   useEffect(() => { fetchCustomers(); }, [search]);
 
@@ -230,8 +240,8 @@ const CustomersPage = () => {
             <input 
               className="w-full pl-10 pr-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all placeholder:text-slate-gray/50" 
               placeholder={`${t('search')} ...`} 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
+              value={searchInput} 
+              onChange={(e) => setSearchInput(e.target.value)} 
             />
           </div>
           {isSpeechSupported && (

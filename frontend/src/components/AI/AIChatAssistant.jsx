@@ -220,7 +220,7 @@ const AIChatAssistant = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-tr from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 border-none cursor-pointer group"
+        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-tr from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 border-none cursor-pointer group"
         title="KathaGPT"
         id="ai-chat-btn"
       >
@@ -242,15 +242,16 @@ const AIChatAssistant = () => {
           {/* Chat Window */}
           <div className="relative w-full max-w-md h-full bg-pure-white shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-300">
             {/* Header */}
-            <div className="px-5 py-4 bg-[#0f172a] text-white flex items-center justify-between shadow-md border-b border-soft-gray/10">
+            <div className="px-5 py-4 bg-[#0f172a] text-white flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-orange/20 border border-orange/30 flex items-center justify-center text-orange">
-                  <HiOutlineSparkles size={20} className="animate-pulse" />
+                <div className="w-9 h-9 rounded-xl bg-orange/15 border border-orange/30 flex items-center justify-center text-orange shrink-0">
+                  <HiOutlineSparkles size={18} className="animate-pulse" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold m-0 flex items-center gap-1.5 text-white" style={{ color: '#ffffff' }}>
+                  <span className="text-sm font-bold m-0 text-white font-outfit tracking-wide leading-none block" style={{ color: '#ffffff' }}>
                     KathaGPT
                   </span>
+                  <span className="text-[10px] text-zinc-400 font-semibold mt-1 block">AI Ledger Assistant</span>
                 </div>
               </div>
               <button 
@@ -263,15 +264,15 @@ const AIChatAssistant = () => {
             </div>
 
             {/* Message Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-light-cream/30 scrollbar-thin scrollbar-thumb-soft-gray scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/20 scrollbar-thin scrollbar-thumb-soft-gray scrollbar-track-transparent">
               {messages.map((msg) => {
                 const isAI = msg.sender === 'ai';
                 return (
                   <div key={msg.id} className={`flex flex-col ${isAI ? 'items-start' : 'items-end'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-xs border transition-all ${
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 border transition-all ${
                       isAI 
-                        ? 'bg-gradient-to-br from-pure-white to-light-cream border-soft-gray/40 rounded-tl-none text-deep-navy' 
-                        : 'bg-gradient-to-br from-orange to-orange-hover text-white border-transparent rounded-tr-none'
+                        ? 'bg-white dark:bg-slate-800/80 border-slate-200/50 dark:border-slate-700/50 rounded-tl-none text-slate-800 dark:text-slate-100 shadow-xs' 
+                        : 'bg-orange text-white border-transparent rounded-tr-none shadow-xs'
                     }`}>
                       {isAI ? (
                         <div className="space-y-1">
@@ -282,20 +283,20 @@ const AIChatAssistant = () => {
                       )
                     }
                     </div>
-                    <span className="text-[9px] text-slate-gray/60 font-semibold mt-0.5 px-1.5">
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-1 px-1.5">
                       {new Date(msg.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                     </span>
 
                     {/* Suggestions (AI Only) */}
                     {isAI && msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1.5 max-w-[90%]">
+                      <div className="flex flex-wrap gap-1.5 mt-2 max-w-[90%]">
                         {msg.suggestions.map((suggestion, idx) => (
                           <button
                             key={idx}
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className="px-3 py-1.5 bg-pure-white hover:bg-orange/5 text-orange hover:text-orange-hover border border-orange/20 rounded-full text-[10px] font-bold transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1 hover:-translate-y-0.5"
+                            className="px-3.5 py-2 bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 rounded-xl text-[10px] font-semibold transition-all cursor-pointer shadow-3xs inline-flex items-center gap-1.5 hover:-translate-y-0.5"
                           >
-                            <HiOutlineLightBulb size={12} className="shrink-0" />
+                            <HiOutlineLightBulb size={12} className="shrink-0 text-amber-500" />
                             {suggestion}
                           </button>
                         ))}
@@ -306,13 +307,13 @@ const AIChatAssistant = () => {
               })}
               {loading && (
                 <div className="flex items-start">
-                  <div className="bg-gradient-to-br from-pure-white to-light-cream border border-soft-gray/40 rounded-2xl rounded-tl-none px-4.5 py-3 shadow-xs flex flex-col gap-1.5 min-w-[100px] animate-pulse">
+                  <div className="bg-white dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl rounded-tl-none px-4.5 py-3 shadow-xs flex flex-col gap-1.5 min-w-[100px] animate-pulse">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 bg-orange rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-1.5 h-1.5 bg-orange rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-1.5 h-1.5 bg-orange rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    <span className="text-[10px] text-slate-gray/60 font-black tracking-wider uppercase">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-black tracking-wider uppercase">
                       {lang === 'hi' ? 'सोच रहा हूँ...' : lang === 'te' ? 'ఆలోచిస్తున్నాను...' : 'Thinking...'}
                     </span>
                   </div>
@@ -322,7 +323,7 @@ const AIChatAssistant = () => {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-soft-gray bg-pure-white flex flex-col gap-2.5 shadow-lg">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col gap-3 shadow-lg">
               {isListening && (
                 <div className="flex items-center gap-2 px-3.5 py-2 bg-red-give/10 border border-red-give/20 rounded-xl animate-pulse">
                   <span className="w-2.5 h-2.5 bg-red-give rounded-full animate-ping" />
@@ -334,14 +335,14 @@ const AIChatAssistant = () => {
 
               {/* Speech Language Selector Pill Row */}
               {isSpeechSupported && (
-                <div className="flex items-center justify-between text-[10px] text-slate-gray/70 px-1 select-none">
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 px-1 select-none">
                   <span className="font-semibold">Speech Language:</span>
                   <div className="flex gap-1.5">
                     <button
                       type="button"
                       onClick={() => setSpeechLangOverride('en-IN')}
-                      className={`px-2 py-0.5 rounded-md border font-extrabold cursor-pointer transition-all ${
-                        speechLang === 'en-IN' ? 'bg-orange text-white border-orange shadow-xs scale-105' : 'bg-soft-white text-slate-gray border-soft-gray/50 hover:bg-orange/5 hover:text-orange'
+                      className={`px-2.5 py-1 rounded-md border font-extrabold cursor-pointer transition-all ${
+                        speechLang === 'en-IN' ? 'bg-orange text-white border-orange shadow-xs scale-105' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
                       English
@@ -349,8 +350,8 @@ const AIChatAssistant = () => {
                     <button
                       type="button"
                       onClick={() => setSpeechLangOverride('hi-IN')}
-                      className={`px-2 py-0.5 rounded-md border font-extrabold cursor-pointer transition-all ${
-                        speechLang === 'hi-IN' ? 'bg-orange text-white border-orange shadow-xs scale-105' : 'bg-soft-white text-slate-gray border-soft-gray/50 hover:bg-orange/5 hover:text-orange'
+                      className={`px-2.5 py-1 rounded-md border font-extrabold cursor-pointer transition-all ${
+                        speechLang === 'hi-IN' ? 'bg-orange text-white border-orange shadow-xs scale-105' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
                       हिन्दी
@@ -358,8 +359,8 @@ const AIChatAssistant = () => {
                     <button
                       type="button"
                       onClick={() => setSpeechLangOverride('te-IN')}
-                      className={`px-2 py-0.5 rounded-md border font-extrabold cursor-pointer transition-all ${
-                        speechLang === 'te-IN' ? 'bg-orange text-white border-orange shadow-xs scale-105' : 'bg-soft-white text-slate-gray border-soft-gray/50 hover:bg-orange/5 hover:text-orange'
+                      className={`px-2.5 py-1 rounded-md border font-extrabold cursor-pointer transition-all ${
+                        speechLang === 'te-IN' ? 'bg-orange text-white border-orange shadow-xs scale-105' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
                       తెలుగు
@@ -375,17 +376,17 @@ const AIChatAssistant = () => {
                   onKeyDown={handleKeyPress}
                   placeholder={isListening ? (lang === 'hi' ? 'बोलिए...' : lang === 'te' ? 'మాట్లాడండి...' : 'Listening...') : "Ask about your shop ledger..."}
                   disabled={loading || isListening}
-                  className="flex-1 px-4.5 py-3 bg-light-cream border border-transparent rounded-xl text-xs outline-none focus:bg-pure-white focus:border-orange/50 focus:ring-4 focus:ring-orange/10 transition-all placeholder:text-slate-gray/40 text-deep-navy font-medium"
+                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-xl text-xs outline-none focus:bg-white dark:focus:bg-slate-850 focus:border-orange/30 focus:ring-4 focus:ring-orange/5 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-800 dark:text-slate-100 font-medium"
                 />
                 
                 {isSpeechSupported && (
                   <button
                     onClick={toggleMic}
                     disabled={loading}
-                    className={`p-3 rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shadow-xs ${
+                    className={`p-3 rounded-xl border-none cursor-pointer transition-all flex items-center justify-center ${
                       isListening 
                         ? 'bg-red-give text-white animate-pulse' 
-                        : 'bg-soft-white hover:bg-orange/10 text-slate-gray hover:text-orange'
+                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-orange/10 text-slate-500 hover:text-orange dark:text-slate-400'
                     }`}
                     title={isListening ? "Stop Listening" : "Speech Input (Telugu/Hindi/English)"}
                   >
@@ -396,7 +397,7 @@ const AIChatAssistant = () => {
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={loading || isListening || !inputValue.trim()}
-                  className="p-3 bg-orange hover:bg-orange-hover disabled:bg-soft-gray/50 disabled:text-slate-gray/30 text-white rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none hover:-translate-y-0.5 active:translate-y-0"
+                  className="p-3 bg-orange hover:bg-orange-hover disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-300 dark:disabled:text-slate-600 text-white rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <HiOutlinePaperAirplane size={18} className="rotate-45" />
                 </button>
