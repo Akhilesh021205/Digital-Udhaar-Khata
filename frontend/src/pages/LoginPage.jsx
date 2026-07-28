@@ -173,7 +173,7 @@ const LoginPage = () => {
         <button
           type="button"
           onClick={handleGoogleClick}
-          className="w-full flex items-center justify-center gap-3 py-3 px-5 bg-white border border-soft-gray rounded-lg text-deep-navy text-sm font-semibold hover:bg-light-cream/60 hover:border-slate-gray/40 transition-all shadow-sm cursor-pointer"
+          className="w-full flex items-center justify-center gap-3 py-3 px-5 bg-white border border-soft-gray rounded-lg text-[#0F172A] text-sm font-semibold hover:bg-light-cream/60 hover:border-slate-gray/40 transition-all shadow-sm cursor-pointer"
         >
           {/* Official Google G Logo */}
           <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
@@ -193,17 +193,17 @@ const LoginPage = () => {
 
       {showMockChooser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 max-w-sm w-full relative">
+          <div className="bg-pure-white rounded-3xl p-6 shadow-2xl border border-soft-gray max-w-sm w-full relative">
             <button 
               onClick={() => setShowMockChooser(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-50"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 transition-colors p-1 rounded-full hover:bg-light-cream cursor-pointer"
             >
               <HiOutlineX size={20} />
             </button>
 
             <div className="text-center mb-6">
               {/* Official Google G Logo */}
-              <div className="w-10 h-10 mx-auto mb-3 flex items-center justify-center bg-slate-50 border border-slate-100 rounded-xl p-2 shadow-inner">
+              <div className="w-10 h-10 mx-auto mb-3 flex items-center justify-center bg-light-cream border border-soft-gray rounded-xl p-2 shadow-inner">
                 <svg width="24" height="24" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                   <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -221,19 +221,19 @@ const LoginPage = () => {
                 <button
                   key={idx}
                   onClick={() => handleMockSelect(account)}
-                  className="w-full flex items-center gap-3 p-3 text-left border border-slate-100 rounded-2xl hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full flex items-center gap-3 p-3 text-left border border-soft-gray rounded-2xl hover:bg-light-cream active:scale-[0.98] transition-all cursor-pointer bg-transparent"
                 >
-                  <img src={account.avatar} alt={account.name} className="w-10 h-10 rounded-full object-cover border border-slate-100" />
+                  <img src={account.avatar} alt={account.name} className="w-10 h-10 rounded-full object-cover border border-soft-gray" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{account.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{account.email}</p>
+                    <p className="text-sm font-semibold text-deep-navy truncate">{account.name}</p>
+                    <p className="text-xs text-slate-gray truncate">{account.email}</p>
                   </div>
                 </button>
               ))}
             </div>
 
-            <div className="mt-5 text-[10px] text-slate-400 text-center leading-relaxed">
-              Google Sign-In is configured. If you deploy to production, verify you have configured the <code className="bg-slate-50 px-1 py-0.5 rounded text-red-500 font-mono">VITE_GOOGLE_CLIENT_ID</code> env variable.
+            <div className="mt-5 text-[10px] text-slate-gray text-center leading-relaxed">
+              Google Sign-In is configured. If you deploy to production, verify you have configured the <code className="bg-light-cream px-1 py-0.5 rounded text-red-500 font-mono">VITE_GOOGLE_CLIENT_ID</code> env variable.
             </div>
           </div>
         </div>
