@@ -101,7 +101,6 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "1023724395376-dummyclientid.apps.googleusercontent.com"}>
             <LanguageProvider>
               <SecurityLockProvider>
                 <Suspense fallback={<Loader fullPage />}>
@@ -117,7 +116,6 @@ function App() {
                 />
               </SecurityLockProvider>
             </LanguageProvider>
-          </GoogleOAuthProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
