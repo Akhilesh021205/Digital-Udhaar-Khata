@@ -30,7 +30,9 @@ app.use(compression());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "http://digital-udhar-khata-frontend-458697683921-ap-south-2-an.s3-website.ap-south-2.amazonaws.com"
+  "http://digital-udhar-khata-frontend-458697683921-ap-south-2-an.s3-website.ap-south-2.amazonaws.com",
+  "https://digital-udhaar-khata-qcyviongw-akhilesh021205s-projects.vercel.app",
+  "https://digital-udhaar-khata-bfpbujuzd-akhilesh021205s-projects.vercel.app"
 ];
 
 app.use(cors({
