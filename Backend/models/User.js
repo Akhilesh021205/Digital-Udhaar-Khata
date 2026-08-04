@@ -44,7 +44,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['Admin', 'Shop Owner', 'Employee'],
+      enum: ['Admin', 'Shop Owner', 'Employee', 'USER'],
       default: 'Shop Owner',
     },
     avatar: {
@@ -111,6 +111,14 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Normalize role values like 'USER' or 'User' to 'Shop Owner'
+userSchema.pre('validate', function (next) {
+  if (this.role && (this.role.toUpperCase() === 'USER')) {
+    this.role = 'Shop Owner';
+  }
+  next();
+});
 
 // Hash password and PIN before saving
 userSchema.pre('save', async function (next) {
