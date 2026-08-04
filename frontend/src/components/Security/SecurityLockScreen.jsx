@@ -411,9 +411,9 @@ const SecurityLockScreen = ({ onUnlock }) => {
       {[0, 1, 2, 3].map((idx) => (
         <div
           key={idx}
-          className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${idx < pin.length
-              ? 'bg-[#B71C1C] border-[#B71C1C] dark:bg-[#F59E0B] dark:border-[#F59E0B] scale-125 shadow-lg shadow-[#B71C1C]/40 dark:shadow-[#F59E0B]/30'
-              : 'border-slate-300 dark:border-slate-700 bg-transparent'
+          className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-300 ${idx < pin.length
+              ? 'bg-[#A82424] border-[#A82424] scale-110 shadow-md shadow-[#A82424]/30'
+              : 'border-[#A82424]/50 bg-transparent'
             }`}
         />
       ))}
@@ -424,102 +424,120 @@ const SecurityLockScreen = ({ onUnlock }) => {
     <div
       id="lock-screen-wrapper"
       tabIndex={0}
-      className="fixed inset-0 z-50 flex items-center justify-center p-5 overflow-hidden outline-none bahi-khata-grid"
+      className="fixed inset-0 z-50 flex items-center justify-center p-5 overflow-hidden outline-none bg-[#EADCC6]"
     >
       <style>{successAnimationStyles}</style>
 
-      {/* Faint ₹ symbols watermarks in background */}
-      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-[0.04] dark:opacity-[0.02]">
-        <div className="absolute text-[16rem] font-bold left-[-50px] top-[10%] text-[#B71C1C] dark:text-[#F59E0B]">₹</div>
-        <div className="absolute text-[24rem] font-bold right-[-80px] bottom-[-50px] text-[#B71C1C] dark:text-[#F59E0B]">₹</div>
-        <div className="absolute text-[12rem] font-bold right-[15%] top-[5%] text-[#B71C1C] dark:text-[#F59E0B]">₹</div>
-        <div className="absolute text-[14rem] font-bold left-[20%] bottom-[10%] text-[#B71C1C] dark:text-[#F59E0B]">₹</div>
-      </div>
-
-      {/* Centered Lock Card with Glassmorphism and 30px rounded corners */}
-      <div className="w-full max-w-md p-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/50 rounded-[30px] shadow-2xl relative z-10 text-center animate-in fade-in zoom-in-95 duration-300">
+      {/* Centered Lock Card */}
+      <div className="w-full max-w-3xl bg-[#FAF5ED] border border-[#E6D4B8] rounded-[24px] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row min-h-[530px] animate-in fade-in zoom-in-95 duration-300">
         
-        {/* Simple modern brand logo */}
-        <div className="w-16 h-16 mx-auto mb-4 bg-orange text-white rounded-2xl flex items-center justify-center shadow-md">
-          <span className="font-black text-3xl font-outfit">₹</span>
+        {/* Left Side: Watercolor Illustration */}
+        <div className="hidden md:block w-1/2 relative bg-[#F7EFE3] border-r border-[#E6D4B8]">
+          <img 
+            src="/lock_illustration.png" 
+            alt="Traditional Kirana Store & Ledger Book" 
+            className="w-full h-full object-cover mix-blend-multiply opacity-95"
+          />
         </div>
 
-        {/* Brand Name Badge */}
-        <span className="bg-orange/10 text-orange dark:bg-orange/20 px-3.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase inline-block mb-3">
-          Digital Udhaar
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 mb-1 font-outfit">Welcome Back</h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 font-medium">Enter your PIN to access your Khata</p>
+        {/* Right Side: PIN Unlock interface */}
+        <div className="w-full md:w-1/2 p-8 flex flex-col justify-between items-center bg-[#FAF5ED]">
+          
+          {/* Header & Logo */}
+          <div className="w-full text-center">
+            <h2 className="text-3xl font-extrabold text-[#A82424] tracking-wide mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+              Udhaar Khata
+            </h2>
+            
+            {/* Elegant Divider Ornament */}
+            <div className="flex items-center justify-center gap-2 my-2 text-[#A82424]/40">
+              <span className="h-[1px] w-12 bg-current" />
+              <span className="text-sm">✦</span>
+              <span className="h-[1px] w-12 bg-current" />
+            </div>
 
-        {renderDots()}
+            <h3 className="text-xl font-bold text-slate-800 mt-3 mb-1">Welcome Back</h3>
+            <p className="text-xs text-slate-500 font-semibold">Enter your PIN to access your Khata</p>
+          </div>
 
-        {/* Circular keypad with simplified, smooth styling */}
-        <div className="grid grid-cols-3 gap-y-4 gap-x-6 max-w-xs mx-auto mt-4 mb-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+          {/* Dots */}
+          <div className="w-full">
+            {renderDots()}
+          </div>
+
+          {/* Keypad */}
+          <div className="grid grid-cols-3 gap-3 w-full max-w-[260px] mx-auto mb-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => handleKeyPress(num)}
+                disabled={verifying}
+                className="w-16 h-14 rounded-2xl bg-[#FAF5ED] border border-[#E6D4B8] flex items-center justify-center font-bold text-xl text-slate-800 hover:bg-[#A82424] hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
+                style={{ fontFamily: 'Georgia, serif' }}
+              >
+                {num}
+              </button>
+            ))}
+
+            {/* Spacer key at bottom-left */}
+            <div className="w-16 h-14" />
+
             <button
-              key={num}
               type="button"
-              onClick={() => handleKeyPress(num)}
+              onClick={() => handleKeyPress(0)}
               disabled={verifying}
-              className="w-16 h-16 rounded-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60 flex items-center justify-center font-bold text-xl text-slate-800 dark:text-slate-100 hover:bg-[#B71C1C] hover:text-white dark:hover:bg-[#F59E0B] dark:hover:text-slate-950 hover:border-transparent transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+              className="w-16 h-14 rounded-2xl bg-[#FAF5ED] border border-[#E6D4B8] flex items-center justify-center font-bold text-xl text-slate-800 hover:bg-[#A82424] hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
+              style={{ fontFamily: 'Georgia, serif' }}
             >
-              {num}
+              0
             </button>
-          ))}
 
-          {/* Spacer key at bottom-left to keep 0 centered */}
-          <div className="w-16 h-16" />
+            <button
+              type="button"
+              onClick={handleBackspace}
+              disabled={verifying}
+              className="w-16 h-14 rounded-2xl bg-[#FAF5ED] border border-[#E6D4B8] flex items-center justify-center text-slate-850 hover:bg-[#A82424] hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              <HiOutlineBackspace size={22} className="text-slate-800 hover:text-white" />
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => handleKeyPress(0)}
-            disabled={verifying}
-            className="w-16 h-16 rounded-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60 flex items-center justify-center font-bold text-xl text-slate-800 dark:text-slate-100 hover:bg-[#B71C1C] hover:text-white dark:hover:bg-[#F59E0B] dark:hover:text-slate-950 hover:border-transparent transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
-          >
-            0
-          </button>
-
-          <button
-            type="button"
-            onClick={handleBackspace}
-            disabled={verifying}
-            className="w-16 h-16 rounded-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60 flex items-center justify-center text-slate-800 dark:text-slate-100 hover:bg-[#B71C1C] hover:text-white dark:hover:bg-[#F59E0B] dark:hover:text-slate-950 hover:border-transparent transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
-          >
-            <HiOutlineBackspace size={24} />
-          </button>
-        </div>
-
-        {/* Smooth named biometric trigger button below keypad */}
-        {user?.isBiometricEnabled && (
-          (user.biometricCredentialId?.startsWith('face-id-') && hasCamera) ||
-          (!user.biometricCredentialId?.startsWith('face-id-') && deviceSupportsBio)
-        ) && (
-          <button
-            type="button"
-            onClick={triggerBiometricSelection}
-            disabled={verifying}
-            className="mb-6 mx-auto px-5 py-2.5 border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98"
-          >
-            {user.biometricCredentialId?.startsWith('face-id-') ? (
-              <>
-                <LucideScan size={15} className="text-[#B71C1C] dark:text-[#F59E0B]" />
-                <span>Use Face ID</span>
-              </>
-            ) : (
-              <>
-                <LucideFingerprint size={15} className="text-[#B71C1C] dark:text-[#F59E0B]" />
-                <span>Use Fingerprint</span>
-              </>
+          {/* Fingerprint auth & Signout */}
+          <div className="w-full text-center space-y-3">
+            {user?.isBiometricEnabled && (
+              (user.biometricCredentialId?.startsWith('face-id-') && hasCamera) ||
+              (!user.biometricCredentialId?.startsWith('face-id-') && deviceSupportsBio)
+            ) && (
+              <button
+                type="button"
+                onClick={triggerBiometricSelection}
+                disabled={verifying}
+                className="mx-auto px-4 py-2 border border-[#E6D4B8] bg-[#FAF5ED] hover:bg-[#F3E6D0] text-[#A82424] font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.02)] active:scale-98"
+              >
+                {user.biometricCredentialId?.startsWith('face-id-') ? (
+                  <>
+                    <LucideScan size={14} className="text-[#A82424]" />
+                    <span>Use Face ID</span>
+                  </>
+                ) : (
+                  <>
+                    <LucideFingerprint size={14} className="text-[#A82424]" />
+                    <span>Use Fingerprint</span>
+                  </>
+                )}
+              </button>
             )}
-          </button>
-        )}
 
-        <button
-          onClick={logout}
-          className="text-xs text-slate-400 hover:text-[#B71C1C] dark:hover:text-[#F59E0B] hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors"
-        >
-          Sign Out of Account
-        </button>
+            <button
+              onClick={logout}
+              className="text-xs text-slate-500 hover:text-[#A82424] hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors block mx-auto"
+            >
+              Sign Out of Account
+            </button>
+          </div>
+
+        </div>
       </div>
 
       {/* Real-time Biometric Authenticator Dialog */}

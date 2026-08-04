@@ -1,24 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { 
-  HiOutlinePhone, 
-  HiOutlineShieldCheck,
-  HiOutlineDocumentText,
+import {
+  HiOutlineArrowRight,
+  HiOutlineBadgeCheck,
   HiOutlineBell,
-  HiOutlineTrendingUp,
-  HiOutlineSun,
-  HiOutlineMoon,
-  HiOutlineChatAlt2,
-  HiOutlineMicrophone,
-  HiOutlineLockClosed,
+  HiOutlineBookOpen,
+  HiOutlineChartBar,
+  HiOutlineCheck,
+  HiOutlineCheckCircle,
   HiOutlineCloudUpload,
-  HiOutlineDatabase,
+  HiOutlineDocumentText,
+  HiOutlineLockClosed,
+  HiOutlineMoon,
+  HiOutlinePaperAirplane,
+  HiOutlinePhone,
+  HiOutlinePlay,
+  HiOutlineSearch,
+  HiOutlineShieldCheck,
   HiOutlineSparkles,
   HiOutlineStar,
-  HiOutlineArrowRight,
-  HiOutlineCheck,
-  HiOutlineUsers
+  HiOutlineSun,
+  HiOutlineTrendingUp,
+  HiOutlineUserAdd,
 } from 'react-icons/hi';
 import Logo from '../components/Common/Logo';
 import { useTheme } from '../context/ThemeContext';
@@ -26,6 +30,7 @@ import { useTheme } from '../context/ThemeContext';
 const LandingPage = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [ctaPhoneNumber, setCtaPhoneNumber] = useState('');
+  const [tiltStyle, setTiltStyle] = useState({});
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
@@ -35,525 +40,559 @@ const LandingPage = () => {
       toast.error('Please enter a phone number to get started.');
       return;
     }
-    // Redirect to register page and prefill the phone number
     navigate(`/register?phone=${encodeURIComponent(phoneVal)}`);
   };
 
+  useEffect(() => {
+    const revealItems = document.querySelectorAll('.uk-reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('uk-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.18 }
+    );
+
+    revealItems.forEach((item, index) => {
+      item.style.transitionDelay = `${Math.min(index % 4, 3) * 90}ms`;
+      observer.observe(item);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const handleTilt = (event) => {
+    if (window.matchMedia('(max-width: 768px)').matches) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+
+    setTiltStyle({
+      transform: `rotateY(${x * -10 - 8}deg) rotateX(${y * 8 + 4}deg) translateY(-8px)`,
+    });
+  };
+
+  const resetTilt = () => setTiltStyle({});
+
+  const rupee = '\u20B9';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF8F2] to-[#F8F7F5] dark:from-[#0B0F19] dark:to-[#151D30] text-[#0F172A] dark:text-[#F8FAFC] font-sans relative overflow-hidden transition-colors duration-300">
-      
-      {/* Decorative Floating Background Blobs */}
-      <div className="absolute w-[500px] h-[500px] bg-radial from-orange/8 to-transparent -top-[150px] -right-[150px] rounded-full blur-3xl animate-float-slow pointer-events-none -z-10"></div>
-      <div className="absolute w-[400px] h-[400px] bg-radial from-info-analytics/5 to-transparent bottom-[150px] -left-[100px] rounded-full blur-3xl animate-float-medium pointer-events-none -z-10" style={{ animationDelay: '1s' }}></div>
+    <div className="min-h-screen overflow-hidden bg-[#fff9f5] text-[#101525] transition-colors duration-300 dark:bg-[#0f1523] dark:text-[#f8fafc]">
+      <style>
+        {`
+          @keyframes uk-rise {
+            from { opacity: 0; transform: translateY(32px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
 
-      {/* 1. HERO SECTION & NAVBAR */}
-      {/* Sticky Navbar */}
-      <header className="fixed top-0 left-0 right-0 h-20 bg-pure-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-soft-gray px-6 md:px-16 flex items-center justify-between z-40 transition-colors duration-300">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <div className="w-10 h-10 rounded-xl bg-pure-white border border-soft-gray flex items-center justify-center p-1.5 shadow-sm">
-            <Logo />
-          </div>
-          <span className="text-lg font-bold text-deep-navy font-outfit tracking-wide">Udhaar Khata</span>
-        </div>
-        
-        {/* Navigation links */}
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-gray">
-          <a href="#features" className="hover:text-orange transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-orange transition-colors">How it Works</a>
-          <a href="#reviews" className="hover:text-orange transition-colors">Reviews</a>
-        </nav>
+          @keyframes uk-float-large {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-14px); }
+          }
 
-        <div className="flex items-center gap-4">
-          <a href="tel:+919876543210" className="hidden md:flex items-center gap-2 px-3 py-2 bg-transparent text-slate-gray hover:text-deep-navy text-sm font-semibold transition-colors decoration-none">
-            <HiOutlinePhone size={18} />
-            <span>+91 98765 43210</span>
-          </a>
-          
-          {/* Theme toggle button */}
+          @keyframes uk-float-small {
+            0%, 100% { transform: translateY(0) rotate(-6deg); }
+            50% { transform: translateY(12px) rotate(-4deg); }
+          }
+
+          @keyframes uk-grow {
+            from { transform: scaleY(0.05); }
+            to { transform: scaleY(1); }
+          }
+
+          @keyframes uk-pulse-soft {
+            0%, 100% { box-shadow: 0 0 0 8px rgba(233, 43, 53, 0.10); }
+            50% { box-shadow: 0 0 0 14px rgba(233, 43, 53, 0); }
+          }
+
+          @keyframes uk-drift {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+            50% { transform: translate3d(12px, -16px, 0) rotate(8deg); }
+          }
+
+          @keyframes uk-slide-card {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(18px); }
+          }
+
+          @keyframes uk-morph {
+            0%, 100% { border-radius: 38% 62% 58% 42%; transform: rotate(0deg); }
+            50% { border-radius: 58% 42% 36% 64%; transform: rotate(8deg); }
+          }
+
+          .uk-rise { animation: uk-rise 950ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+          .uk-float-large { animation: uk-float-large 7s ease-in-out infinite; }
+          .uk-float-small {
+            animation: uk-float-small 6s ease-in-out infinite;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .uk-float-small:hover {
+            animation: none !important;
+            transform: translateY(-10px) rotate(-8deg) !important;
+            box-shadow: 0 35px 65px rgba(16, 21, 37, 0.28) !important;
+          }
+          .uk-grow { animation: uk-grow 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: bottom; }
+          .uk-pulse-soft { animation: uk-pulse-soft 2.6s ease-in-out infinite; }
+          .uk-drift { animation: uk-drift 7s ease-in-out infinite; }
+          .uk-slide-card { animation: uk-slide-card 7s ease-in-out infinite; }
+          .uk-morph { animation: uk-morph 9s ease-in-out infinite; }
+          .uk-reveal { opacity: 0; transform: translateY(22px); transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1); }
+          .uk-reveal.uk-visible { opacity: 1; transform: translateY(0); }
+
+          @keyframes uk-card-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-7px); }
+          }
+          .uk-float-card {
+            animation: uk-card-float 6s ease-in-out infinite;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .uk-float-card:nth-child(2n) {
+            animation-delay: 1.5s;
+            animation-duration: 6.5s;
+          }
+          .uk-float-card:nth-child(3n) {
+            animation-delay: 3s;
+            animation-duration: 5.5s;
+          }
+          .uk-float-card:hover {
+            animation: none !important;
+            transform: translateY(-10px) !important;
+            box-shadow: 0 20px 40px rgba(16, 21, 37, 0.12) !important;
+          }
+          .uk-float-card-red:hover { box-shadow: 0 16px 36px rgba(233, 43, 53, 0.18) !important; border-color: rgba(233, 43, 53, 0.4) !important; }
+          .uk-float-card-green:hover { box-shadow: 0 16px 36px rgba(3, 166, 106, 0.18) !important; border-color: rgba(3, 166, 106, 0.4) !important; }
+          .uk-float-card-blue:hover { box-shadow: 0 16px 36px rgba(40, 88, 232, 0.18) !important; border-color: rgba(40, 88, 232, 0.4) !important; }
+
+          @media (prefers-reduced-motion: reduce) {
+            .uk-rise,
+            .uk-float-large,
+            .uk-float-small,
+            .uk-grow,
+            .uk-pulse-soft,
+            .uk-drift,
+            .uk-slide-card,
+            .uk-morph {
+              animation-duration: 1ms !important;
+              animation-iteration-count: 1 !important;
+            }
+            .uk-reveal {
+              opacity: 1;
+              transform: none;
+            }
+          }
+        `}
+      </style>
+
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_18%,rgba(233,43,53,0.14),transparent_24rem),radial-gradient(circle_at_18%_32%,rgba(3,166,106,0.08),transparent_20rem),linear-gradient(180deg,#fff9f5_0%,#ffffff_65%)] dark:bg-[radial-gradient(circle_at_78%_18%,rgba(233,43,53,0.18),transparent_24rem),radial-gradient(circle_at_18%_32%,rgba(3,166,106,0.12),transparent_20rem),linear-gradient(180deg,#111827_0%,#0f1523_70%)]" />
+
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-white/80 backdrop-blur-xl transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/80">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 md:px-10 lg:px-16">
           <button
-            onClick={toggleTheme}
-            className="w-9 h-9 bg-pure-white border border-soft-gray hover:bg-light-cream/50 rounded-full cursor-pointer text-slate-gray hover:text-deep-navy transition-all flex items-center justify-center shadow-xs outline-none"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0"
           >
-            {theme === 'dark' ? (
-              <HiOutlineSun className="text-amber-500 animate-pulse" size={18} />
-            ) : (
-              <HiOutlineMoon className="text-indigo-600" size={18} />
-            )}
+            <span className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-[#e92b35] to-[#ff5862] p-2 text-white shadow-[0_12px_30px_rgba(233,43,53,0.26)]">
+              <Logo />
+            </span>
+            <span className="font-outfit text-lg font-black tracking-wide text-[#101525] dark:text-white">
+              Udhaar Khata
+            </span>
           </button>
 
-          <button 
-            className="px-6 py-2.5 bg-orange text-white hover:bg-orange-hover font-semibold text-sm rounded-lg transition-all shadow-sm cursor-pointer border-none active:scale-95" 
-            onClick={() => navigate('/login')}
-          >
-            Log In
-          </button>
+
+          <div className="flex items-center gap-3">
+
+            <button
+              onClick={toggleTheme}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-black/10 bg-white text-[#463cff] shadow-[0_8px_24px_rgba(16,21,37,0.10)] transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-slate-900"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              type="button"
+            >
+              {theme === 'dark' ? <HiOutlineSun className="text-amber-400" size={19} /> : <HiOutlineMoon size={19} />}
+            </button>
+
+            <button
+              className="cursor-pointer rounded-xl border-0 bg-gradient-to-br from-[#e92b35] to-[#ff4f5d] px-5 py-3 text-sm font-black text-white shadow-[0_16px_34px_rgba(233,43,53,0.30)] transition-all hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
+              onClick={() => navigate('/login')}
+              type="button"
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section Container */}
-      <section className="max-w-7xl mx-auto px-6 md:px-16 pt-32 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        {/* Left column: headline & details */}
-        <div className="space-y-6 text-left animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange/15 rounded-full text-orange text-xs font-extrabold uppercase tracking-wider animate-pulse-glow">
-            <HiOutlineSparkles size={14} />
-            <span>100% Safe & Secure Cryptographic Ledger</span>
-          </div>
+      <main>
+        <section className="mx-auto grid min-h-[650px] max-w-7xl grid-cols-1 items-center gap-12 px-5 pb-6 pt-28 md:px-10 lg:grid-cols-[0.92fr_1.08fr] lg:px-16">
+          <div className="uk-rise text-left">
 
-          <h1 className="text-5xl md:text-6xl font-extrabold text-deep-navy leading-[1.1] font-outfit">
-            Business hua <br />
-            <span className="text-orange bg-gradient-to-r from-orange to-red-500 bg-clip-text text-transparent">easy</span>
-          </h1>
-          <p className="text-lg text-slate-gray leading-relaxed max-w-lg">
-            Manage your daily business ledger, accept payments, verify record integrity with a private blockchain, and ask questions directly to KathaGPT AI.
-          </p>
-          
-          {/* Phone Form */}
-          <form className="flex flex-col sm:flex-row gap-3 max-w-md" onSubmit={(e) => handleGetStarted(e, phoneNumber)}>
-            <div className="flex-1 flex items-center bg-pure-white border border-soft-gray rounded-lg px-3 focus-within:border-orange focus-within:ring-2 focus-within:ring-orange/20 transition-all shadow-xs">
-              <span className="text-sm font-semibold text-slate-gray pr-2 border-r border-soft-gray">+91</span>
-              <input 
-                type="tel" 
-                className="w-full bg-transparent border-none py-3.5 px-2.5 text-sm text-deep-navy placeholder-slate-gray/40 outline-none" 
-                placeholder="Enter phone number" 
-                maxLength="10" 
-                pattern="[0-9]{10}"
-                value={phoneNumber} 
-                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-              />
-            </div>
-            <button type="submit" className="px-8 py-3.5 bg-orange hover:bg-orange-hover text-white font-semibold text-sm rounded-lg transition-all shadow-md shrink-0 cursor-pointer border-none active:scale-98">
-              Get Started
-            </button>
-          </form>
-          
-          {/* Trust Badges */}
-          <div className="flex flex-wrap items-center gap-6 pt-2 text-xs font-semibold text-slate-gray">
-            <div className="flex items-center gap-1.5 text-green-get">
-              <HiOutlineShieldCheck size={18} />
-              <span>Safe. Secure. Reliable.</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <HiOutlineCheck size={16} className="text-orange" />
-              <span>No Hidden Charges</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <HiOutlineCheck size={16} className="text-orange" />
-              <span>Made for Kirana & Retail</span>
+            <h1 className="font-outfit max-w-2xl text-5xl font-black leading-[0.98] tracking-normal text-[#101525] dark:text-white md:text-7xl">
+              Udhaar ka hisaab,
+              <span className="block text-[#e92b35]">ab bilkul easy.</span>
+            </h1>
+
+            <p className="mt-4 max-w-2xl text-lg font-bold leading-relaxed text-[#2b3242] dark:text-slate-100 md:text-xl">
+              Track credit, collect faster, and know exactly who owes what without searching notebooks or WhatsApp chats.
+            </p>
+
+            <p className="mt-3 max-w-xl text-sm font-medium leading-7 text-[#667085] dark:text-slate-300 md:text-base">
+              Udhaar Khata gives your business a simple digital register with payment reminders, daily reports, secure backups, and a smooth desktop experience.
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-black">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#03a66a]/20 bg-[#03a66a]/10 px-3.5 py-2 text-[#067a52] dark:text-emerald-300">
+                <HiOutlineShieldCheck size={16} /> Safe records
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#e92b35]/20 bg-[#e92b35]/10 px-3.5 py-2 text-[#bf1f28] dark:text-red-200">
+                <HiOutlineBell size={16} /> Auto reminders
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#2858e8]/20 bg-[#2858e8]/10 px-3.5 py-2 text-[#2858e8] dark:text-blue-300">
+                <HiOutlineCloudUpload size={16} /> Cloud backup
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Right column: Animated Mockups with floating success coins */}
-        <div className="relative flex items-center justify-center p-4 lg:p-8 animate-fade-in-right">
-          
-          {/* Floating Coins */}
-          <div className="absolute top-10 left-[10%] w-12 h-12 bg-amber-400 text-white rounded-full flex items-center justify-center font-extrabold text-lg shadow-lg border border-amber-300 animate-float-coin-1 z-20">
-            ₹
-          </div>
-          <div className="absolute bottom-12 right-[5%] w-10 h-10 bg-green-get text-white rounded-full flex items-center justify-center font-extrabold text-sm shadow-lg border border-green-400 animate-float-coin-2 z-20">
-            ✓
-          </div>
-          <div className="absolute top-[40%] right-2 w-8 h-8 bg-orange text-white rounded-full flex items-center justify-center font-extrabold text-xs shadow-lg border border-orange-400 animate-float-coin-1 z-20" style={{ animationDelay: '1.5s' }}>
-            ₹
-          </div>
+          <div
+            className="uk-rise relative min-h-[460px] [perspective:1200px]"
+            onMouseMove={handleTilt}
+            onMouseLeave={resetTilt}
+          >
+            <div className="uk-morph absolute inset-x-8 bottom-6 top-12 rounded-[40%] bg-[radial-gradient(circle_at_50%_30%,rgba(233,43,53,0.16),transparent_20rem),radial-gradient(circle_at_72%_70%,rgba(40,88,232,0.11),transparent_18rem)] blur-[2px]" />
 
-          {/* Desktop Dashboard Mockup */}
-          <div className="w-full max-w-[500px] aspect-[16/10] bg-[#0F172A] rounded-2xl border border-soft-gray/50 shadow-2xl relative overflow-hidden flex flex-col p-1.5 animate-float-slow hover:scale-[1.02] hover:rotate-1 hover:shadow-2xl transition-all duration-500 cursor-pointer">
-            <div className="flex-1 bg-soft-white rounded-lg overflow-hidden flex">
-              {/* Mini Sidebar */}
-              <div className="w-12 bg-light-cream border-r border-soft-gray flex flex-col items-center py-3 gap-2">
-                <div className="w-6 h-6 rounded bg-orange/25" />
-                <div className="w-8 h-2.5 rounded bg-orange/20" />
-                <div className="w-8 h-2.5 rounded bg-slate-gray/10" />
-                <div className="w-8 h-2.5 rounded bg-slate-gray/10" />
-                <div className="w-8 h-2.5 rounded bg-slate-gray/10" />
-              </div>
-              
-              {/* Mini Main Content Area */}
-              <div className="flex-1 flex flex-col p-3 overflow-hidden text-[9px] space-y-2 text-left">
-                <div className="flex justify-between items-center mb-1 pb-1 border-b border-soft-gray">
-                  <span className="font-bold text-deep-navy">Dashboard</span>
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-get animate-pulse" /> {/* Soft pulse status dot */}
-                </div>
-                
-                {/* Balance Cards */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 rounded border bg-red-give/5 border-red-give/10 text-red-give flex flex-col justify-between">
-                    <span className="text-[6px] uppercase tracking-wider font-semibold">You Will Get</span>
-                    <span className="text-[10px] font-extrabold text-red-give">₹4,000</span>
-                  </div>
-                  <div className="p-2 rounded border bg-green-get/5 border-green-get/10 text-green-get flex flex-col justify-between">
-                    <span className="text-[6px] uppercase tracking-wider font-semibold">You Will Give</span>
-                    <span className="text-[10px] font-extrabold text-green-get">₹0</span>
-                  </div>
-                </div>
-                
-                {/* Stats grid */}
-                <div className="grid grid-cols-3 gap-1">
-                  <div className="p-1 bg-pure-white border border-soft-gray rounded flex flex-col items-center">
-                    <span className="text-[5px] text-slate-gray">Customers</span>
-                    <span className="text-[8px] font-bold text-deep-navy">2</span>
-                  </div>
-                  <div className="p-1 bg-pure-white border border-soft-gray rounded flex flex-col items-center">
-                    <span className="text-[5px] text-slate-gray">Today's Txns</span>
-                    <span className="text-[8px] font-bold text-deep-navy">2</span>
-                  </div>
-                  <div className="p-1 bg-pure-white border border-soft-gray rounded flex flex-col items-center">
-                    <span className="text-[5px] text-slate-gray">Pending</span>
-                    <span className="text-[8px] font-bold text-deep-navy">1</span>
-                  </div>
-                </div>
+            <div className="uk-drift absolute left-8 top-9 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ff606b] to-[#e92b35] text-lg font-black text-white shadow-[0_18px_32px_rgba(233,43,53,0.26)]">
+              {rupee}
+            </div>
 
-                {/* Animated Chart Bar Growth */}
-                <div className="p-2 bg-pure-white border border-soft-gray rounded flex flex-col space-y-1">
-                  <span className="text-[5px] text-slate-gray font-bold">Monthly Collection Insights</span>
-                  <div className="flex items-end gap-2.5 h-8 pt-1">
-                    <div className="flex-1 bg-orange/20 hover:bg-orange/40 rounded-t-sm animate-grow-1" />
-                    <div className="flex-1 bg-orange/25 hover:bg-orange/40 rounded-t-sm animate-grow-2" />
-                    <div className="flex-1 bg-orange/20 hover:bg-orange/40 rounded-t-sm animate-grow-3" />
-                    <div className="flex-1 bg-orange hover:bg-orange-hover rounded-t-sm animate-grow-4" />
+            <div className="uk-drift absolute right-20 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#33d399] to-[#03a66a] text-sm font-black text-white shadow-lg [animation-delay:1.1s]">
+              <HiOutlineCheck size={20} />
+            </div>
+
+            <div className="uk-float-large absolute right-0 top-12 w-full max-w-[655px]">
+              <div
+                className="overflow-hidden rounded-[24px] border-[8px] border-[#111a2f] bg-[#fbfdff] dark:bg-slate-900 shadow-[0_24px_70px_rgba(16,21,37,0.16)] transition-all duration-300 ease-out"
+                style={tiltStyle}
+              >
+                <div className="grid min-h-[404px] grid-cols-[74px_1fr]">
+                  <aside className="border-r border-[#edf0f4] bg-gradient-to-b from-white to-[#fbf7f6] px-3.5 py-5">
+                    <div className="mx-auto mb-4 h-8 w-8 rounded-[10px] bg-gradient-to-br from-[#ffc7cc] to-[#ef6b74]" />
+                    <div className="mx-auto mb-3 h-3 w-11 rounded-full bg-[#f5d6da]" />
+                    <div className="mx-auto mb-3 h-3 w-9 rounded-full bg-[#eceff3]" />
+                    <div className="mx-auto h-3 w-9 rounded-full bg-[#eceff3]" />
+                  </aside>
+
+                  <div className="p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3 font-black">
+                      <span>Dashboard</span>
+                      <div className="hidden h-9 w-[46%] items-center gap-2 rounded-full bg-[#f1f3f7] px-3 text-xs font-bold text-[#98a2b3] sm:flex">
+                        <HiOutlineSearch size={14} />
+                        <span>Search customers</span>
+                      </div>
+                      <span className="uk-pulse-soft h-5 w-5 rounded-full bg-[#e92b35]" />
+                    </div>
+
+                    <div className="mb-4 grid grid-cols-3 gap-3">
+                      <div className="uk-float-card uk-float-card-red rounded-lg border border-[#ffd6da] bg-[#fff4f5] p-3.5 text-xs font-black uppercase text-[#e92b35] cursor-pointer">
+                        You will get
+                        <span className="mt-2 block text-lg text-[#101525]">
+                          {rupee}
+                          <AnimatedCounter endValue={245000} formatter={(val) => new Intl.NumberFormat('en-IN').format(val)} />
+                        </span>
+                      </div>
+                      <div className="uk-float-card uk-float-card-green rounded-lg border border-[#c7f1e5] bg-[#effbf7] p-3.5 text-xs font-black uppercase text-[#03a66a] cursor-pointer">
+                        You will give
+                        <span className="mt-2 block text-lg text-[#101525]">
+                          {rupee}
+                          <AnimatedCounter endValue={76500} formatter={(val) => new Intl.NumberFormat('en-IN').format(val)} />
+                        </span>
+                      </div>
+                      <div className="uk-float-card uk-float-card-blue rounded-lg border border-[#dce5ff] bg-[#f2f5ff] p-3.5 text-xs font-black uppercase text-[#2858e8] cursor-pointer">
+                        Net balance
+                        <span className="mt-2 block text-lg text-[#101525]">
+                          {rupee}
+                          <AnimatedCounter endValue={168500} formatter={(val) => new Intl.NumberFormat('en-IN').format(val)} />
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.05fr_0.95fr]">
+                      <div className="flex h-40 items-end gap-2 rounded-lg border border-[#e6e9ef] bg-gradient-to-b from-white to-[#f8fbff] px-3 pb-3 pt-5">
+                        {[58, 82, 45, 72, 66, 92].map((height, index) => (
+                          <span
+                            key={height}
+                            className={`uk-grow flex-1 rounded-t-md ${index === 1 || index === 4 ? 'bg-gradient-to-b from-[#20c997] to-[#03a66a]' : index === 2 ? 'bg-gradient-to-b from-[#5b7cfa] to-[#2858e8]' : 'bg-gradient-to-b from-[#ff5c67] to-[#e92b35]'}`}
+                            style={{ height: `${height}%`, animationDelay: `${index * 70}ms` }}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="grid gap-2">
+                        <DashboardRow initial="R" name="Ramesh Kumar" status="Due today" amount={`${rupee}12,500`} tone="red" />
+                        <DashboardRow initial="S" name="Suresh Traders" status="Paid" amount={`+${rupee}8,000`} tone="green" />
+                        <DashboardRow initial="A" name="Anil Store" status="Reminder sent" amount={`${rupee}5,600`} tone="red" />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-[#e6e9ef] bg-white p-3 text-xs font-black">
+                        Payment reminders
+                        <span className="block pt-1 text-[11px] font-bold text-[#667085]">3 customers need follow-up</span>
+                      </div>
+                      <div className="rounded-lg border border-[#e6e9ef] bg-white p-3 text-xs font-black">
+                        Cashflow trend
+                        <span className="block pt-1 text-[11px] font-bold text-[#03a66a]">+18% this month</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Mobile Mockup */}
-          <div className="absolute -bottom-4 -left-4 w-32 aspect-[9/19] bg-[#0F172A] border-4 border-soft-gray/50 rounded-2xl shadow-xl hidden md:flex flex-col p-1 overflow-hidden z-10 animate-float-medium hover:scale-105 transition-transform cursor-pointer">
-            <div className="w-8 h-2.5 bg-[#0F172A] mx-auto rounded-b-md" />
-            <div className="flex-1 bg-soft-white rounded-lg flex flex-col p-1.5 overflow-hidden text-[6px] space-y-1.5 text-left">
-              <div className="flex justify-between items-center pb-0.5 border-b border-soft-gray">
-                <span className="font-bold text-deep-navy">Dashboard</span>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-get animate-pulse" /> {/* Soft pulse status dot */}
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <div className="p-1 rounded bg-red-give/5 border border-red-give/10 text-red-give flex flex-col">
-                  <span className="text-[4px] uppercase tracking-wider font-semibold">Get</span>
-                  <span className="text-[7px] font-extrabold text-red-give">₹4,000</span>
+            <div className="uk-float-small absolute -left-1 top-48 z-20 hidden h-[355px] w-[174px] overflow-hidden rounded-[25px] border-[8px] border-[#20293b] bg-white shadow-[0_28px_55px_rgba(16,21,37,0.20)] md:block">
+              <div className="m-0 h-full rounded-[17px] border-[3px] border-[#cfd6df] bg-gradient-to-b from-[#fbfdff] to-[#fff8f7] p-3">
+                <div className="mb-3 flex items-center justify-between font-black text-[#101525]">
+                  <span>Khata</span>
+                  <span className="uk-pulse-soft h-3 w-3 rounded-full bg-[#e92b35]" />
                 </div>
-                <div className="p-1 rounded bg-green-get/5 border border-green-get/10 text-green-get flex flex-col">
-                  <span className="text-[4px] uppercase tracking-wider font-semibold">Give</span>
-                  <span className="text-[7px] font-extrabold text-green-get">₹0</span>
-                </div>
-              </div>
-              
-              <div className="p-1 bg-pure-white border border-soft-gray rounded-1.5 flex-1 flex flex-col">
-                <span className="font-bold text-deep-navy block mb-0.5 text-[5px]">Recent Activity</span>
-                <div className="flex justify-between text-[5px] py-0.5 border-b border-soft-gray/50 last:border-none">
-                  <span>nanda shiva</span>
-                  <span className="text-green-get font-semibold">₹50,000</span>
-                </div>
-                <div className="flex justify-between text-[5px] py-0.5 border-b border-soft-gray/50 last:border-none">
-                  <span>Akhilesh</span>
-                  <span className="text-red-give font-semibold">₹4,000</span>
+                <MobileCard title="Receivable" value={`${rupee}2.45L`} />
+                <MobileCard title="Reminder due" value={`${rupee}12,500`} tone="red" />
+                <MobileCard title="Paid today" value={`+${rupee}8,000`} tone="green" />
+                <div className="rounded-lg border border-[#e9edf3] bg-white p-2 text-[10px] font-black text-[#101525]">
+                  Recent
+                  <span className="block pt-1 text-[9px] font-bold text-[#667085]">Ramesh, Suresh, Anil</span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* 2. METRICS STRIP */}
-      <section className="bg-pure-white dark:bg-slate-900 border-y border-soft-gray py-8 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-6 md:px-16 grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-          <div className="p-2 space-y-1">
-            <span className="text-3xl md:text-4xl font-extrabold text-orange font-outfit block">10L+</span>
-            <span className="text-xs text-slate-gray uppercase font-bold tracking-wider">Active Merchants</span>
-          </div>
-          <div className="p-2 space-y-1">
-            <span className="text-3xl md:text-4xl font-extrabold text-orange font-outfit block">₹100Cr+</span>
-            <span className="text-xs text-slate-gray uppercase font-bold tracking-wider">Monthly Transactions</span>
-          </div>
-          <div className="p-2 space-y-1">
-            <span className="text-3xl md:text-4xl font-extrabold text-orange font-outfit block">99.99%</span>
-            <span className="text-xs text-slate-gray uppercase font-bold tracking-wider">Network Uptime</span>
-          </div>
-          <div className="p-2 space-y-1">
-            <span className="text-3xl md:text-4xl font-extrabold text-orange font-outfit block">100%</span>
-            <span className="text-xs text-slate-gray uppercase font-bold tracking-wider">Safe & Tamper Proof</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. FEATURE CARDS */}
-      <section className="max-w-7xl mx-auto px-6 md:px-16 py-20" id="features">
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-          <span className="px-3 py-1 bg-orange/10 text-orange rounded-full text-xs font-bold uppercase tracking-wider">Powerful Features</span>
-          <h2 className="text-3xl font-extrabold text-deep-navy font-outfit">Everything you need to manage business</h2>
-          <p className="text-sm text-slate-gray">Streamline your daily accounts, reduce collection times, and protect records with advanced security.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          
-          {/* Feature 1 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-2 hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <div className="w-12 h-12 bg-orange/10 text-orange rounded-2xl flex items-center justify-center shrink-0">
-              <HiOutlineDatabase size={24} />
+            <div className="absolute bottom-8 right-5 z-30 flex items-center gap-2 rounded-2xl border border-[#03a66a]/20 bg-white/95 px-4 py-3 text-sm font-black text-[#03a66a] shadow-[0_18px_40px_rgba(16,21,37,0.14)] [animation:uk-rise_900ms_440ms_both,uk-pulse-soft_2.4s_ease-in-out_infinite]">
+              <HiOutlineBadgeCheck size={19} />
+              <span>Payment tracked</span>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-deep-navy font-outfit">Blockchain Ledger Security</h3>
-              <p className="text-xs text-slate-gray leading-relaxed">
-                Transactions are recorded in cryptographic blocks linked in a private chain. Absolutely immutable and tamper-evident auditing.
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 md:px-10 lg:px-16 pt-12 pb-4">
+          <div className="bg-gradient-to-r from-[#0F172A] to-[#E22D34] text-white rounded-3xl shadow-xl p-8 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
+            <div className="absolute w-[200px] h-[200px] bg-white/5 rounded-full blur-2xl -top-[50px] -right-[50px] pointer-events-none" />
+
+            {/* Left Side */}
+            <div className="text-left space-y-3 flex-1 lg:max-w-xl">
+              <h2 className="text-2xl md:text-3xl font-extrabold font-outfit text-white leading-tight" style={{ color: '#ffffff' }}>
+                Start your digital udhaar book
+              </h2>
+              <p className="text-xs text-white/90 leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                Keep customer records, reminders, and payments in one place.
               </p>
             </div>
-          </div>
 
-          {/* Feature 2 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-2 hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <div className="w-12 h-12 bg-orange/10 text-orange rounded-2xl flex items-center justify-center shrink-0">
-              <HiOutlineMicrophone size={24} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-deep-navy font-outfit">AI Voice Entries</h3>
-              <p className="text-xs text-slate-gray leading-relaxed">
-                Add ledger records quickly by speaking. Recognition algorithms understand English, Hindi, and Telugu accents easily.
-              </p>
+            {/* Right Side Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md shrink-0">
+              <button
+                onClick={() => navigate('/register')}
+                className="cursor-pointer rounded-xl border-none bg-white hover:bg-slate-50 px-6 py-3.5 text-sm font-black text-[#101525] shadow-md transition-all hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-1.5 flex-1"
+                type="button"
+              >
+                <span>Get Started</span>
+                <HiOutlineArrowRight size={14} />
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="cursor-pointer rounded-xl border border-white/30 hover:border-white/50 bg-transparent hover:bg-white/10 px-6 py-3.5 text-sm font-black text-white transition-all hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-1.5 flex-1"
+                type="button"
+              >
+                <span>Log In</span>
+              </button>
             </div>
           </div>
+        </section>
 
-          {/* Feature 3 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-2 hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <div className="w-12 h-12 bg-orange/10 text-orange rounded-2xl flex items-center justify-center shrink-0">
-              <HiOutlineChatAlt2 size={24} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-deep-navy font-outfit">KathaGPT Assistant</h3>
-              <p className="text-xs text-slate-gray leading-relaxed">
-                Interact with your ledger data conversationally to view collection metrics, calculate high-risk customers, and run analysis reports.
-              </p>
-            </div>
-          </div>
+        <section className="mx-auto max-w-7xl px-5 py-20 md:px-10 lg:px-16" id="features">
+          <SectionHead
+            kicker="Everything in one place"
+            title="A clean khata system your team can actually use every day."
+            text="Fast entries, clear balances, timely reminders, and practical reports make daily business simpler from morning opening to night closing."
+          />
 
-          {/* Feature 4 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-2 hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <div className="w-12 h-12 bg-orange/10 text-orange rounded-2xl flex items-center justify-center shrink-0">
-              <HiOutlineBell size={24} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-deep-navy font-outfit">Smart WhatsApp Reminders</h3>
-              <p className="text-xs text-slate-gray leading-relaxed">
-                Send automatic reminders to customers about pending payments. Reduces pending dues by up to 3x with automated triggers.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+            <FeatureCard icon={<HiOutlineDocumentText size={25} />} title="Digital Udhaar Register" text="Add credit and debit entries in seconds with customer-wise history, dates, notes, and total balances." />
+            <FeatureCard icon={<HiOutlineBell size={25} />} title="Smart Reminders" text="Send polite follow-ups through SMS or WhatsApp and reduce awkward manual calls." />
+            <FeatureCard icon={<HiOutlineTrendingUp size={25} />} title="Reports & Insights" text="See who owes you, which payments are pending, and how your store cashflow is moving." />
+            <FeatureCard icon={<HiOutlineShieldCheck size={25} />} title="Secure Cloud Backup" text="Keep records protected and accessible, even if your notebook, phone, or laptop is unavailable." />
           </div>
+        </section>
 
-          {/* Feature 5 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-2 hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <div className="w-12 h-12 bg-orange/10 text-orange rounded-2xl flex items-center justify-center shrink-0">
-              <HiOutlineLockClosed size={24} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-deep-navy font-outfit">Biometric Face Unlock</h3>
-              <p className="text-xs text-slate-gray leading-relaxed">
-                Secure your database and merchant UPI details from unauthorized eyes using modern local face template verification.
-              </p>
-            </div>
-          </div>
+        <section className="mx-auto max-w-7xl px-5 py-20 md:px-10 lg:px-16" id="how-it-works">
+          <SectionHead
+            kicker="Simple workflow"
+            title="From customer entry to payment collection in three calm steps."
+            text="The interface is designed for repeat daily use: less thinking, fewer taps, and clearer numbers."
+          />
 
-          {/* Feature 6 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-2 hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <div className="w-12 h-12 bg-orange/10 text-orange rounded-2xl flex items-center justify-center shrink-0">
-              <HiOutlineCloudUpload size={24} />
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="relative min-h-[430px] overflow-hidden rounded-lg border border-[#e9edf3] bg-[linear-gradient(90deg,rgba(233,43,53,0.06)_1px,transparent_1px),linear-gradient(rgba(233,43,53,0.06)_1px,transparent_1px),#fff] bg-[size:36px_36px] dark:border-white/10">
+              <ProcessCard className="top-14" icon={<HiOutlineUserAdd size={22} />} title="Add customer" text="Phone, name, opening balance" />
+              <ProcessCard className="top-[172px] [animation-delay:0.55s]" icon={<HiOutlineBookOpen size={22} />} title="Record transaction" text="Credit or payment received" />
+              <ProcessCard className="top-[290px] [animation-delay:1.1s]" icon={<HiOutlineBell size={22} />} title="Send reminder" text="Collect on time" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-deep-navy font-outfit">Cloud Backup & PDF Export</h3>
-              <p className="text-xs text-slate-gray leading-relaxed">
-                Auto-sync ledger to secure cloud. Generate reports in PDF/Excel and print credit statements for any customer instantly.
-              </p>
+
+            <div className="grid gap-4">
+              <StepCard number="1" title="Add every customer once" text="Create a clean customer profile with phone number, balance status, and history." />
+              <StepCard number="2" title="Track daily udhaar instantly" text="Record money given or received and let the dashboard update totals automatically." />
+              <StepCard number="3" title="Collect with confidence" text="Use reminders and reports to follow up on pending dues at the right time." />
             </div>
           </div>
+        </section>
 
-        </div>
-      </section>
+        <section className="mx-auto max-w-7xl px-5 py-20 md:px-10 lg:px-16" id="reviews">
+          <SectionHead
+            kicker="Built for real shops"
+            title="Less confusion at the counter. More clarity in your cashflow."
+          />
 
-      {/* 4. WORKFLOW / HOW IT WORKS */}
-      <section className="max-w-7xl mx-auto px-6 md:px-16 py-20 bg-light-cream/40 dark:bg-slate-950/30 rounded-3xl border border-soft-gray" id="how-it-works">
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-          <span className="px-3 py-1 bg-orange/10 text-orange rounded-full text-xs font-bold uppercase tracking-wider">Workflow</span>
-          <h2 className="text-3xl font-extrabold text-deep-navy font-outfit">Track balances in 3 quick steps</h2>
-          <p className="text-sm text-slate-gray">Easy-to-use interface designed specifically for store owners and employees.</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="p-8 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl relative shadow-sm text-left hover:shadow-md transition-all duration-300">
-            <span className="w-8 h-8 rounded-full bg-orange text-white flex items-center justify-center font-bold text-sm absolute -top-4 left-8 shadow-md">1</span>
-            <h3 className="text-lg font-bold text-deep-navy mb-2 font-outfit">Create Account</h3>
-            <p className="text-xs text-slate-gray leading-relaxed">
-              Sign up with your store name and mobile details. Prefill configuration in under 60 seconds.
-            </p>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            <ReviewCard initials="RK" name="Ravi Kirana" role="Retail store owner" quote="Earlier I checked three notebooks for one balance. Now the amount is clear in one screen." />
+            <ReviewCard initials="MT" name="Meena Textiles" role="Wholesale business" quote="Payment reminders save time. Customers get a clear message and I can focus on sales." />
+            <ReviewCard initials="AS" name="Anil Stores" role="Daily essentials shop" quote="The desktop view makes reports simple. I know pending dues before closing the shop." />
           </div>
-          <div className="p-8 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl relative shadow-sm text-left hover:shadow-md transition-all duration-300">
-            <span className="w-8 h-8 rounded-full bg-orange text-white flex items-center justify-center font-bold text-sm absolute -top-4 left-8 shadow-md">2</span>
-            <h3 className="text-lg font-bold text-deep-navy mb-2 font-outfit">Add Customers</h3>
-            <p className="text-xs text-slate-gray leading-relaxed">
-              Enter customer mobile numbers to open a digital card. Import contacts instantly.
-            </p>
-          </div>
-          <div className="p-8 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl relative shadow-sm text-left hover:shadow-md transition-all duration-300">
-            <span className="w-8 h-8 rounded-full bg-orange text-white flex items-center justify-center font-bold text-sm absolute -top-4 left-8 shadow-md">3</span>
-            <h3 className="text-lg font-bold text-deep-navy mb-2 font-outfit">Record & Automate</h3>
-            <p className="text-xs text-slate-gray leading-relaxed">
-              Record credit or debit transactions. Set custom payment notifications and receive funds securely.
-            </p>
-          </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* 5. CUSTOMER REVIEWS */}
-      <section className="max-w-7xl mx-auto px-6 md:px-16 py-20" id="reviews">
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-          <span className="px-3 py-1 bg-orange/10 text-orange rounded-full text-xs font-bold uppercase tracking-wider">Testimonials</span>
-          <h2 className="text-3xl font-extrabold text-deep-navy font-outfit">Loved by Indian Merchant Community</h2>
-          <p className="text-sm text-slate-gray">Here is what local retailers, wholesale vendors, and store owners have to say.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Review 1 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-1.5 hover:shadow-md transition-all duration-300">
-            <div className="flex gap-1 text-amber-500">
-              {[...Array(5)].map((_, i) => <HiOutlineStar key={i} size={16} />)}
-            </div>
-            <p className="text-xs text-slate-gray italic leading-relaxed">
-              "KathaGPT changed how I review my business. I just ask 'who owes me most this week?' and I get the answers instantly. Speeds up my collection massively!"
-            </p>
-            <div className="border-t border-soft-gray/50 pt-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center font-bold text-orange">
-                RK
-              </div>
-              <div>
-                <span className="text-xs font-bold text-deep-navy block font-outfit">Rajesh Kumar</span>
-                <span className="text-[10px] text-slate-gray">Kirana Store Owner, Delhi</span>
-              </div>
-            </div>
+      <footer className="border-t border-[#ebe6df] bg-white py-10 transition-colors duration-300 dark:border-white/10 dark:bg-slate-950">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-5 px-5 text-sm font-bold text-[#667085] md:flex-row md:items-center md:px-10 lg:px-16">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#e92b35] to-[#ff5862] p-2 text-white">
+              <Logo />
+            </span>
+            <span className="font-outfit text-base font-black text-[#101525] dark:text-white">Udhaar Khata</span>
           </div>
-
-          {/* Review 2 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-1.5 hover:shadow-md transition-all duration-300">
-            <div className="flex gap-1 text-amber-500">
-              {[...Array(5)].map((_, i) => <HiOutlineStar key={i} size={16} />)}
-            </div>
-            <p className="text-xs text-slate-gray italic leading-relaxed">
-              "The voice entry feature is a lifesaver. When customers are waiting at the counter, I just speak their entry into the phone and it records instantly. No typing!"
-            </p>
-            <div className="border-t border-soft-gray/50 pt-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center font-bold text-orange">
-                AS
-              </div>
-              <div>
-                <span className="text-xs font-bold text-deep-navy block font-outfit">Amit Sharma</span>
-                <span className="text-[10px] text-slate-gray">Electrical Wholesaler, Jaipur</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Review 3 */}
-          <div className="p-6 bg-pure-white dark:bg-slate-900 border border-soft-gray rounded-2xl text-left space-y-4 hover:-translate-y-1.5 hover:shadow-md transition-all duration-300">
-            <div className="flex gap-1 text-amber-500">
-              {[...Array(5)].map((_, i) => <HiOutlineStar key={i} size={16} />)}
-            </div>
-            <p className="text-xs text-slate-gray italic leading-relaxed">
-              "I feel completely safe using Udhaar Khata because it uses a private blockchain to lock transaction data. No risk of accidental edits or malicious updates."
-            </p>
-            <div className="border-t border-soft-gray/50 pt-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center font-bold text-orange">
-                PM
-              </div>
-              <div>
-                <span className="text-xs font-bold text-deep-navy block font-outfit">Pooja Mehta</span>
-                <span className="text-[10px] text-slate-gray">Apparel Boutique, Mumbai</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. FINAL CTA BANNER */}
-      <section className="max-w-6xl mx-auto px-6 md:px-16 py-16 mb-20 bg-gradient-to-tr from-[#E22D34] to-[#C52329] text-white rounded-3xl shadow-xl text-center space-y-6 relative overflow-hidden">
-        <div className="absolute w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl -top-[100px] -right-[100px] pointer-events-none" />
-        
-        <h2 className="text-3xl md:text-4xl font-extrabold font-outfit max-w-xl mx-auto leading-tight text-white" style={{ color: '#ffffff' }}>
-          Ready to Digitise your Store's Udhaar Book?
-        </h2>
-        <p className="text-sm text-white/80 max-w-md mx-auto leading-relaxed">
-          Join over 1,000,000+ smart merchants who trust Udhaar Khata to handle their accounts securely.
-        </p>
-
-        <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto relative z-10" onSubmit={(e) => handleGetStarted(e, ctaPhoneNumber)}>
-          <div className="flex-1 flex items-center bg-white border border-transparent rounded-lg px-3 focus-within:ring-2 focus-within:ring-white/50 transition-all shadow-xs">
-            <span className="text-sm font-semibold text-slate-gray pr-2 border-r border-soft-gray">+91</span>
-            <input 
-              type="tel" 
-              className="w-full bg-transparent border-none py-3.5 px-2.5 text-sm text-[#0F172A] placeholder-slate-gray/40 outline-none" 
-              placeholder="Enter phone number" 
-              maxLength="10" 
-              pattern="[0-9]{10}"
-              value={ctaPhoneNumber} 
-              onChange={(e) => setCtaPhoneNumber(e.target.value.replace(/\D/g, ''))}
-            />
-          </div>
-          <button type="submit" className="px-8 py-3.5 bg-deep-navy hover:bg-[#1E293B] text-white font-semibold text-sm rounded-lg transition-all shadow-md shrink-0 cursor-pointer border-none active:scale-98">
-            Get Started
-          </button>
-        </form>
-      </section>
-
-      {/* 7. FOOTER */}
-      <footer className="bg-pure-white dark:bg-slate-900 border-t border-soft-gray py-12 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-6 md:px-16 grid grid-cols-1 md:grid-cols-4 gap-8 text-left">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-pure-white border border-soft-gray flex items-center justify-center p-1.5 shadow-sm">
-                <Logo />
-              </div>
-              <span className="text-sm font-bold text-deep-navy font-outfit tracking-wide">Udhaar Khata</span>
-            </div>
-            <p className="text-xs text-slate-gray leading-relaxed max-w-[200px]">
-              Next-generation digital ledger system for small business and retail merchants across India.
-            </p>
-          </div>
-          
-          <div className="space-y-3">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-deep-navy font-outfit">Product</h5>
-            <ul className="text-xs text-slate-gray space-y-2 list-none p-0 m-0">
-              <li><a href="#features" className="hover:text-orange transition-colors">Features</a></li>
-              <li><a href="#interactive-demo" className="hover:text-orange transition-colors">Integrations</a></li>
-              <li><a href="#how-it-works" className="hover:text-orange transition-colors">Security Audit</a></li>
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-deep-navy font-outfit">Company</h5>
-            <ul className="text-xs text-slate-gray space-y-2 list-none p-0 m-0">
-              <li><span className="hover:text-orange transition-colors cursor-pointer">About Us</span></li>
-              <li><span className="hover:text-orange transition-colors cursor-pointer">Contact Support</span></li>
-              <li><span className="hover:text-orange transition-colors cursor-pointer">Terms & Conditions</span></li>
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-deep-navy font-outfit">Security</h5>
-            <div className="flex items-center gap-2 text-xs font-semibold text-green-get">
-              <HiOutlineShieldCheck size={18} />
-              <span>100% Cryptographic Blockchain Secure</span>
-            </div>
-            <p className="text-[10px] text-slate-gray leading-relaxed">
-              All financial logs are hashed and validated with distributed chains.
-            </p>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 md:px-16 pt-8 mt-8 border-t border-soft-gray flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-gray font-semibold">
-          <span>&copy; {new Date().getFullYear()} Udhaar Khata Inc. All rights reserved.</span>
-          <div className="flex gap-6">
-            <span className="hover:text-orange transition-colors cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-orange transition-colors cursor-pointer">Security Ledger Audit</span>
-          </div>
+          <span>Digital ledger for modern Indian businesses.</span>
         </div>
       </footer>
-
     </div>
   );
+};
+
+const DashboardRow = ({ initial, name, status, amount, tone }) => (
+  <div className="grid grid-cols-[30px_1fr_auto] items-center gap-2 rounded-lg border border-[#e6e9ef] bg-white p-2.5 text-[11px] font-black text-[#101525]">
+    <span className={`grid h-8 w-8 place-items-center rounded-full ${tone === 'green' ? 'bg-[#03a66a]/10 text-[#03a66a]' : 'bg-[#e92b35]/10 text-[#e92b35]'}`}>
+      {initial}
+    </span>
+    <span>
+      {name}
+      <span className="block text-[10px] font-bold text-[#667085]">{status}</span>
+    </span>
+    <strong className={tone === 'green' ? 'text-[#03a66a]' : 'text-[#e92b35]'}>{amount}</strong>
+  </div>
+);
+
+const MobileCard = ({ title, value, tone = 'red' }) => (
+  <div className="mb-2 rounded-lg border border-[#e9edf3] bg-white p-2 text-[10px] font-black text-[#101525]">
+    {title}
+    <span className={`block pt-1 text-xs ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#e92b35]'}`}>
+      {value}
+    </span>
+  </div>
+);
+
+const Metric = ({ value, text }) => (
+  <div className="px-6 py-8">
+    <strong className="block text-4xl font-black text-[#101525] dark:text-white">{value}</strong>
+    <span className="mt-2 block text-sm font-bold leading-6 text-[#667085] dark:text-slate-300">{text}</span>
+  </div>
+);
+
+const SectionHead = ({ kicker, title, text }) => (
+  <div className="mb-10 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+    <div>
+      <p className="mb-3 text-xs font-black uppercase tracking-wide text-[#e92b35]">{kicker}</p>
+      <h2 className="font-outfit max-w-3xl text-3xl font-black leading-tight text-[#101525] dark:text-white md:text-5xl">
+        {title}
+      </h2>
+    </div>
+    {text && <p className="max-w-lg text-sm font-semibold leading-7 text-[#667085] dark:text-slate-300">{text}</p>}
+  </div>
+);
+
+const FeatureCard = ({ icon, title, text }) => (
+  <article className="uk-reveal uk-float-card min-h-[250px] rounded-lg border border-[#e9edf3] bg-white/90 p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90">
+    <div className="mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0f1] text-[#e92b35]">
+      {icon}
+    </div>
+    <h3 className="font-outfit mb-3 text-lg font-black text-[#101525] dark:text-white">{title}</h3>
+    <p className="text-sm font-semibold leading-7 text-[#667085] dark:text-slate-300">{text}</p>
+  </article>
+);
+
+const ProcessCard = ({ className, icon, title, text }) => (
+  <div className={`uk-slide-card absolute left-5 right-5 flex min-h-[78px] items-center gap-4 rounded-lg border border-[#e9edf3] bg-white p-4 shadow-[0_18px_42px_rgba(16,21,37,0.10)] md:left-12 md:right-12 ${className}`}>
+    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#101525] text-white">
+      {icon}
+    </span>
+    <span className="text-sm font-black text-[#101525]">
+      {title}
+      <span className="block text-xs font-bold text-[#667085]">{text}</span>
+    </span>
+  </div>
+);
+
+const StepCard = ({ number, title, text }) => (
+  <article className="uk-reveal uk-float-card rounded-lg border border-[#e9edf3] bg-white/90 p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90">
+    <span className="mb-4 grid h-9 w-9 place-items-center rounded-full bg-[#e92b35] text-sm font-black text-white">
+      {number}
+    </span>
+    <h3 className="font-outfit mb-2 text-lg font-black text-[#101525] dark:text-white">{title}</h3>
+    <p className="text-sm font-semibold leading-7 text-[#667085] dark:text-slate-300">{text}</p>
+  </article>
+);
+
+const ReviewCard = ({ initials, name, role, quote }) => (
+  <article className="uk-reveal uk-float-card rounded-lg border border-[#e9edf3] bg-white/90 p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90">
+    <div className="mb-5 flex gap-1 text-[#f4aa24]">
+      {[...Array(5)].map((_, index) => (
+        <HiOutlineStar key={index} size={17} />
+      ))}
+    </div>
+    <p className="text-sm font-semibold leading-7 text-[#667085] dark:text-slate-300">"{quote}"</p>
+    <div className="mt-6 flex items-center gap-3">
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-[#e92b35] to-[#ff6872] text-sm font-black text-white">
+        {initials}
+      </span>
+      <div>
+        <h3 className="font-outfit text-sm font-black text-[#101525] dark:text-white">{name}</h3>
+        <p className="text-xs font-bold text-[#667085] dark:text-slate-300">{role}</p>
+      </div>
+    </div>
+  </article>
+);
+
+const AnimatedCounter = ({ endValue, duration = 1200, formatter }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    let cancelled = false;
+    const step = (timestamp) => {
+      if (cancelled) return;
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      setCount(Math.floor(progress * endValue));
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+    window.requestAnimationFrame(step);
+    return () => {
+      cancelled = true;
+    };
+  }, [endValue, duration]);
+
+  return <span>{formatter ? formatter(count) : count}</span>;
 };
 
 export default LandingPage;
