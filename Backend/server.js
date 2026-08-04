@@ -27,12 +27,25 @@ app.use(apiTimer);
 app.use(compression());
 
 // Middleware
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://digital-udhar-khata-frontend-458697683921-ap-south-2-an.s3-website.ap-south-2.amazonaws.com"
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://digital-udhaar-khata-qcyviongw-akhilesh021205s-projects.vercel.app",
-    "http://digital-udhar-khata-frontend-458697683921-ap-south-2-an.s3-website.ap-south-2.amazonaws.com"
-  ],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith(".vercel.app")
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
