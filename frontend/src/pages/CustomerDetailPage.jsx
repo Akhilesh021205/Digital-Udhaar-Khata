@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import API from '../api/axios';
+import { getDeterministicPrediction } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
 import Modal from '../components/Common/Modal';
@@ -248,8 +249,15 @@ const CustomerDetailPage = () => {
         API.get(`/transactions?customer=${id}&limit=200`),
       ]);
       const custData = custRes.data.data.customer;
-      setCustomer(custData);
-      setQrAmount(custData.balance > 0 ? custData.balance : 0);
+      const prediction = getDeterministicPrediction(custData._id, custData.name);
+      const enrichedCust = {
+        ...custData,
+        duePrediction: prediction.duePrediction,
+        creditScore: prediction.creditScore,
+        riskLevel: prediction.riskLevel
+      };
+      setCustomer(enrichedCust);
+      setQrAmount(enrichedCust.balance > 0 ? enrichedCust.balance : 0);
       setTransactions(txnRes.data.data);
     } catch (err) { toast.error('Failed to load customer'); }
     finally { setLoading(false); }

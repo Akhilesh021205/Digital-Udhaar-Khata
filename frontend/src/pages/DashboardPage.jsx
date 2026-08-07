@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import API from '../api/axios';
+import { getDeterministicPrediction } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
 import Modal from '../components/Common/Modal';
@@ -98,7 +99,18 @@ const DashboardPage = () => {
   const [activeCustomerTxns, setActiveCustomerTxns] = useState([]);
   const [loadingTxns, setLoadingTxns] = useState(false);
 
-  const customerList = Array.isArray(customers) ? customers : [];
+  const customerList = useMemo(() => {
+    const rawList = Array.isArray(customers) ? customers : [];
+    return rawList.map(c => {
+      const prediction = getDeterministicPrediction(c._id, c.name);
+      return {
+        ...c,
+        duePrediction: prediction.duePrediction,
+        creditScore: prediction.creditScore,
+        riskLevel: prediction.riskLevel
+      };
+    });
+  }, [customers]);
 
   const activeCustomer = selectedCustomerId
     ? (customerList.find(c => c._id === selectedCustomerId) || customerList[0] || null)
@@ -544,14 +556,14 @@ const DashboardPage = () => {
                             </td>
                             <td className="px-4 py-3 text-xs">
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase border ${
-                                c.duePrediction === 'trusted' ? 'bg-green-50 text-green-700 border-green-200' :
-                                c.duePrediction === 'delay' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                'bg-red-50 text-red-700 border-red-200'
+                                c.duePrediction === 'trusted' ? 'bg-green-get/10 text-green-get border-green-get/20' :
+                                c.duePrediction === 'delay' ? 'bg-warning-pending/10 text-warning-pending border-warning-pending/20' :
+                                'bg-red-give/10 text-red-give border-red-give/20'
                               }`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${
-                                  c.duePrediction === 'trusted' ? 'bg-green-500' :
-                                  c.duePrediction === 'delay' ? 'bg-amber-500' :
-                                  'bg-red-500'
+                                  c.duePrediction === 'trusted' ? 'bg-green-get' :
+                                  c.duePrediction === 'delay' ? 'bg-warning-pending' :
+                                  'bg-red-give'
                                 }`} />
                                 {c.duePrediction === 'trusted' ? 'Trusted' : c.duePrediction === 'delay' ? 'Delay' : 'Risky'}
                               </span>

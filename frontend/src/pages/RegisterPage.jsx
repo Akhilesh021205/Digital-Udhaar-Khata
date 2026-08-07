@@ -184,7 +184,7 @@ const RegisterPage = () => {
     }
   };
 
-  const update = (field) => (e) => setForm({...form, [field]: e.target.value});
+  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-light-cream to-soft-white p-5 relative overflow-hidden py-12">
@@ -200,15 +200,15 @@ const RegisterPage = () => {
           <h1 className="text-2xl font-bold text-deep-navy mb-1">Create Account</h1>
           <p className="text-sm text-slate-gray">Start managing your store's khata digitally</p>
         </div>
-        
+
         {error && (
           <div className="bg-red-give/10 border border-red-give/20 rounded-lg p-3.5 mb-4 text-red-give text-sm text-center font-medium animate-pulse">
             {error}
           </div>
         )}
-        
+
         <form className="space-y-4" onSubmit={handleSubmit}>
-          
+
           <div className="flex flex-col gap-2.5 mb-2">
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider">
               Profile Picture
@@ -216,7 +216,7 @@ const RegisterPage = () => {
             <div className="flex items-center gap-5 p-4 bg-light-cream/30 border border-soft-gray rounded-xl w-full">
               {/* Avatar Preview */}
               <div className="relative w-20 h-20 shrink-0">
-                <div 
+                <div
                   className="w-20 h-20 rounded-full bg-light-cream/40 border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-md hover:scale-105 transition-transform"
                   onClick={() => fileInputRef.current.click()}
                 >
@@ -252,11 +252,10 @@ const RegisterPage = () => {
                         key={idx}
                         type="button"
                         onClick={() => setForm({ ...form, avatar: p.value })}
-                        className={`w-11 h-11 rounded-full border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${
-                          isSelected 
-                            ? 'border-2 border-orange scale-110 shadow-lg shadow-orange/15' 
+                        className={`w-11 h-11 rounded-full border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${isSelected
+                            ? 'border-2 border-orange scale-110 shadow-lg shadow-orange/15'
                             : 'border-soft-gray hover:scale-105'
-                        }`}
+                          }`}
                       >
                         <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
                       </button>
@@ -271,48 +270,48 @@ const RegisterPage = () => {
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
               Your Name
             </label>
-            <input 
+            <input
               className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all"
-              placeholder="Rajesh Kumar" 
-              required 
-              value={form.name} 
-              onChange={update('name')} 
+              placeholder="Rajesh Kumar"
+              required
+              value={form.name}
+              onChange={update('name')}
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
               Store Name
             </label>
-            <input 
+            <input
               className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all"
-              placeholder="Kumar General Store" 
-              required 
-              value={form.storeName} 
-              onChange={update('storeName')} 
+              placeholder="Kumar General Store"
+              required
+              value={form.storeName}
+              onChange={update('storeName')}
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
               Email Address
             </label>
-            <input 
+            <input
               className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all"
-              type="email" 
-              placeholder="you@example.com" 
-              required 
-              value={form.email} 
-              onChange={update('email')} 
+              type="email"
+              placeholder="you@example.com"
+              required
+              value={form.email}
+              onChange={update('email')}
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
               Phone Number
             </label>
-            <input 
+            <input
               className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all"
-              placeholder="+91 9876543210" 
-              value={form.phone} 
-              onChange={update('phone')} 
+              placeholder="+91 9876543210"
+              value={form.phone}
+              onChange={update('phone')}
             />
           </div>
           <div>
@@ -320,27 +319,27 @@ const RegisterPage = () => {
               Password
             </label>
             <div className="relative">
-              <input 
+              <input
                 className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all pr-12"
-                type={showPassword ? 'text' : 'password'} 
-                placeholder="Min 6 characters" 
-                required 
-                minLength={6} 
-                value={form.password} 
-                onChange={update('password')} 
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Min 6 characters"
+                required
+                minLength={6}
+                value={form.password}
+                onChange={update('password')}
               />
-              <button 
-                type="button" 
-                onClick={() => setShowPassword(!showPassword)} 
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-gray cursor-pointer p-1 flex items-center justify-center hover:text-deep-navy transition-colors"
               >
                 {showPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
               </button>
             </div>
           </div>
-          <button 
+          <button
             className="w-full py-3.5 px-6 font-semibold text-sm rounded-lg bg-orange text-white hover:bg-orange-hover transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-            type="submit" 
+            type="submit"
             disabled={loading}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
@@ -362,11 +361,11 @@ const RegisterPage = () => {
         >
           {/* Official Google G Logo */}
           <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-            <path fill="none" d="M0 0h48v48H0z"/>
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+            <path fill="none" d="M0 0h48v48H0z" />
           </svg>
           Continue with Google
         </button>
@@ -379,7 +378,7 @@ const RegisterPage = () => {
       {showMockChooser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-pure-white rounded-3xl p-6 shadow-2xl border border-soft-gray max-w-sm w-full relative">
-            <button 
+            <button
               onClick={() => setShowMockChooser(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 transition-colors p-1 rounded-full hover:bg-light-cream cursor-pointer"
             >
@@ -390,11 +389,11 @@ const RegisterPage = () => {
               {/* Official Google G Logo */}
               <div className="w-10 h-10 mx-auto mb-3 flex items-center justify-center bg-light-cream border border-soft-gray rounded-xl p-2 shadow-inner">
                 <svg width="24" height="24" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                  <path fill="none" d="M0 0h48v48H0z"/>
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                  <path fill="none" d="M0 0h48v48H0z" />
                 </svg>
               </div>
               <h2 className="text-lg font-bold text-deep-navy">Sign in with Google</h2>

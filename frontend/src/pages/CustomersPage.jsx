@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api/axios';
+import { getDeterministicPrediction } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
 import Modal from '../components/Common/Modal';
@@ -127,6 +128,7 @@ const CustomersPage = () => {
     stopListening,
     isSupported: isSpeechSupported
   } = useSpeechToText({
+    version: '1.0',
     lang: speechLang,
     onResult: (text) => {
       let cleaned = text.trim();
@@ -165,7 +167,17 @@ const CustomersPage = () => {
       const params = {};
       if (search) params.search = search;
       const { data } = await API.get('/customers', { params });
-      setCustomers(data?.data || []);
+      const rawCustomers = data?.data || [];
+      const enriched = rawCustomers.map(c => {
+        const prediction = getDeterministicPrediction(c._id, c.name);
+        return {
+          ...c,
+          duePrediction: prediction.duePrediction,
+          creditScore: prediction.creditScore,
+          riskLevel: prediction.riskLevel
+        };
+      });
+      setCustomers(enriched);
     } catch (err) { toast.error('Failed to load'); }
     finally { setLoading(false); }
   };

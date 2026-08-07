@@ -28,6 +28,14 @@ const successAnimationStyles = `
     50% { transform: scale(1.35); opacity: 0.3; }
     100% { transform: scale(1.7); opacity: 0; }
   }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .animate-shake {
+    animation: shake 0.25s cubic-bezier(.36,.07,.19,.97) both;
+  }
   .animate-draw-check {
     stroke-dasharray: 50;
     stroke-dashoffset: 50;
@@ -412,8 +420,8 @@ const SecurityLockScreen = ({ onUnlock }) => {
         <div
           key={idx}
           className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-300 ${idx < pin.length
-              ? 'bg-[#A82424] border-[#A82424] scale-110 shadow-md shadow-[#A82424]/30'
-              : 'border-[#A82424]/50 bg-transparent'
+              ? 'bg-orange border-orange scale-110 shadow-md shadow-orange/30'
+              : 'border-orange/40 bg-transparent'
             }`}
         />
       ))}
@@ -424,40 +432,44 @@ const SecurityLockScreen = ({ onUnlock }) => {
     <div
       id="lock-screen-wrapper"
       tabIndex={0}
-      className="fixed inset-0 z-50 flex items-center justify-center p-5 overflow-hidden outline-none bg-[#EADCC6]"
+      className="fixed inset-0 z-50 flex items-center justify-center p-5 overflow-hidden outline-none bg-gradient-to-br from-light-cream to-soft-white dark:from-[#0B0F19] dark:to-[#0F1626]"
     >
       <style>{successAnimationStyles}</style>
 
+      {/* Decorative background shapes */}
+      <div className="absolute w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(226,45,52,0.05)_0%,transparent_70%)] -top-[100px] -right-[100px] rounded-full pointer-events-none"></div>
+      <div className="absolute w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(59,130,246,0.03)_0%,transparent_70%)] -bottom-[80px] -left-[80px] rounded-full pointer-events-none"></div>
+
       {/* Centered Lock Card */}
-      <div className="w-full max-w-3xl bg-[#FAF5ED] border border-[#E6D4B8] rounded-[24px] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row min-h-[530px] animate-in fade-in zoom-in-95 duration-300">
+      <div className="w-full max-w-3xl bg-soft-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-[24px] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row min-h-[530px] animate-in fade-in zoom-in-95 duration-300">
         
         {/* Left Side: Watercolor Illustration */}
-        <div className="hidden md:block w-1/2 relative bg-[#F7EFE3] border-r border-[#E6D4B8]">
+        <div className="hidden md:block w-1/2 relative bg-[#F7EFE3] dark:bg-[#e4dac7] border-r border-soft-gray dark:border-slate-800">
           <img 
             src="/lock_illustration.png" 
             alt="Traditional Kirana Store & Ledger Book" 
-            className="w-full h-full object-cover mix-blend-multiply opacity-95"
+            className="w-full h-full object-cover mix-blend-multiply opacity-95 dark:opacity-85"
           />
         </div>
 
         {/* Right Side: PIN Unlock interface */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-between items-center bg-[#FAF5ED]">
+        <div className="w-full md:w-1/2 p-8 flex flex-col justify-between items-center bg-soft-white dark:bg-slate-900">
           
           {/* Header & Logo */}
           <div className="w-full text-center">
-            <h2 className="text-3xl font-extrabold text-[#A82424] tracking-wide mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+            <h2 className="text-3xl font-black text-orange tracking-wide mb-1 font-outfit">
               Udhaar Khata
             </h2>
             
             {/* Elegant Divider Ornament */}
-            <div className="flex items-center justify-center gap-2 my-2 text-[#A82424]/40">
+            <div className="flex items-center justify-center gap-2 my-2 text-orange/40 dark:text-orange/20">
               <span className="h-[1px] w-12 bg-current" />
               <span className="text-sm">✦</span>
               <span className="h-[1px] w-12 bg-current" />
             </div>
 
-            <h3 className="text-xl font-bold text-slate-800 mt-3 mb-1">Welcome Back</h3>
-            <p className="text-xs text-slate-500 font-semibold">Enter your PIN to access your Khata</p>
+            <h3 className="text-xl font-bold text-deep-navy dark:text-white mt-3 mb-1 font-outfit">Welcome Back</h3>
+            <p className="text-xs text-slate-gray dark:text-slate-400 font-semibold">Enter your PIN to access your Khata</p>
           </div>
 
           {/* Dots */}
@@ -473,8 +485,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
                 type="button"
                 onClick={() => handleKeyPress(num)}
                 disabled={verifying}
-                className="w-16 h-14 rounded-2xl bg-[#FAF5ED] border border-[#E6D4B8] flex items-center justify-center font-bold text-xl text-slate-800 hover:bg-[#A82424] hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
-                style={{ fontFamily: 'Georgia, serif' }}
+                className="w-16 h-14 rounded-2xl bg-soft-white dark:bg-slate-900/60 border border-soft-gray dark:border-slate-800 flex items-center justify-center font-bold text-xl text-deep-navy dark:text-white hover:bg-orange dark:hover:bg-orange hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 {num}
               </button>
@@ -487,8 +498,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
               type="button"
               onClick={() => handleKeyPress(0)}
               disabled={verifying}
-              className="w-16 h-14 rounded-2xl bg-[#FAF5ED] border border-[#E6D4B8] flex items-center justify-center font-bold text-xl text-slate-800 hover:bg-[#A82424] hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
-              style={{ fontFamily: 'Georgia, serif' }}
+              className="w-16 h-14 rounded-2xl bg-soft-white dark:bg-slate-900/60 border border-soft-gray dark:border-slate-800 flex items-center justify-center font-bold text-xl text-deep-navy dark:text-white hover:bg-orange dark:hover:bg-orange hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
             >
               0
             </button>
@@ -497,9 +507,9 @@ const SecurityLockScreen = ({ onUnlock }) => {
               type="button"
               onClick={handleBackspace}
               disabled={verifying}
-              className="w-16 h-14 rounded-2xl bg-[#FAF5ED] border border-[#E6D4B8] flex items-center justify-center text-slate-850 hover:bg-[#A82424] hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
+              className="w-16 h-14 rounded-2xl bg-soft-white dark:bg-slate-900/60 border border-soft-gray dark:border-slate-800 flex items-center justify-center text-deep-navy dark:text-white hover:bg-orange dark:hover:bg-orange hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              <HiOutlineBackspace size={22} className="text-slate-800 hover:text-white" />
+              <HiOutlineBackspace size={22} className="text-current" />
             </button>
           </div>
 
@@ -513,16 +523,16 @@ const SecurityLockScreen = ({ onUnlock }) => {
                 type="button"
                 onClick={triggerBiometricSelection}
                 disabled={verifying}
-                className="mx-auto px-4 py-2 border border-[#E6D4B8] bg-[#FAF5ED] hover:bg-[#F3E6D0] text-[#A82424] font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.02)] active:scale-98"
+                className="mx-auto px-4 py-2 border border-orange/20 bg-orange/5 hover:bg-orange/10 dark:border-orange/30 dark:bg-orange/10 dark:hover:bg-orange/20 text-orange font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.02)] active:scale-98"
               >
                 {user.biometricCredentialId?.startsWith('face-id-') ? (
                   <>
-                    <LucideScan size={14} className="text-[#A82424]" />
+                    <LucideScan size={14} className="text-orange" />
                     <span>Use Face ID</span>
                   </>
                 ) : (
                   <>
-                    <LucideFingerprint size={14} className="text-[#A82424]" />
+                    <LucideFingerprint size={14} className="text-orange" />
                     <span>Use Fingerprint</span>
                   </>
                 )}
@@ -531,7 +541,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
 
             <button
               onClick={logout}
-              className="text-xs text-slate-500 hover:text-[#A82424] hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors block mx-auto"
+              className="text-xs text-slate-gray hover:text-orange hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors block mx-auto"
             >
               Sign Out of Account
             </button>
@@ -543,7 +553,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
       {/* Real-time Biometric Authenticator Dialog */}
       {showBiometricModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-8 rounded-[30px] shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+          <div className="bg-soft-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 p-8 rounded-[30px] shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
 
             {unlockSuccess ? (
               /* Success View */
@@ -553,21 +563,21 @@ const SecurityLockScreen = ({ onUnlock }) => {
                      <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-outfit">Identity Verified</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                <h2 className="text-xl font-bold text-deep-navy dark:text-white font-outfit">Identity Verified</h2>
+                <p className="text-xs text-slate-gray dark:text-slate-400 mt-2 leading-relaxed">
                   Unlocking your account...
                 </p>
               </div>
             ) : (
               /* Scanning/Processing View */
               <>
-                <div className="w-10 h-10 rounded-full bg-[#B71C1C]/10 dark:bg-[#F59E0B]/10 flex items-center justify-center text-[#B71C1C] dark:text-[#F59E0B] mb-4 border border-[#B71C1C]/20">
+                <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center text-orange mb-4 border border-orange/20">
                   <Shield className="w-5 h-5" />
                 </div>
 
                 {activeScanType === 'face' ? (
                   /* Real-time Camera Preview inside custom circular mask */
-                  <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#B71C1C] dark:border-[#F59E0B] bg-black flex items-center justify-center shadow-lg mb-6">
+                  <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-orange bg-black flex items-center justify-center shadow-lg mb-6">
                     <video
                       ref={videoRef}
                       autoPlay
@@ -575,43 +585,43 @@ const SecurityLockScreen = ({ onUnlock }) => {
                       muted
                       className="w-full h-full object-cover scale-x-[-1]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#B71C1C]/5 to-transparent animate-pulse" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange/5 to-transparent animate-pulse" />
                     {biometricStatus !== 'No Face Detected' && biometricStatus !== 'Face Not Recognized' && (
-                      <div className="absolute left-0 right-0 h-0.5 bg-[#B71C1C] dark:bg-[#F59E0B] shadow-md shadow-[#B71C1C]/80 animate-scan-line" />
+                      <div className="absolute left-0 right-0 h-0.5 bg-orange shadow-md shadow-orange/80 animate-scan-line" />
                     )}
                   </div>
                 ) : (
                   /* Fingerprint Scan Panel Simulation */
-                  <div className="relative w-32 h-32 mb-6 flex items-center justify-center bg-slate-50 dark:bg-slate-900/40 rounded-full border-2 border-slate-200 dark:border-slate-850 shadow-inner overflow-hidden">
+                  <div className="relative w-32 h-32 mb-6 flex items-center justify-center bg-slate-50 dark:bg-slate-900/40 rounded-full border-2 border-soft-gray dark:border-slate-800 shadow-inner overflow-hidden">
                     {/* Active scanning outer ring */}
-                    <div className="absolute inset-0 rounded-full border border-[#B71C1C]/20 dark:border-[#F59E0B]/20 animate-pulse" />
+                    <div className="absolute inset-0 rounded-full border border-orange/20 animate-pulse" />
                     {/* Rotating dashboard lines */}
-                    <div className="absolute inset-3 rounded-full border border-dashed border-[#B71C1C]/30 dark:border-[#F59E0B]/30 animate-spin" style={{ animationDuration: '8s' }} />
-                    <div className="absolute inset-5 rounded-full border border-dotted border-[#B71C1C]/20 dark:border-[#F59E0B]/20 animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
+                    <div className="absolute inset-3 rounded-full border border-dashed border-orange/30 animate-spin" style={{ animationDuration: '8s' }} />
+                    <div className="absolute inset-5 rounded-full border border-dotted border-orange/20 animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
 
                     {/* Fingerprint Graphic */}
-                    <div className="relative z-10 text-[#B71C1C] dark:text-[#F59E0B]">
+                    <div className="relative z-10 text-orange">
                       <LucideFingerprint className="w-16 h-16 animate-pulse" />
                     </div>
 
                     {/* Vertical Scanning laser line */}
                     {biometricStatus === 'Verifying Fingerprint' && (
-                      <div className="absolute left-0 right-0 h-0.5 bg-[#B71C1C] dark:bg-[#F59E0B] shadow-md shadow-[#B71C1C]/80 animate-scan-line" />
+                      <div className="absolute left-0 right-0 h-0.5 bg-orange shadow-md shadow-orange/80 animate-scan-line" />
                     )}
                   </div>
                 )}
 
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 font-outfit">
+                <h2 className="text-lg font-bold text-deep-navy dark:text-white font-outfit">
                   {activeScanType === 'face' ? 'Face Verification' : 'Fingerprint Verification'}
                 </h2>
 
                 {/* Real-time status tracker */}
                 <div className="mt-2 min-h-[48px] flex flex-col items-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-[280px] leading-relaxed">
+                  <p className="text-xs text-slate-gray dark:text-slate-400 font-medium max-w-[280px] leading-relaxed">
                     {biometricStatus}
                   </p>
                   {activeScanType === 'face' && livenessVerified && biometricStatus === 'Verifying Identity' && (
-                    <div className="text-[10px] text-[#B71C1C] dark:text-[#F59E0B] font-semibold mt-1">
+                    <div className="text-[10px] text-orange font-semibold mt-1">
                       {matchScore}%
                     </div>
                   )}
@@ -622,14 +632,14 @@ const SecurityLockScreen = ({ onUnlock }) => {
                   {biometricStatus === 'Face Not Recognized' ? (
                     <button
                       onClick={startCameraScan}
-                      className="w-full py-2.5 bg-[#B71C1C] dark:bg-[#F59E0B] hover:brightness-110 text-white dark:text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                      className="w-full py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Retry Scan
                     </button>
                   ) : activeScanType === 'fingerprint' && biometricStatus === 'Fingerprint Not Recognized' ? (
                     <button
                       onClick={handleFingerprintAuth}
-                      className="w-full py-2.5 bg-[#B71C1C] dark:bg-[#F59E0B] hover:brightness-110 text-white dark:text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                      className="w-full py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Try Fingerprint Again
                     </button>
@@ -637,7 +647,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
 
                   <button
                     onClick={handleCloseBiometricModal}
-                    className="w-full py-2.5 bg-transparent border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs rounded-xl cursor-pointer transition-colors"
+                    className="w-full py-2.5 bg-transparent border border-soft-gray text-slate-gray hover:text-deep-navy hover:bg-light-cream font-bold text-xs rounded-xl cursor-pointer transition-colors"
                   >
                     Cancel & Use PIN
                   </button>
