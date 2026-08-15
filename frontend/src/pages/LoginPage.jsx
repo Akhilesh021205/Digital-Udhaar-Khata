@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Logo from '../components/Common/Logo';
 import { HiOutlineEye, HiOutlineEyeOff, HiOutlineX } from 'react-icons/hi';
 import { useGoogleLogin } from '@react-oauth/google';
+import { Capacitor } from '@capacitor/core';
+import { BiometricService } from '../services/biometricService';
+import { HiOutlineFingerPrint } from 'react-icons/hi';
 
 const mockGoogleAccounts = [
   {
@@ -29,8 +32,38 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showMockChooser, setShowMockChooser] = useState(false);
-  const { login, googleSignIn, mockGoogleSignIn } = useAuth();
+  const [hasStoredBiometrics, setHasStoredBiometrics] = useState(false);
+  const { login, googleSignIn, mockGoogleSignIn, biometricLogin } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkSavedBiometrics = async () => {
+      if (Capacitor.isNativePlatform()) {
+        const creds = await BiometricService.getCredentials();
+        if (creds && creds.username && creds.password) {
+          setHasStoredBiometrics(true);
+        }
+      }
+    };
+    checkSavedBiometrics();
+  }, []);
+
+  const handleFingerprintLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const verified = await BiometricService.authenticate();
+      if (verified) {
+        await biometricLogin();
+        navigate('/');
+      }
+    } catch (err) {
+      console.warn("Biometric login failed or canceled:", err);
+      setError("Biometric login failed or canceled.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const googleLoginTrigger = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -185,6 +218,21 @@ const LoginPage = () => {
           </svg>
           Continue with Google
         </button>
+
+        {hasStoredBiometrics && (
+          <div className="flex flex-col items-center justify-center pt-4 border-t border-soft-gray mt-5 animate-in fade-in zoom-in-95 duration-200">
+            <span className="text-[10px] font-bold text-slate-gray uppercase tracking-wider mb-2.5">Or Sign In With Biometrics</span>
+            <button
+              type="button"
+              onClick={handleFingerprintLogin}
+              disabled={loading}
+              className="w-12 h-12 rounded-full bg-orange/10 border border-orange/20 flex items-center justify-center text-orange hover:bg-orange hover:text-white hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+              title="Sign In with Fingerprint"
+            >
+              <HiOutlineFingerPrint size={24} />
+            </button>
+          </div>
+        )}
 
         <div className="text-center mt-5 text-sm text-slate-gray">
           Don't have an account? <Link to="/register" className="text-orange font-semibold hover:underline">Sign up</Link>

@@ -77,7 +77,7 @@ const customerPresets = [
   { label: 'Business', value: svgToBase64(shopUserSvg) }
 ];
 
-const avatarColors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+const avatarColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 const getAvatarColor = (name) => avatarColors[name.charCodeAt(0) % avatarColors.length];
 
 const DashboardPage = () => {
@@ -121,7 +121,7 @@ const DashboardPage = () => {
       setActiveCustomerTxns([]);
       return;
     }
-    
+
     let isMounted = true;
     const fetchCustTxns = async () => {
       setLoadingTxns(true);
@@ -215,17 +215,17 @@ const DashboardPage = () => {
     }
   });
 
-  const [sidebarOpen, setSidebarOpen] = useOutletContext() || [false, () => {}];
+  const [sidebarOpen, setSidebarOpen] = useOutletContext() || [false, () => { }];
 
   const handleEmailRemind = async (e, customer) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!customer.email) {
       toast.warning('Please edit this customer and add an email address first.');
       return;
     }
-    
+
     setSendingEmail(prev => ({ ...prev, [customer._id]: true }));
     try {
       const { data } = await API.post(`/reminders/send/${customer._id}`);
@@ -261,8 +261,8 @@ const DashboardPage = () => {
     return customerList.filter(c => {
       const name = c.name || '';
       const phone = c.phone || '';
-      const matchesSearch = name.toLowerCase().includes(custSearch.toLowerCase()) || 
-                            phone.includes(custSearch);
+      const matchesSearch = name.toLowerCase().includes(custSearch.toLowerCase()) ||
+        phone.includes(custSearch);
       if (custFilter === 'get') {
         return matchesSearch && c.balance > 0;
       }
@@ -281,7 +281,7 @@ const DashboardPage = () => {
     const debitPct = (youWillGive / totalUdharVal) * 100;
     const radius = 35;
     const strokeWidth = 10;
-    const circumference = 2 * Math.PI * radius; 
+    const circumference = 2 * Math.PI * radius;
     const creditStroke = (youWillGet / totalUdharVal) * circumference;
     const debitStroke = (youWillGive / totalUdharVal) * circumference;
     return {
@@ -357,12 +357,12 @@ const DashboardPage = () => {
 
   const openCustomerTxnModal = (type) => {
     if (activeCustomer) {
-      setTxnForm({ 
-        customer: activeCustomer._id, 
-        type, 
-        amount: '', 
-        description: '', 
-        date: new Date().toISOString().split('T')[0] 
+      setTxnForm({
+        customer: activeCustomer._id,
+        type,
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0]
       });
       setShowTxnModal(true);
     } else {
@@ -372,10 +372,10 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <Header 
-        title={t('dashboard')} 
-        subtitle={t('overviewOfStore')} 
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+      <Header
+        title={t('dashboard')}
+        subtitle={t('overviewOfStore')}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
@@ -457,34 +457,31 @@ const DashboardPage = () => {
                   <h3 className="text-base font-bold text-deep-navy">{t('customers')}</h3>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex bg-light-cream rounded-xl p-0.5 border border-soft-gray">
-                      <button 
+                      <button
                         onClick={() => setCustFilter('all')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
-                          custFilter === 'all' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
-                        }`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${custFilter === 'all' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
+                          }`}
                       >
                         All
                       </button>
-                      <button 
+                      <button
                         onClick={() => setCustFilter('get')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
-                          custFilter === 'get' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
-                        }`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${custFilter === 'get' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
+                          }`}
                       >
                         You Will Get
                       </button>
-                      <button 
+                      <button
                         onClick={() => setCustFilter('pay')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
-                          custFilter === 'pay' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
-                        }`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${custFilter === 'pay' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
+                          }`}
                       >
                         You Will Pay
                       </button>
                     </div>
                     <div className="relative flex-1 sm:w-48">
                       <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-gray" size={16} />
-                      <input 
+                      <input
                         type="text"
                         value={custSearch}
                         onChange={(e) => setCustSearch(e.target.value)}
@@ -515,23 +512,22 @@ const DashboardPage = () => {
                         </tr>
                       ) : (
                         filteredCustomers.map((c) => (
-                          <tr 
-                            key={c._id} 
+                          <tr
+                            key={c._id}
                             onClick={() => setSelectedCustomerId(c._id)}
-                            className={`hover:bg-slate-gray/5 transition-all duration-200 cursor-pointer ${
-                              activeCustomer?._id === c._id ? 'bg-orange/5 font-semibold' : ''
-                            }`}
+                            className={`hover:bg-slate-gray/5 transition-all duration-200 cursor-pointer ${activeCustomer?._id === c._id ? 'bg-orange/5 font-semibold' : ''
+                              }`}
                           >
                             <td className="px-4 py-3 text-sm font-semibold text-deep-navy flex items-center gap-3">
                               {c.avatar ? (
-                                <img 
-                                  src={c.avatar} 
-                                  alt={c.name} 
-                                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-soft-gray shadow-xs" 
+                                <img
+                                  src={c.avatar}
+                                  alt={c.name}
+                                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-soft-gray shadow-xs"
                                 />
                               ) : (
-                                <div 
-                                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner" 
+                                <div
+                                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner"
                                   style={{ background: getAvatarColor(c.name) }}
                                 >
                                   {c.name.charAt(0).toUpperCase()}
@@ -543,52 +539,47 @@ const DashboardPage = () => {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-xs">
-                              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                c.balance >= 0 ? 'bg-green-get/10 text-green-get' : 'bg-red-give/10 text-red-give'
-                              }`}>
+                              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${c.balance >= 0 ? 'bg-green-get/10 text-green-get' : 'bg-red-give/10 text-red-give'
+                                }`}>
                                 {c.balance >= 0 ? 'You Will Get' : 'You Will Pay'}
                               </span>
                             </td>
-                            <td className={`px-4 py-3 text-sm font-bold font-outfit ${
-                                c.balance >= 0 ? 'text-green-get' : 'text-red-give'
-                            }`}>
+                            <td className={`px-4 py-3 text-sm font-bold font-outfit ${c.balance >= 0 ? 'text-green-get' : 'text-red-give'
+                              }`}>
                               ₹{Math.abs(c.balance).toLocaleString('en-IN')}
                             </td>
                             <td className="px-4 py-3 text-xs">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase border ${
-                                c.duePrediction === 'trusted' ? 'bg-green-get/10 text-green-get border-green-get/20' :
-                                c.duePrediction === 'delay' ? 'bg-warning-pending/10 text-warning-pending border-warning-pending/20' :
-                                'bg-red-give/10 text-red-give border-red-give/20'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  c.duePrediction === 'trusted' ? 'bg-green-get' :
-                                  c.duePrediction === 'delay' ? 'bg-warning-pending' :
-                                  'bg-red-give'
-                                }`} />
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase border ${c.duePrediction === 'trusted' ? 'bg-green-get/10 text-green-get border-green-get/20' :
+                                  c.duePrediction === 'delay' ? 'bg-warning-pending/10 text-warning-pending border-warning-pending/20' :
+                                    'bg-red-give/10 text-red-give border-red-give/20'
+                                }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${c.duePrediction === 'trusted' ? 'bg-green-get' :
+                                    c.duePrediction === 'delay' ? 'bg-warning-pending' :
+                                      'bg-red-give'
+                                  }`} />
                                 {c.duePrediction === 'trusted' ? 'Trusted' : c.duePrediction === 'delay' ? 'Delay' : 'Risky'}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
-                              <button 
+                              <button
                                 onClick={() => setActiveDropdownId(activeDropdownId === c._id ? null : c._id)}
-                                className={`p-1.5 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer transition-colors ${
-                                  activeDropdownId === c._id ? 'bg-slate-gray/10 text-deep-navy' : ''
-                                }`}
+                                className={`p-1.5 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer transition-colors ${activeDropdownId === c._id ? 'bg-slate-gray/10 text-deep-navy' : ''
+                                  }`}
                               >
                                 <HiOutlineDotsVertical size={16} />
                               </button>
 
                               {activeDropdownId === c._id && (
                                 <>
-                                  <div 
-                                    className="fixed inset-0 z-40 cursor-default" 
+                                  <div
+                                    className="fixed inset-0 z-40 cursor-default"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setActiveDropdownId(null);
                                     }}
                                   />
                                   <div className="absolute right-4 top-10 bg-pure-white border border-soft-gray/80 rounded-xl shadow-lg py-1.5 min-w-[160px] z-50 animate-in fade-in slide-in-from-top-2 duration-100 text-left">
-                                    <button 
+                                    <button
                                       onClick={() => {
                                         navigate(`/customers/${c._id}`);
                                         setActiveDropdownId(null);
@@ -598,15 +589,15 @@ const DashboardPage = () => {
                                       <HiOutlineUser size={14} className="text-slate-gray" />
                                       View Ledger
                                     </button>
-                                    <button 
+                                    <button
                                       onClick={() => {
-                                        setTxnForm({ 
-                                          customer: c._id, 
-                                          type: 'credit', 
-                                          amount: '', 
-                                          description: '', 
-                                          date: new Date().toISOString().split('T')[0], 
-                                          paymentMode: 'cash' 
+                                        setTxnForm({
+                                          customer: c._id,
+                                          type: 'credit',
+                                          amount: '',
+                                          description: '',
+                                          date: new Date().toISOString().split('T')[0],
+                                          paymentMode: 'cash'
                                         });
                                         setShowTxnModal(true);
                                         setActiveDropdownId(null);
@@ -616,7 +607,7 @@ const DashboardPage = () => {
                                       <HiOutlinePlus size={14} className="text-slate-gray" />
                                       Add Entry
                                     </button>
-                                    <button 
+                                    <button
                                       onClick={(e) => {
                                         handleEmailRemind(e, c);
                                         setActiveDropdownId(null);
@@ -662,7 +653,7 @@ const DashboardPage = () => {
                         </div>
                         <div>
                           <span className="text-xs font-semibold text-deep-navy block">{txn.customer?.name || 'Customer Name'}</span>
-                          <span className="text-[9px] text-slate-gray block mt-0.5">{new Date(txn.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'})}</span>
+                          <span className="text-[9px] text-slate-gray block mt-0.5">{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
                         </div>
                       </div>
                       <div className="text-right">
@@ -755,7 +746,7 @@ const DashboardPage = () => {
           <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
             <h3 className="text-base font-bold text-deep-navy mb-4">{t('quickActions') || 'Quick Actions'}</h3>
             <div className="grid grid-cols-2 gap-3">
-              <button 
+              <button
                 onClick={() => setShowCustModal(true)}
                 className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
               >
@@ -764,7 +755,7 @@ const DashboardPage = () => {
                 </div>
                 <span>Add Customer</span>
               </button>
-              <button 
+              <button
                 onClick={() => openTxnModal('credit')}
                 className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
               >
@@ -773,7 +764,7 @@ const DashboardPage = () => {
                 </div>
                 <span>Add Entry</span>
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/transactions')}
                 className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
               >
@@ -782,7 +773,7 @@ const DashboardPage = () => {
                 </div>
                 <span>Reports</span>
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/reminders')}
                 className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
               >
@@ -791,7 +782,7 @@ const DashboardPage = () => {
                 </div>
                 <span>Reminders</span>
               </button>
-              <button 
+              <button
                 onClick={handleBackup}
                 className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
               >
@@ -800,7 +791,7 @@ const DashboardPage = () => {
                 </div>
                 <span>Backup</span>
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/settings')}
                 className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
               >
@@ -817,7 +808,7 @@ const DashboardPage = () => {
             <div className="flex justify-between items-center pb-2 border-b border-soft-gray/30">
               <h3 className="text-base font-bold text-deep-navy">{t('customerDetails') || 'Customer Details'}</h3>
               {activeCustomer && (
-                <button 
+                <button
                   onClick={() => navigate(`/customers/${activeCustomer._id}`)}
                   className="p-1.5 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer flex items-center justify-center"
                 >
@@ -840,13 +831,13 @@ const DashboardPage = () => {
               <>
                 <div className="flex items-center gap-4">
                   {activeCustomer.avatar ? (
-                    <img 
-                      src={activeCustomer.avatar} 
-                      alt={activeCustomer.name} 
-                      className="w-14 h-14 rounded-full object-cover shrink-0 border border-soft-gray shadow-md" 
+                    <img
+                      src={activeCustomer.avatar}
+                      alt={activeCustomer.name}
+                      className="w-14 h-14 rounded-full object-cover shrink-0 border border-soft-gray shadow-md"
                     />
                   ) : (
-                    <div 
+                    <div
                       className="w-14 h-14 rounded-full flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-md"
                       style={{ background: getAvatarColor(activeCustomer.name) }}
                     >
@@ -914,13 +905,13 @@ const DashboardPage = () => {
                   )}
                 </div>
                 <div className="flex gap-3 mt-1">
-                  <button 
+                  <button
                     onClick={() => openCustomerTxnModal('credit')}
                     className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer border-none bg-red-give text-white hover:bg-red-hover"
                   >
                     + Add Udhar
                   </button>
-                  <button 
+                  <button
                     onClick={() => openCustomerTxnModal('debit')}
                     className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer border-none bg-green-get text-white hover:bg-green-hover"
                   >
@@ -934,11 +925,10 @@ const DashboardPage = () => {
       </div>
 
       {isSupported && (
-        <button 
-          className={`fixed bottom-20 right-20 lg:bottom-6 lg:right-24 w-12 h-12 lg:w-14 lg:h-14 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
-            listening ? 'ring-4 ring-red-give/30 bg-red-give animate-pulse' : ''
-          }`} 
-          onClick={handleVoice} 
+        <button
+          className={`fixed bottom-20 right-20 lg:bottom-6 lg:right-24 w-12 h-12 lg:w-14 lg:h-14 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${listening ? 'ring-4 ring-red-give/30 bg-red-give animate-pulse' : ''
+            }`}
+          onClick={handleVoice}
           title={listening ? "Stop Listening" : "Voice Entry"}
         >
           {listening ? <HiOutlineX className="w-5 h-5 lg:w-6 lg:h-6" /> : <HiOutlineMicrophone className="w-5 h-5 lg:w-6 lg:h-6" />}
@@ -949,11 +939,11 @@ const DashboardPage = () => {
         <form onSubmit={handleAddTxn} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('customers')} *</label>
-            <select 
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20" 
-              required 
-              value={txnForm.customer} 
-              onChange={(e) => setTxnForm({...txnForm, customer: e.target.value})}
+            <select
+              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              required
+              value={txnForm.customer}
+              onChange={(e) => setTxnForm({ ...txnForm, customer: e.target.value })}
             >
               <option value="">{t('selectCustomer')}</option>
               {customerList.map((c) => (
@@ -965,10 +955,10 @@ const DashboardPage = () => {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('type')} *</label>
-            <select 
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20" 
-              value={txnForm.type} 
-              onChange={(e) => setTxnForm({...txnForm, type: e.target.value})}
+            <select
+              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              value={txnForm.type}
+              onChange={(e) => setTxnForm({ ...txnForm, type: e.target.value })}
             >
               <option value="credit">{t('udhaarDesc')}</option>
               <option value="debit">{t('jamaDesc')}</option>
@@ -977,10 +967,10 @@ const DashboardPage = () => {
           {txnForm.type === 'debit' && (
             <div>
               <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">Payment Mode *</label>
-              <select 
-                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20" 
-                value={txnForm.paymentMode || 'cash'} 
-                onChange={(e) => setTxnForm({...txnForm, paymentMode: e.target.value})}
+              <select
+                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                value={txnForm.paymentMode || 'cash'}
+                onChange={(e) => setTxnForm({ ...txnForm, paymentMode: e.target.value })}
               >
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
@@ -992,62 +982,60 @@ const DashboardPage = () => {
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('amount')} *</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-gray font-extrabold text-base">₹</span>
-              <input 
-                className="w-full pl-8 pr-4 py-2.5 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 font-bold" 
-                type="number" 
-                min="0.01" 
-                step="0.01" 
-                required 
+              <input
+                className="w-full pl-8 pr-4 py-2.5 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 font-bold"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
                 value={txnForm.amount}
-                onChange={(e) => setTxnForm({...txnForm, amount: e.target.value})} 
-                placeholder="0.00" 
+                onChange={(e) => setTxnForm({ ...txnForm, amount: e.target.value })}
+                placeholder="0.00"
               />
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('description')}</label>
-            <input 
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20" 
-              value={txnForm.description} 
-              onChange={(e) => setTxnForm({...txnForm, description: e.target.value})} 
+            <input
+              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              value={txnForm.description}
+              onChange={(e) => setTxnForm({ ...txnForm, description: e.target.value })}
               placeholder="E.g., Grocery purchase"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('date')}</label>
             <div className="flex gap-2 mb-2 flex-wrap">
-              <button 
-                type="button" 
-                onClick={() => setTxnForm({...txnForm, date: new Date().toISOString().split('T')[0]})}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                  txnForm.date === new Date().toISOString().split('T')[0] 
-                    ? 'bg-orange text-white border-orange shadow-xs' 
+              <button
+                type="button"
+                onClick={() => setTxnForm({ ...txnForm, date: new Date().toISOString().split('T')[0] })}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${txnForm.date === new Date().toISOString().split('T')[0]
+                    ? 'bg-orange text-white border-orange shadow-xs'
                     : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
-                }`}
+                  }`}
               >
                 Today ({new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => {
                   const yesterday = new Date();
                   yesterday.setDate(yesterday.getDate() - 1);
-                  setTxnForm({...txnForm, date: yesterday.toISOString().split('T')[0]});
+                  setTxnForm({ ...txnForm, date: yesterday.toISOString().split('T')[0] });
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                  txnForm.date === new Date(Date.now() - 86400000).toISOString().split('T')[0] 
-                    ? 'bg-orange text-white border-orange shadow-xs' 
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${txnForm.date === new Date(Date.now() - 86400000).toISOString().split('T')[0]
+                    ? 'bg-orange text-white border-orange shadow-xs'
                     : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
-                }`}
+                  }`}
               >
                 Yesterday
               </button>
             </div>
-            <input 
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20" 
-              type="date" 
-              value={txnForm.date} 
-              onChange={(e) => setTxnForm({...txnForm, date: e.target.value})} 
+            <input
+              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              type="date"
+              value={txnForm.date}
+              onChange={(e) => setTxnForm({ ...txnForm, date: e.target.value })}
             />
           </div>
 
@@ -1065,7 +1053,7 @@ const DashboardPage = () => {
                   <span>Balance Preview</span>
                   <span className="text-[9px] bg-slate-200/60 dark:bg-slate-800 text-slate-gray px-2 py-0.5 rounded-md font-semibold">Live Preview</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center gap-1.5 text-center relative">
                   {/* Card 1: Current */}
                   <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl">
@@ -1073,9 +1061,8 @@ const DashboardPage = () => {
                     <span className="text-xs font-mono font-bold text-deep-navy mt-1">
                       ₹{Math.abs(currentBal).toLocaleString('en-IN')}
                     </span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${
-                      currentBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                    }`}>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${currentBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
+                      }`}>
                       {currentBal >= 0 ? 'Due' : 'Advance'}
                     </span>
                   </div>
@@ -1089,9 +1076,8 @@ const DashboardPage = () => {
                     <span className={`text-xs font-mono font-black mt-1 ${isCredit ? 'text-red-give' : 'text-green-get'}`}>
                       {isCredit ? '+' : '-'}₹{txnAmount.toLocaleString('en-IN')}
                     </span>
-                    <span className={`text-[8px] font-bold px-1 py-0.5 rounded-md mt-1 text-white ${
-                      isCredit ? 'bg-red-give' : 'bg-green-get'
-                    }`}>
+                    <span className={`text-[8px] font-bold px-1 py-0.5 rounded-md mt-1 text-white ${isCredit ? 'bg-red-give' : 'bg-green-get'
+                      }`}>
                       {isCredit ? 'Gave' : 'Got'}
                     </span>
                   </div>
@@ -1102,14 +1088,12 @@ const DashboardPage = () => {
                   {/* Card 3: New Balance */}
                   <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl">
                     <span className="text-[9px] text-slate-gray font-bold uppercase tracking-wider">New Balance</span>
-                    <span className={`text-xs font-mono font-extrabold mt-1 ${
-                      newBal >= 0 ? 'text-red-give' : 'text-green-get'
-                    }`}>
+                    <span className={`text-xs font-mono font-extrabold mt-1 ${newBal >= 0 ? 'text-red-give' : 'text-green-get'
+                      }`}>
                       ₹{Math.abs(newBal).toLocaleString('en-IN')}
                     </span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${
-                      newBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                    }`}>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${newBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
+                      }`}>
                       {newBal >= 0 ? 'Due' : 'Advance'}
                     </span>
                   </div>
@@ -1119,16 +1103,16 @@ const DashboardPage = () => {
           })()}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-soft-gray/50">
-            <button 
-              type="button" 
-              className="px-5 py-2.5 rounded-lg border border-soft-gray text-slate-gray bg-transparent cursor-pointer font-medium text-sm hover:bg-slate-gray/5" 
+            <button
+              type="button"
+              className="px-5 py-2.5 rounded-lg border border-soft-gray text-slate-gray bg-transparent cursor-pointer font-medium text-sm hover:bg-slate-gray/5"
               onClick={() => setShowTxnModal(false)}
             >
               {t('cancel')}
             </button>
-            <button 
-              type="submit" 
-              className="px-5 py-2.5 rounded-lg bg-orange text-white border-none cursor-pointer font-bold text-sm hover:bg-orange-hover disabled:opacity-50" 
+            <button
+              type="submit"
+              className="px-5 py-2.5 rounded-lg bg-orange text-white border-none cursor-pointer font-bold text-sm hover:bg-orange-hover disabled:opacity-50"
               disabled={submitting}
             >
               {submitting ? 'Adding...' : 'Add Transaction'}
@@ -1145,7 +1129,7 @@ const DashboardPage = () => {
             <div className="flex items-center gap-4 p-3 bg-soft-white border border-soft-gray rounded-xl w-full">
               {/* Avatar Preview */}
               <div className="relative w-16 h-16 flex-shrink-0">
-                <div 
+                <div
                   className="w-16 h-16 rounded-full bg-pure-white border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
                   onClick={() => custFileRef.current.click()}
                   type="button"
@@ -1181,9 +1165,8 @@ const DashboardPage = () => {
                       <button
                         key={idx}
                         type="button"
-                        className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all p-0 cursor-pointer ${
-                          isSelected ? 'border-orange scale-110 shadow-sm' : 'border-soft-gray opacity-70 hover:opacity-100'
-                        }`}
+                        className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all p-0 cursor-pointer ${isSelected ? 'border-orange scale-110 shadow-sm' : 'border-soft-gray opacity-70 hover:opacity-100'
+                          }`}
                         onClick={() => setCustForm(prev => ({ ...prev, avatar: p.value }))}
                       >
                         <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
@@ -1197,61 +1180,61 @@ const DashboardPage = () => {
 
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('customerName') || 'Customer Name'} *</label>
-            <input 
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy" 
-              required 
-              value={custForm.name} 
-              onChange={(e) => setCustForm({...custForm, name: e.target.value})} 
+            <input
+              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              required
+              value={custForm.name}
+              onChange={(e) => setCustForm({ ...custForm, name: e.target.value })}
             />
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('phone') || 'Phone'} *</label>
-            <input 
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy" 
-              required 
-              value={custForm.phone} 
-              onChange={(e) => setCustForm({...custForm, phone: e.target.value})} 
-              placeholder="+91 9876543210" 
+            <input
+              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              required
+              value={custForm.phone}
+              onChange={(e) => setCustForm({ ...custForm, phone: e.target.value })}
+              placeholder="+91 9876543210"
             />
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Email Address</label>
-            <input 
+            <input
               type="email"
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy" 
-              value={custForm.email || ''} 
-              onChange={(e) => setCustForm({...custForm, email: e.target.value})} 
-              placeholder="customer@example.com" 
+              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              value={custForm.email || ''}
+              onChange={(e) => setCustForm({ ...custForm, email: e.target.value })}
+              placeholder="customer@example.com"
             />
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Payment Due Date</label>
-            <input 
+            <input
               type="date"
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy" 
-              value={custForm.paymentDueDate || ''} 
-              onChange={(e) => setCustForm({...custForm, paymentDueDate: e.target.value})} 
+              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              value={custForm.paymentDueDate || ''}
+              onChange={(e) => setCustForm({ ...custForm, paymentDueDate: e.target.value })}
             />
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('address') || 'Address'}</label>
-            <input 
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy" 
-              value={custForm.address} 
-              onChange={(e) => setCustForm({...custForm, address: e.target.value})} 
+            <input
+              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              value={custForm.address}
+              onChange={(e) => setCustForm({ ...custForm, address: e.target.value })}
             />
           </div>
           <div className="flex justify-end gap-3 pt-3 border-t border-soft-gray">
-            <button 
-              type="button" 
-              className="px-4 py-2.5 bg-transparent border border-soft-gray text-slate-gray hover:bg-slate-gray/5 rounded-xl text-sm font-semibold cursor-pointer transition-colors" 
+            <button
+              type="button"
+              className="px-4 py-2.5 bg-transparent border border-soft-gray text-slate-gray hover:bg-slate-gray/5 rounded-xl text-sm font-semibold cursor-pointer transition-colors"
               onClick={() => setShowCustModal(false)}
             >
               {t('cancel') || 'Cancel'}
             </button>
-            <button 
-              type="submit" 
-              className="px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50" 
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50"
               disabled={custSubmitting}
             >
               {custSubmitting ? (t('saving') || 'Saving...') : (t('save') || 'Save')}

@@ -56,11 +56,7 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-light-cream to-soft-white p-5 relative overflow-hidden">
-      {/* Decorative background shapes */}
-      <div className="absolute w-[500px] h-[500px] bg-radial from-orange/5 to-transparent -top-[100px] -right-[100px] rounded-full"></div>
-      <div className="absolute w-[400px] h-[400px] bg-radial from-info-analytics/5 to-transparent -bottom-[80px] -left-[80px] rounded-full"></div>
-      
+    <div className="min-h-screen flex items-center justify-center udhaar-page-bg p-5 relative overflow-hidden">
       <div className="w-full max-w-md p-10 bg-pure-white border border-soft-gray rounded-2xl shadow-lg relative z-10">
         <div className="text-center mb-8">
           <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-light-cream border border-soft-gray flex items-center justify-center p-2 shadow-inner">

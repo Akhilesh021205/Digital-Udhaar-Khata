@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
+import { Capacitor } from '@capacitor/core';
+import { BiometricService } from '../services/biometricService';
 import Header from '../components/Layout/Header';
 import { toast } from 'react-toastify';
 import { HiPlus, HiEye, HiEyeOff, HiOutlineX } from 'react-icons/hi';
@@ -1224,8 +1226,30 @@ const SettingsPage = () => {
         toast.error('Failed to update biometric setting');
       }
     } else {
-      setRegisterStep('choice');
-      setShowRegisterModal(true);
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const available = await BiometricService.isAvailable();
+          if (!available) {
+            toast.error('Native biometrics not available or not configured on this device.');
+            return;
+          }
+          const verified = await BiometricService.authenticate();
+          if (verified) {
+            const { data } = await API.post('/auth/setup-security', {
+              isBiometricEnabled: true,
+              biometricCredentialId: 'capacitor-native'
+            });
+            updateUser(data.data);
+            toast.success('Native biometric login enabled successfully!');
+          }
+        } catch (err) {
+          console.error('Native biometric setup error:', err);
+          toast.error('Biometric authentication failed or canceled.');
+        }
+      } else {
+        setRegisterStep('choice');
+        setShowRegisterModal(true);
+      }
     }
   };
 

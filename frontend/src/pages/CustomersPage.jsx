@@ -733,36 +733,43 @@ const CustomersPage = () => {
       </Modal>
 
       {isListening && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-deep-navy/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-pure-white border border-soft-gray p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-red-give/10 flex items-center justify-center text-red-give relative">
-              <span className="absolute w-16 h-16 rounded-full bg-red-give/20 animate-ping" />
-              <HiOutlineMicrophone size={32} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/30 p-8 rounded-3xl shadow-[0_20px_50px_rgba(239,68,68,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center gap-6 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-300">
+            {/* Pulsing Glowing Circle */}
+            <div className="relative w-20 h-20 flex items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-red-500/10 dark:bg-red-500/5 animate-ping" />
+              <span className="absolute -inset-2 rounded-full bg-gradient-to-tr from-red-500/20 to-orange-500/20 blur-md animate-pulse" />
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-red-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-red-500/30 relative z-10">
+                <HiOutlineMicrophone size={36} className="animate-pulse" />
+              </div>
             </div>
+
             <div>
-              <h3 className="text-base font-bold text-deep-navy">
+              <h3 className="text-lg font-extrabold font-outfit text-deep-navy dark:text-white tracking-tight">
                 {lang === 'hi' ? 'सुन रहा हूँ...' : lang === 'te' ? 'వింటున్నాను...' : 'Listening...'}
               </h3>
-              <p className="text-xs text-slate-gray mt-1 font-medium">
+              <p className="text-xs text-slate-gray dark:text-slate-400 mt-1.5 font-medium max-w-[260px] leading-relaxed mx-auto">
                 {lang === 'hi' ? 'बोलिए (जैसे: "रवि ने 300 रुपये दिए")' : lang === 'te' ? 'మాట్లాడండి (ఉదాహరణకు: "రవి 300 రూపాయలు తీసుకున్నాడు")' : 'Speak now (e.g., "Ravi took 300 rupees")'}
               </p>
-              <span className="inline-block mt-3 text-[10px] bg-soft-white border border-soft-gray px-2 py-1 rounded-full text-slate-gray font-semibold">
-                Telugu / Hindi / English supported
+              <span className="inline-block mt-3.5 text-[9px] bg-red-500/5 dark:bg-red-950/20 border border-red-500/10 dark:border-red-900/30 px-3 py-1 rounded-full text-red-600 dark:text-red-400 font-bold uppercase tracking-wider">
+                Hindi / Telugu / English
               </span>
             </div>
             
-            <div className="flex items-center gap-1.5 h-8 my-2">
-              <span className="w-1 h-3 bg-red-give rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-              <span className="w-1 h-6 bg-red-give rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-              <span className="w-1 h-4 bg-red-give rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
-              <span className="w-1 h-7 bg-red-give rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-              <span className="w-1 h-5 bg-red-give rounded-full animate-bounce" style={{ animationDelay: '0.5s' }} />
-              <span className="w-1 h-3 bg-red-give rounded-full animate-bounce" style={{ animationDelay: '0.6s' }} />
+            {/* Visualizer Waveform */}
+            <div className="flex items-center gap-1.5 h-10 my-1 justify-center">
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-4" style={{ animationDelay: '0.1s' }} />
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-8" style={{ animationDelay: '0.3s' }} />
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-5" style={{ animationDelay: '0.5s' }} />
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-10" style={{ animationDelay: '0.2s' }} />
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-6" style={{ animationDelay: '0.4s' }} />
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-9" style={{ animationDelay: '0.1s' }} />
+              <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-4" style={{ animationDelay: '0.3s' }} />
             </div>
 
             <button
               onClick={stopListening}
-              className="mt-2 w-full py-2.5 px-4 bg-deep-navy hover:bg-deep-navy-hover text-white font-bold text-sm rounded-xl border-none cursor-pointer shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
+              className="mt-1 w-full py-3 px-5 bg-deep-navy dark:bg-white text-white dark:text-deep-navy font-bold text-sm rounded-2xl border-none cursor-pointer shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
               <HiOutlineX size={18} />
               {lang === 'hi' ? 'रोकें (Stop)' : lang === 'te' ? 'ఆపండి (Stop)' : 'Stop Listening'}

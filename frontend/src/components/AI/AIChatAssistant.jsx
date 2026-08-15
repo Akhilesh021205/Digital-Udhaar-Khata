@@ -325,11 +325,24 @@ const AIChatAssistant = () => {
             {/* Input Area */}
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col gap-3 shadow-lg">
               {isListening && (
-                <div className="flex items-center gap-2 px-3.5 py-2 bg-red-give/10 border border-red-give/20 rounded-xl animate-pulse">
-                  <span className="w-2.5 h-2.5 bg-red-give rounded-full animate-ping" />
-                  <span className="text-[10px] font-black text-red-give tracking-wider uppercase">
-                    {speechLang === 'hi-IN' ? 'सुन रहा हूँ... बोलिए' : speechLang === 'te-IN' ? 'వింటున్నాను... మాట్లాడండి' : 'KathaGPT is Listening... Speak Now'}
-                  </span>
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-950/20 dark:to-orange-950/20 border border-red-500/20 dark:border-red-900/30 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    <span className="text-[10px] font-extrabold text-red-600 dark:text-red-400 tracking-wide uppercase">
+                      {speechLang === 'hi-IN' ? 'सुन रहा हूँ... बोलिए' : speechLang === 'te-IN' ? 'వింటున్నాను... మాట్లాడండి' : 'Listening... Speak Now'}
+                    </span>
+                  </div>
+                  
+                  {/* Micro sound wave */}
+                  <div className="flex items-center gap-0.5 h-3.5 shrink-0">
+                    <span className="w-0.5 rounded-full bg-red-500 dark:bg-red-400 animate-bounce h-2" style={{ animationDelay: '0.1s' }} />
+                    <span className="w-0.5 rounded-full bg-red-500 dark:bg-red-400 animate-bounce h-3" style={{ animationDelay: '0.3s' }} />
+                    <span className="w-0.5 rounded-full bg-red-500 dark:bg-red-400 animate-bounce h-1.5" style={{ animationDelay: '0.2s' }} />
+                    <span className="w-0.5 rounded-full bg-red-500 dark:bg-red-400 animate-bounce h-3.5" style={{ animationDelay: '0.4s' }} />
+                  </div>
                 </div>
               )}
 

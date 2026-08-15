@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
-const apiBaseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:4000/api'
-  : `${import.meta.env.VITE_API_URL || 'https://digital-udhaar-khata.onrender.com'}/api`;
+const apiBaseUrl = (Capacitor.isNativePlatform() || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'))
+  ? `${import.meta.env.VITE_API_URL || 'https://digital-udhaar-khata.onrender.com'}/api`
+  : 'http://localhost:4000/api';
 
 const API = axios.create({
   baseURL: apiBaseUrl,

@@ -212,19 +212,19 @@ const PermanentHistoryPage = () => {
                     badgeClass = log.type === 'customer_created' 
                       ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' 
                       : 'bg-green-get/10 text-green-get border border-green-get/20';
-                    actionLabel = log.type === 'customer_created' ? 'NEW CUST' : 'TXN CREATE';
+                    actionLabel = log.type === 'customer_created' ? 'CUSTOMER CREATE' : 'TRANSACTION CREATE';
                     icon = <HiOutlinePlusCircle size={12} />;
                   } else if (log.action === 'UPDATE') {
                     badgeClass = 'bg-warning-pending/10 text-warning-pending border border-warning-pending/20';
-                    actionLabel = 'TXN EDIT';
+                    actionLabel = 'TRANSACTION EDIT';
                     icon = <HiOutlinePencilAlt size={12} />;
                   } else if (log.action === 'DELETE') {
                     badgeClass = 'bg-red-give/10 text-red-give border border-red-give/20';
-                    actionLabel = 'TXN DELETED';
+                    actionLabel = 'TRANSACTION DELETE';
                     icon = <HiOutlineTrash size={12} />;
                   } else if (log.action === 'CUSTOMER_DELETED') {
                     badgeClass = 'bg-red-give/20 text-red-give border border-red-give/30 font-bold';
-                    actionLabel = 'CUST DELETED';
+                    actionLabel = 'CUSTOMER DELETE';
                     icon = <HiOutlineTrash size={12} />;
                   }
 
@@ -337,7 +337,10 @@ const PermanentHistoryPage = () => {
                       selectedLog.action === 'UPDATE' ? 'bg-orange/10 text-orange border border-orange/20' :
                       'bg-red-500/10 text-red-600 border border-red-500/20'
                     }`}>
-                      {selectedLog.action === 'CUSTOMER_DELETED' ? 'CUST DELETED' : selectedLog.action}
+                      {selectedLog.action === 'CREATE' ? (selectedLog.type === 'customer_created' ? 'CUSTOMER CREATE' : 'TRANSACTION CREATE') :
+                       selectedLog.action === 'UPDATE' ? 'TRANSACTION EDIT' :
+                       selectedLog.action === 'DELETE' ? 'TRANSACTION DELETE' :
+                       selectedLog.action === 'CUSTOMER_DELETED' ? 'CUSTOMER DELETE' : selectedLog.action}
                     </span>
                   </div>
                   <div>

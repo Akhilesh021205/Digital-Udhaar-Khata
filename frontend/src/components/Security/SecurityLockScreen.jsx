@@ -3,6 +3,8 @@ import { useAuth } from '../../hooks/useAuth';
 import API from '../../api/axios';
 import Logo from '../Common/Logo';
 import { toast } from 'react-toastify';
+import { Capacitor } from '@capacitor/core';
+import { BiometricService } from '../../services/biometricService';
 import { HiOutlineBackspace } from 'react-icons/hi';
 import { Shield, Fingerprint as LucideFingerprint, Scan as LucideScan, Lock as LucideLock, AlertTriangle, RefreshCw } from 'lucide-react';
 import { loadFaceApiModels, detectFaceInVideo, compareDescriptors, FaceLivenessChecker } from '../../utils/biometricScanner';
@@ -362,9 +364,32 @@ const SecurityLockScreen = ({ onUnlock }) => {
   };
 
   // Open modal and immediately trigger registered biometric unlock method
-  const triggerBiometricSelection = () => {
+  const triggerBiometricSelection = async () => {
     if (!user?.isBiometricEnabled) {
       toast.warning('Biometric authentication is not enabled or registered for this account');
+      return;
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const available = await BiometricService.isAvailable();
+        if (!available) {
+          toast.error('Native biometrics not available on this device.');
+          return;
+        }
+        const verified = await BiometricService.authenticate();
+        if (verified) {
+          sessionStorage.setItem('udhaar-unlocked', 'true');
+          setUnlockSuccess(true);
+          toast.success('Unlocked!');
+          setTimeout(() => {
+            onUnlock();
+          }, 1000);
+        }
+      } catch (err) {
+        console.error('Native biometric unlock failed:', err);
+        toast.error('Biometric authentication failed or canceled.');
+      }
       return;
     }
 
@@ -419,10 +444,11 @@ const SecurityLockScreen = ({ onUnlock }) => {
       {[0, 1, 2, 3].map((idx) => (
         <div
           key={idx}
-          className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-300 ${idx < pin.length
-              ? 'bg-orange border-orange scale-110 shadow-md shadow-orange/30'
-              : 'border-orange/40 bg-transparent'
-            }`}
+          className={`w-3.5 h-3.5 rounded-full border transition-all duration-300 ${
+            idx < pin.length
+              ? 'bg-orange border-orange scale-110 shadow-md shadow-orange/45 dark:shadow-orange/60'
+              : 'border-[#d7cab8] dark:border-slate-700 bg-white/70 dark:bg-slate-800/70'
+          }`}
         />
       ))}
     </div>
@@ -432,128 +458,112 @@ const SecurityLockScreen = ({ onUnlock }) => {
     <div
       id="lock-screen-wrapper"
       tabIndex={0}
-      className="fixed inset-0 z-50 flex items-center justify-center p-5 overflow-hidden outline-none bg-gradient-to-br from-light-cream to-soft-white dark:from-[#0B0F19] dark:to-[#0F1626]"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-5 overflow-hidden outline-none udhaar-lock-bg"
     >
       <style>{successAnimationStyles}</style>
 
-      {/* Decorative background shapes */}
-      <div className="absolute w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(226,45,52,0.05)_0%,transparent_70%)] -top-[100px] -right-[100px] rounded-full pointer-events-none"></div>
-      <div className="absolute w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(59,130,246,0.03)_0%,transparent_70%)] -bottom-[80px] -left-[80px] rounded-full pointer-events-none"></div>
+      <div className="khata-watermark">Khata</div>
 
-      {/* Centered Lock Card */}
-      <div className="w-full max-w-3xl bg-soft-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-[24px] shadow-2xl relative z-10 overflow-hidden flex flex-col md:flex-row min-h-[530px] animate-in fade-in zoom-in-95 duration-300">
+      {/* Ambient background glow for glassmorphism */}
+      <div className="absolute w-[350px] h-[350px] bg-orange/10 dark:bg-orange/15 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Unified Glassmorphic Lock Card */}
+      <div className="w-full max-w-sm sm:max-w-md bg-[#FAF4F0]/90 dark:bg-[#1A1512]/95 backdrop-blur-xl border border-[#E6DED1]/60 dark:border-slate-800 rounded-[32px] shadow-2xl shadow-stone-950/10 dark:shadow-black/50 p-6 sm:p-10 flex flex-col justify-between items-center min-h-[520px] sm:min-h-[580px] relative z-10 animate-in fade-in zoom-in-95 duration-300">
         
-        {/* Left Side: Watercolor Illustration */}
-        <div className="hidden md:block w-1/2 relative bg-[#F7EFE3] dark:bg-[#e4dac7] border-r border-soft-gray dark:border-slate-800">
-          <img 
-            src="/lock_illustration.png" 
-            alt="Traditional Kirana Store & Ledger Book" 
-            className="w-full h-full object-cover mix-blend-multiply opacity-95 dark:opacity-85"
-          />
-        </div>
-
-        {/* Right Side: PIN Unlock interface */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-between items-center bg-soft-white dark:bg-slate-900">
+        {/* Header Section */}
+        <div className="w-full flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-orange/10 dark:bg-orange/20 flex items-center justify-center text-orange border border-orange/20 dark:border-orange/30 shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] mb-4">
+            <Shield className="w-6 h-6 animate-pulse" />
+          </div>
+          <h2 className="text-3xl font-black text-deep-navy dark:text-white tracking-wide mb-1 font-outfit">
+            Udhaar Khata
+          </h2>
           
-          {/* Header & Logo */}
-          <div className="w-full text-center">
-            <h2 className="text-3xl font-black text-orange tracking-wide mb-1 font-outfit">
-              Udhaar Khata
-            </h2>
-            
-            {/* Elegant Divider Ornament */}
-            <div className="flex items-center justify-center gap-2 my-2 text-orange/40 dark:text-orange/20">
-              <span className="h-[1px] w-12 bg-current" />
-              <span className="text-sm">✦</span>
-              <span className="h-[1px] w-12 bg-current" />
-            </div>
 
-            <h3 className="text-xl font-bold text-deep-navy dark:text-white mt-3 mb-1 font-outfit">Welcome Back</h3>
-            <p className="text-xs text-slate-gray dark:text-slate-400 font-semibold">Enter your PIN to access your Khata</p>
-          </div>
-
-          {/* Dots */}
-          <div className="w-full">
-            {renderDots()}
-          </div>
-
-          {/* Keypad */}
-          <div className="grid grid-cols-3 gap-3 w-full max-w-[260px] mx-auto mb-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <button
-                key={num}
-                type="button"
-                onClick={() => handleKeyPress(num)}
-                disabled={verifying}
-                className="w-16 h-14 rounded-2xl bg-soft-white dark:bg-slate-900/60 border border-soft-gray dark:border-slate-800 flex items-center justify-center font-bold text-xl text-deep-navy dark:text-white hover:bg-orange dark:hover:bg-orange hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                {num}
-              </button>
-            ))}
-
-            {/* Spacer key at bottom-left */}
-            <div className="w-16 h-14" />
-
-            <button
-              type="button"
-              onClick={() => handleKeyPress(0)}
-              disabled={verifying}
-              className="w-16 h-14 rounded-2xl bg-soft-white dark:bg-slate-900/60 border border-soft-gray dark:border-slate-800 flex items-center justify-center font-bold text-xl text-deep-navy dark:text-white hover:bg-orange dark:hover:bg-orange hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              0
-            </button>
-
-            <button
-              type="button"
-              onClick={handleBackspace}
-              disabled={verifying}
-              className="w-16 h-14 rounded-2xl bg-soft-white dark:bg-slate-900/60 border border-soft-gray dark:border-slate-800 flex items-center justify-center text-deep-navy dark:text-white hover:bg-orange dark:hover:bg-orange hover:text-white hover:border-transparent transition-all shadow-[0_3px_6px_rgba(0,0,0,0.03)] active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              <HiOutlineBackspace size={22} className="text-current" />
-            </button>
-          </div>
-
-          {/* Fingerprint auth & Signout */}
-          <div className="w-full text-center space-y-3">
-            {user?.isBiometricEnabled && (
-              (user.biometricCredentialId?.startsWith('face-id-') && hasCamera) ||
-              (!user.biometricCredentialId?.startsWith('face-id-') && deviceSupportsBio)
-            ) && (
-              <button
-                type="button"
-                onClick={triggerBiometricSelection}
-                disabled={verifying}
-                className="mx-auto px-4 py-2 border border-orange/20 bg-orange/5 hover:bg-orange/10 dark:border-orange/30 dark:bg-orange/10 dark:hover:bg-orange/20 text-orange font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.02)] active:scale-98"
-              >
-                {user.biometricCredentialId?.startsWith('face-id-') ? (
-                  <>
-                    <LucideScan size={14} className="text-orange" />
-                    <span>Use Face ID</span>
-                  </>
-                ) : (
-                  <>
-                    <LucideFingerprint size={14} className="text-orange" />
-                    <span>Use Fingerprint</span>
-                  </>
-                )}
-              </button>
-            )}
-
-            <button
-              onClick={logout}
-              className="text-xs text-slate-gray hover:text-orange hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors block mx-auto"
-            >
-              Sign Out of Account
-            </button>
-          </div>
-
+          <h3 className="text-xl font-bold text-deep-navy dark:text-white mt-2 mb-1 font-outfit">Welcome Back</h3>
+          <p className="text-xs text-slate-gray dark:text-slate-400 font-semibold">Enter your PIN to access your Khata</p>
         </div>
+
+        {/* Dots */}
+        <div className="w-full">
+          {renderDots()}
+        </div>
+
+        {/* Keypad */}
+        <div className="grid grid-cols-3 gap-4.5 w-full max-w-[260px] mx-auto mb-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => handleKeyPress(num)}
+              disabled={verifying}
+              className="pin-key flex items-center justify-center font-bold text-xl cursor-pointer disabled:opacity-50"
+            >
+              {num}
+            </button>
+          ))}
+
+          {/* Bottom row: Biometrics / Lock placeholder, 0, Backspace */}
+          {user?.isBiometricEnabled && (
+            Capacitor.isNativePlatform() ||
+            (user.biometricCredentialId?.startsWith('face-id-') && hasCamera) ||
+            (!user.biometricCredentialId?.startsWith('face-id-') && deviceSupportsBio)
+          ) ? (
+            <button
+              type="button"
+              onClick={triggerBiometricSelection}
+              disabled={verifying}
+              className="pin-key flex items-center justify-center cursor-pointer disabled:opacity-50 text-orange dark:text-orange/90 hover:text-orange-hover"
+            >
+              {Capacitor.isNativePlatform() ? (
+                <LucideFingerprint className="w-5.5 h-5.5" />
+              ) : user.biometricCredentialId?.startsWith('face-id-') ? (
+                <LucideScan className="w-5.5 h-5.5" />
+              ) : (
+                <LucideFingerprint className="w-5.5 h-5.5" />
+              )}
+            </button>
+          ) : (
+            <div className="w-16 h-16 flex items-center justify-center text-slate-300 dark:text-slate-700">
+              <LucideLock className="w-5 h-5" />
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handleKeyPress(0)}
+            disabled={verifying}
+            className="pin-key flex items-center justify-center font-bold text-xl cursor-pointer disabled:opacity-50"
+          >
+            0
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBackspace}
+            disabled={verifying}
+            className="pin-key flex items-center justify-center text-deep-navy dark:text-white transition-all cursor-pointer disabled:opacity-50"
+          >
+            <HiOutlineBackspace size={24} className="text-current" />
+          </button>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="w-full text-center">
+          <button
+            onClick={logout}
+            className="text-xs text-slate-gray hover:text-orange hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors block mx-auto py-1"
+          >
+            Sign Out of Account
+          </button>
+        </div>
+
       </div>
 
       {/* Real-time Biometric Authenticator Dialog */}
       {showBiometricModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-soft-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 p-8 rounded-[30px] shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+          <div className="bg-[#FAF4F0] dark:bg-[#1A1512] border border-[#E6DED1] dark:border-slate-800 p-6 sm:p-8 rounded-[30px] shadow-2xl flex flex-col items-center max-w-xs sm:max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
 
             {unlockSuccess ? (
               /* Success View */

@@ -431,14 +431,12 @@ const SecuritySetupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-5 relative overflow-hidden py-12">
+    <div className="min-h-screen flex items-center justify-center udhaar-lock-bg p-5 relative overflow-hidden py-12">
       <style>{securityStyles}</style>
       
-      {/* Background radial highlights */}
-      <div className="absolute w-[500px] h-[500px] bg-radial from-red-600/5 to-transparent -top-[100px] -right-[100px] rounded-full"></div>
-      <div className="absolute w-[400px] h-[400px] bg-radial from-red-600/5 to-transparent -bottom-[80px] -left-[80px] rounded-full"></div>
+      <div className="khata-watermark">Khata</div>
 
-      <div className="w-full max-w-md p-8 bg-white border border-slate-100 rounded-3xl shadow-xl relative z-10 text-center">
+      <div className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 bg-[#FAF4F0]/95 dark:bg-[#1A1512]/95 border border-[#E6DED1]/60 dark:border-slate-800 rounded-3xl shadow-xl shadow-stone-900/10 relative z-10 text-center">
         {/* Shield icon at the top of PIN and Biometrics steps */}
         {step !== 'success' && (
           <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[#DC2626] mx-auto mb-4 border border-red-100/50">
@@ -482,29 +480,29 @@ const SecuritySetupPage = () => {
         )}
 
         {(step === 'create-pin' || step === 'confirm-pin') && (
-          <div className="grid grid-cols-3 gap-y-4 gap-x-6 max-w-xs mx-auto mt-4 mb-2">
+          <div className="grid grid-cols-3 gap-y-3.5 sm:gap-y-4 gap-x-4 sm:gap-x-6 max-w-xs mx-auto mt-4 mb-2">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
               <button
                 key={num}
                 type="button"
                 onClick={() => handleKeyPress(num)}
-                className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-lg text-slate-800 hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-800 dark:text-slate-200 hover:bg-[#DC2626] hover:text-white dark:hover:bg-[#DC2626] dark:hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 {num}
               </button>
             ))}
-            <div className="w-16 h-16" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16" />
             <button
               type="button"
               onClick={() => handleKeyPress(0)}
-              className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center font-bold text-lg text-slate-800 hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-800 dark:text-slate-200 hover:bg-[#DC2626] hover:text-white dark:hover:bg-[#DC2626] dark:hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               0
             </button>
             <button
               type="button"
               onClick={handleBackspace}
-              className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-lg text-slate-800 hover:bg-[#DC2626] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg text-slate-800 dark:text-slate-200 hover:bg-[#DC2626] hover:text-white dark:hover:bg-[#DC2626] dark:hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <HiOutlineBackspace size={24} />
             </button>
@@ -516,7 +514,7 @@ const SecuritySetupPage = () => {
             <div className="space-y-1">
               <h1 className="text-xl font-bold text-slate-900 font-outfit">Would you like to enable Face Unlock?</h1>
               <p className="text-xs text-slate-500">
-                Unlock your Digital Udhaar Khata ledger faster and more securely.
+                Unlock your Khata.
               </p>
             </div>
 

@@ -187,18 +187,14 @@ const RegisterPage = () => {
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-light-cream to-soft-white p-5 relative overflow-hidden py-12">
-      {/* Decorative background shapes */}
-      <div className="absolute w-[500px] h-[500px] bg-radial from-orange/5 to-transparent -top-[100px] -right-[100px] rounded-full"></div>
-      <div className="absolute w-[400px] h-[400px] bg-radial from-info-analytics/5 to-transparent -bottom-[80px] -left-[80px] rounded-full"></div>
-
-      <div className="w-full max-w-md p-8 bg-pure-white border border-soft-gray rounded-2xl shadow-lg relative z-10">
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-light-cream border border-soft-gray flex items-center justify-center p-2 shadow-inner">
+    <div className="min-h-screen flex items-center justify-center udhaar-page-bg p-4 sm:p-5 relative overflow-hidden py-8 sm:py-12">
+      <div className="w-full max-w-md p-5 sm:p-8 bg-pure-white border border-soft-gray rounded-2xl shadow-lg relative z-10">
+        <div className="text-center mb-5 sm:mb-6">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-xl bg-light-cream border border-soft-gray flex items-center justify-center p-2 shadow-inner">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-deep-navy mb-1">Create Account</h1>
-          <p className="text-sm text-slate-gray">Start managing your store's khata digitally</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-deep-navy mb-1">Create Account</h1>
+          <p className="text-xs sm:text-sm text-slate-gray">Start managing your store's khata digitally</p>
         </div>
 
         {error && (
@@ -209,11 +205,11 @@ const RegisterPage = () => {
 
         <form className="space-y-4" onSubmit={handleSubmit}>
 
-          <div className="flex flex-col gap-2.5 mb-2">
+          <div className="flex flex-col gap-2 mb-2">
             <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider">
               Profile Picture
             </label>
-            <div className="flex items-center gap-5 p-4 bg-light-cream/30 border border-soft-gray rounded-xl w-full">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 p-4 bg-light-cream/30 border border-soft-gray rounded-xl w-full">
               {/* Avatar Preview */}
               <div className="relative w-20 h-20 shrink-0">
                 <div
@@ -240,11 +236,11 @@ const RegisterPage = () => {
               </div>
 
               {/* Presets Selection */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] text-slate-gray font-medium">
+              <div className="flex flex-col gap-2 w-full min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-slate-gray font-medium text-center sm:text-left">
                   Select preset or upload custom photo:
                 </span>
-                <div className="flex gap-2.5">
+                <div className="flex gap-2 justify-center sm:justify-start overflow-x-auto pb-1 max-w-full scrollbar-none">
                   {presets.map((p, idx) => {
                     const isSelected = form.avatar === p.value;
                     return (
@@ -252,8 +248,8 @@ const RegisterPage = () => {
                         key={idx}
                         type="button"
                         onClick={() => setForm({ ...form, avatar: p.value })}
-                        className={`w-11 h-11 rounded-full border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${isSelected
-                            ? 'border-2 border-orange scale-110 shadow-lg shadow-orange/15'
+                        className={`w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-full border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${isSelected
+                            ? 'border-2 border-orange scale-105 shadow-md shadow-orange/15'
                             : 'border-soft-gray hover:scale-105'
                           }`}
                       >

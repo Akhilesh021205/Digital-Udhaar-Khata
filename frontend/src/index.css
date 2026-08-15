@@ -21,19 +21,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --bg-main: #F8F7F5;
+  --bg-main: #F7F4EE;
   --bg-card: #FFFFFF;
   --bg-sidebar: #FFFFFF;
-  --bg-header: rgba(252, 253, 253, 0.8);
-  --border-main: #E4E4E7;
-  --text-main: #0F172A;
-  --text-muted: #71717A;
+  --bg-header: rgba(255, 252, 246, 0.86);
+  --border-main: #E6DED1;
+  --text-main: #172033;
+  --text-muted: #6F6A60;
   --bg-input: #FFFFFF;
-  --bg-soft-white: #FCFDFD;
-  --bg-light-cream: #F4F6F8;
+  --bg-soft-white: #FFFCF6;
+  --bg-light-cream: #F3EBDD;
   --bg-pure-white: #FFFFFF;
-  --color-glass: rgba(255, 255, 255, 0.7);
-  --shadow-color: rgba(0, 0, 0, 0.05);
+  --color-glass: rgba(255, 252, 246, 0.76);
+  --shadow-color: rgba(84, 57, 26, 0.08);
 }
 
 .dark {
@@ -55,7 +55,7 @@
 @theme {
   --color-soft-white: var(--bg-soft-white);
   --color-light-cream: var(--bg-light-cream);
-  --color-orange: #E22D34;
+  --color-orange: #C94A32;
   --color-deep-navy: var(--text-main);
   --color-slate-gray: var(--text-muted);
   --color-soft-gray: var(--border-main);
@@ -68,7 +68,7 @@
   --color-warning-pending: #F59E0B;
   --color-info-analytics: #3B82F6;
   
-  --color-orange-hover: #C52329;
+  --color-orange-hover: #A83C2B;
   --color-green-hover: #059669;
   --color-red-hover: #DC2626;
 }
@@ -76,7 +76,13 @@
 body {
   font-family: 'Inter', -apple-system, sans-serif;
   color: var(--text-main);
-  background-color: var(--bg-main);
+  background:
+    linear-gradient(rgba(201, 74, 50, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201, 74, 50, 0.015) 1px, transparent 1px),
+    radial-gradient(circle at top left, rgba(236, 178, 92, 0.12), transparent 45rem),
+    radial-gradient(circle at bottom right, rgba(201, 74, 50, 0.04), transparent 40rem),
+    var(--bg-main);
+  background-size: 32px 32px, 32px 32px, auto, auto, auto;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
@@ -369,3 +375,116 @@ body, header, aside, tr, td, th, input, select, textarea, button,
 .animate-grow-2 { animation: grow-bar-2 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-grow-3 { animation: grow-bar-3 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-grow-4 { animation: grow-bar-4 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@layer components {
+  .udhaar-page-bg {
+    background:
+      linear-gradient(rgba(201, 74, 50, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201, 74, 50, 0.015) 1px, transparent 1px),
+      linear-gradient(135deg, rgba(255, 252, 246, 0.98), rgba(244, 235, 221, 0.92));
+    background-size: 32px 32px, 32px 32px, auto;
+  }
+
+  .udhaar-lock-bg {
+    background:
+      linear-gradient(rgba(201, 74, 50, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201, 74, 50, 0.015) 1px, transparent 1px),
+      radial-gradient(circle at top right, rgba(236, 178, 92, 0.14), transparent 50rem),
+      radial-gradient(circle at bottom left, rgba(201, 74, 50, 0.07), transparent 50rem),
+      linear-gradient(135deg, #fffcf7 0%, #f7f4ee 50%, #eee3d0 100%);
+    background-size: 32px 32px, 32px 32px, auto, auto, auto;
+  }
+
+  .khata-watermark {
+    position: absolute;
+    inset: auto -5rem -4rem auto;
+    color: rgba(201, 74, 50, 0.04);
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(7rem, 18vw, 16rem);
+    font-weight: 800;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .ledger-panel {
+    background:
+      linear-gradient(rgba(201, 74, 50, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201, 74, 50, 0.02) 1px, transparent 1px),
+      linear-gradient(135deg, #fffdfb 0%, #fffcf8 100%);
+    background-size: 24px 24px, 24px 24px, auto;
+  }
+
+  .pin-key {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(230, 222, 209, 0.4);
+    background: rgba(255, 255, 255, 0.6);
+    color: #172033;
+    font-weight: 600;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 10px rgba(84, 57, 26, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .pin-key:hover {
+    border-color: rgba(201, 74, 50, 0.3);
+    background: rgba(201, 74, 50, 0.08);
+    color: #C94A32;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(201, 74, 50, 0.08);
+  }
+
+  .pin-key:active {
+    transform: scale(0.96) translateY(0);
+    background: rgba(201, 74, 50, 0.15);
+  }
+
+  .dark .udhaar-page-bg {
+    background:
+      linear-gradient(rgba(245, 158, 11, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245, 158, 11, 0.015) 1px, transparent 1px),
+      linear-gradient(135deg, #0e1322 0%, #0b0f19 100%);
+    background-size: 32px 32px, 32px 32px, auto;
+  }
+
+  .dark .udhaar-lock-bg {
+    background:
+      linear-gradient(rgba(245, 158, 11, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245, 158, 11, 0.015) 1px, transparent 1px),
+      radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 50rem),
+      radial-gradient(circle at bottom left, rgba(201, 74, 50, 0.04), transparent 50rem),
+      linear-gradient(135deg, #0e1322 0%, #070a12 100%);
+    background-size: 32px 32px, 32px 32px, auto, auto, auto;
+  }
+
+  .dark .ledger-panel {
+    background:
+      linear-gradient(rgba(245, 158, 11, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245, 158, 11, 0.02) 1px, transparent 1px),
+      linear-gradient(135deg, #182235 0%, #111827 100%);
+    background-size: 24px 24px, 24px 24px, auto;
+  }
+
+  .dark .pin-key {
+    background: rgba(30, 41, 59, 0.4);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: #F8FAFC;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .dark .pin-key:hover {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.12);
+    color: #F59E0B;
+    box-shadow: 0 6px 14px rgba(245, 158, 11, 0.15);
+  }
+
+  .dark .pin-key:active {
+    background: rgba(245, 158, 11, 0.22);
+  }
+}

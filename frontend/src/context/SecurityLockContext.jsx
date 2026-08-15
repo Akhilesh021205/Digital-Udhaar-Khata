@@ -7,25 +7,85 @@ const SecurityLockContext = createContext();
 export const SecurityLockProvider = ({ children }) => {
   const { user, loading } = useAuth();
   const [unlocked, setUnlocked] = useState(() => {
-    return sessionStorage.getItem('udhaar-unlocked') === 'true';
+    const wasUnlocked = localStorage.getItem('udhaar-unlocked') === 'true';
+    if (wasUnlocked) {
+      const lastActive = parseInt(localStorage.getItem('udhaar-last-active') || '0', 10);
+      const now = Date.now();
+      if (now - lastActive < 40000) {
+        return true;
+      } else {
+        localStorage.setItem('udhaar-unlocked', 'false');
+        return false;
+      }
+    }
+    return false;
   });
 
-  // Sync state with sessionStorage changes on auth update
+  // Keep last-active timestamp updated during active user sessions
   useEffect(() => {
-    const isUnlocked = sessionStorage.getItem('udhaar-unlocked') === 'true';
+    if (!unlocked || !user) return;
+
+    let lastUpdate = Date.now();
+    localStorage.setItem('udhaar-last-active', lastUpdate.toString());
+
+    const updateActivity = () => {
+      const now = Date.now();
+      // Throttle localStorage updates to prevent performance degradation
+      if (now - lastUpdate > 5000) {
+        lastUpdate = now;
+        localStorage.setItem('udhaar-last-active', now.toString());
+      }
+    };
+
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('scroll', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+    };
+  }, [unlocked, user]);
+
+  // Sync state with localStorage changes on auth update
+  useEffect(() => {
+    const isUnlocked = localStorage.getItem('udhaar-unlocked') === 'true';
     if (isUnlocked && !unlocked) {
-      setUnlocked(true);
+      const lastActive = parseInt(localStorage.getItem('udhaar-last-active') || '0', 10);
+      const now = Date.now();
+      if (now - lastActive < 40000) {
+        setUnlocked(true);
+      } else {
+        localStorage.setItem('udhaar-unlocked', 'false');
+      }
     }
   }, [user, unlocked]);
 
-  // Lock the app when visibility becomes hidden (minimized, tab switch, locked screen)
+  // Lock the app when visibility becomes hidden (minimized, tab switch, locked screen) with a 40s grace period
   useEffect(() => {
     if (!user || !user.hasPin) return;
 
     const handleVisibilityChange = () => {
+      const now = Date.now();
       if (document.visibilityState === 'hidden') {
-        setUnlocked(false);
-        sessionStorage.setItem('udhaar-unlocked', 'false');
+        localStorage.setItem('udhaar-last-active', now.toString());
+      } else if (document.visibilityState === 'visible') {
+        const wasUnlocked = localStorage.getItem('udhaar-unlocked') === 'true';
+        if (wasUnlocked) {
+          const lastActive = parseInt(localStorage.getItem('udhaar-last-active') || '0', 10);
+          if (now - lastActive >= 40000) {
+            setUnlocked(false);
+            localStorage.setItem('udhaar-unlocked', 'false');
+          } else {
+            // Refreshes the last active time as long as user is active
+            localStorage.setItem('udhaar-last-active', now.toString());
+          }
+        }
       }
     };
 
@@ -39,12 +99,14 @@ export const SecurityLockProvider = ({ children }) => {
   useEffect(() => {
     if (!user) {
       setUnlocked(false);
-      sessionStorage.removeItem('udhaar-unlocked');
+      localStorage.removeItem('udhaar-unlocked');
+      localStorage.removeItem('udhaar-last-active');
     }
   }, [user]);
 
   const handleUnlock = () => {
-    sessionStorage.setItem('udhaar-unlocked', 'true');
+    localStorage.setItem('udhaar-unlocked', 'true');
+    localStorage.setItem('udhaar-last-active', Date.now().toString());
     setUnlocked(true);
   };
 

@@ -11,7 +11,7 @@ const Layout = ({ children }) => {
 
   return (
     <SidebarContext.Provider value={[sidebarOpen, setSidebarOpen]}>
-      <div className="min-h-screen bg-soft-white text-deep-navy">
+      <div className="min-h-screen udhaar-page-bg text-deep-navy">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="pt-18 min-h-screen transition-all duration-300">
           {/* Mobile: tighter padding with room for bottom nav */}
