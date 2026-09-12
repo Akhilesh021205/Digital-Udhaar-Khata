@@ -83,7 +83,11 @@ const initiateOutboundCall = async ({ toPhone, callSessionId, customerName, shop
   }
 
   try {
-    const flowUrl = `http://my.exotel.com/${config.sid}/exoml/start_voice/${config.flowId}`;
+    const baseUrl = process.env.BACKEND_URL || process.env.SERVER_URL;
+    const exomlCallbackUrl = baseUrl 
+      ? `${baseUrl}/api/ai-calls/exoml?callSessionId=${encodeURIComponent(callSessionId)}` 
+      : `http://my.exotel.com/${config.sid}/exoml/start_voice/${config.flowId}`;
+
     const apiUrl = `https://${config.subdomain}/v1/Accounts/${config.sid}/Calls/connect.json`;
     const callerId = config.phone && !config.phone.includes('your_') ? config.phone : formattedPhone;
 
@@ -91,7 +95,7 @@ const initiateOutboundCall = async ({ toPhone, callSessionId, customerName, shop
     params.append('From', formattedPhone);
     params.append('To', callerId);
     params.append('CallerId', callerId);
-    params.append('Url', flowUrl);
+    params.append('Url', exomlCallbackUrl);
     params.append('CustomField', JSON.stringify({ callSessionId, customerName, shopName, amount, language }));
 
     console.log(`[EXOTEL] Calling API: ${apiUrl} (Flow ${config.flowId}, SID: ${config.sid})`);
