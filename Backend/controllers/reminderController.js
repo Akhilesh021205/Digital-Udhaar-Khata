@@ -2,9 +2,10 @@ const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const { sendEmail } = require('../services/mailService');
 const { generateStatementBuffer } = require('../services/pdfService');
+const { getFrontendUrl } = require('../utils/urlHelper');
 
 const buildPaymentReminderHTML = ({ storeName, customerFirstName, customerName, balance, upiId, customerId }) => {
-  const frontendUrl = (process.env.FRONTEND_URL || 'https://digital-udhaar-khata.vercel.app').replace(/\/$/, '');
+  const frontendUrl = getFrontendUrl();
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -283,7 +284,7 @@ const executeReminderSend = async (customer, user) => {
 
   const storeName = user.storeName || 'AI Digital Khata';
   const upiId = user.upiId;
-  const frontendUrl = (process.env.FRONTEND_URL || 'https://digital-udhaar-khata.vercel.app').replace(/\/$/, '');
+  const frontendUrl = getFrontendUrl();
   const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
 
   // 1. PAYMENT BILL EMAIL (Dedicated Payment Link & Dues Notice)
@@ -402,7 +403,7 @@ const sendBulkReminders = async (req, res, next) => {
 
     const storeName = req.user.storeName || 'AI Digital Khata';
     const upiId = req.user.upiId;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = getFrontendUrl();
     let sent = 0;
     let failed = 0;
     const results = [];

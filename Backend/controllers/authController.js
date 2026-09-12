@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const User = require('../models/User');
 const { sendEmail } = require('../services/mailService');
+const { getFrontendUrl } = require('../utils/urlHelper');
 
 const parseUserAgent = (uaString = '') => {
   let browser = 'Unknown Browser';
@@ -456,20 +457,7 @@ const forgotPassword = async (req, res, next) => {
     await user.save();
 
     // Determine frontend URL dynamically from request origin header so emails always contain the active working domain
-    let frontendUrl = req.headers.origin;
-    if (!frontendUrl && req.headers.referer) {
-      try {
-        const urlObj = new URL(req.headers.referer);
-        frontendUrl = `${urlObj.protocol}//${urlObj.host}`;
-      } catch (e) {
-        // Ignore invalid referer URL
-      }
-    }
-    if (!frontendUrl || frontendUrl.includes('o4isb0524')) {
-      frontendUrl = process.env.FRONTEND_URL || 'https://digital-udhaar-khata.vercel.app';
-    }
-    frontendUrl = frontendUrl.replace(/\/$/, '');
-
+    let frontendUrl = getFrontendUrl();
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     // HTML Message
@@ -608,15 +596,18 @@ const emergencyLock = async (req, res, next) => {
     await user.save();
 
     // 3. Send warning email
+    const frontendUrl = getFrontendUrl();
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ef4444; border-radius: 12px; background-color: #fef2f2;">
-        <h2 style="color: #dc2626; text-align: center; margin-bottom: 24px;">🚨 EMERGENCY LOCK ACTIVATED</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #fee2e2; border-radius: 10px; background-color: #ffffff;">
+        <div style="background-color: #dc2626; color: #ffffff; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">🚨 EMERGENCY LOCK ACTIVATED</h2>
+        </div>
         <p>Hello <strong>${user.name}</strong>,</p>
-        <p>You have activated the **Emergency Lock** for your Digital Udhaar store account (<strong>${user.storeName}</strong>).</p>
+        <p>This is an automated alert to inform you that **Emergency Account Lock** was triggered on your Digital Udhaar account on <strong>${new Date().toLocaleString()}</strong>.</p>
         
-        <div style="background-color: #ffffff; padding: 15px; border-left: 4px solid #dc2626; border-radius: 4px; margin: 20px 0;">
-          <p style="margin: 0; font-weight: bold; color: #dc2626;">Actions Taken:</p>
-          <ul style="margin: 5px 0 0 20px; padding: 0; color: #4b5563;">
+        <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 12px; margin: 15px 0;">
+          <h4 style="margin: 0 0 5px 0; color: #991b1b;">Security Actions Taken:</h4>
+          <ul style="margin: 5px 0 0 0; padding-left: 20px; color: #7f1d1d;">
             <li>All active sessions on all devices have been logged out immediately.</li>
             <li>Your account password has been locked and reset.</li>
           </ul>
@@ -625,7 +616,7 @@ const emergencyLock = async (req, res, next) => {
         <p>To access your account again, you must perform a **Password Reset** using the Forgot Password page.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/forgot-password" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">Reset Password Now</a>
+          <a href="${frontendUrl}/forgot-password" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">Reset Password Now</a>
         </div>
         
         <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #fee2e2; padding-top: 15px; text-align: center;">Digital Udhaar Team &copy; 2026</p>
@@ -636,7 +627,7 @@ const emergencyLock = async (req, res, next) => {
       await sendEmail({
         to: user.email,
         subject: '🚨 EMERGENCY LOCK ACTIVATED - Digital Udhaar',
-        text: `Hello ${user.name},\n\nEmergency Lock has been activated on your account. All devices have been logged out, and your password has been reset. To recover your account, click the link to reset your password:\n\n${process.env.FRONTEND_URL || 'http://localhost:5173'}/forgot-password`,
+        text: `Hello ${user.name},\n\nEmergency Lock has been activated on your account. All devices have been logged out, and your password has been reset. To recover your account, click the link to reset your password:\n\n${frontendUrl}/forgot-password`,
         html: emailHtml
       });
     } catch (mailErr) {

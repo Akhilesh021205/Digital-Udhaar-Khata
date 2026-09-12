@@ -3,6 +3,7 @@ const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { sendEmail } = require('./mailService');
 const { generateStatementBuffer, generateReceiptPDFBuffer } = require('./pdfService');
+const { getFrontendUrl } = require('../utils/urlHelper');
 
 /**
  * Send a bill email for credit (Udhaar) transactions or a payment confirmation email for debit (Jama) transactions.
@@ -21,7 +22,7 @@ const sendTransactionEmail = async (transactionId) => {
 
     const storeName = owner.storeName || 'AI Digital Khata';
     const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = getFrontendUrl();
     const dateStr = new Date(transaction.date).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'long',

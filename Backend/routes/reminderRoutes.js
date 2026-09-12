@@ -3,6 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 const { sendReminder, sendBulkReminders, sendFast2SMSSMS, sendCloudWhatsApp } = require('../controllers/reminderController');
 const { protect } = require('../middleware/authMiddleware');
+const { getFrontendUrl } = require('../utils/urlHelper');
 const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const { generateStatement } = require('../services/pdfService');
@@ -318,7 +319,7 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
         customer_name: customer.name || 'Valued Customer'
       },
       order_meta: {
-        return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/pay/${customerId}?order_id={order_id}`
+        return_url: `${getFrontendUrl()}/pay/${customerId}?order_id={order_id}`
       }
     };
 

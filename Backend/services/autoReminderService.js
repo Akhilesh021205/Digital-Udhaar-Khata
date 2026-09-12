@@ -4,6 +4,7 @@ const Transaction = require('../models/Transaction');
 const { sendEmail } = require('./mailService');
 const { generateStatementBuffer } = require('./pdfService');
 const { updateRiskLevel } = require('./riskService');
+const { getFrontendUrl } = require('../utils/urlHelper');
 
 /**
  * Calculates differences in days (date2 - date1) based on calendar dates (ignoring time)
@@ -84,7 +85,7 @@ const runAutoReminders = async () => {
 
       console.log(`🤖 KathaGPT Auto-Reminder Bot: Sending email to ${customer.name} (${customer.email}) for store ${storeName}`);
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = getFrontendUrl();
       const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
       
       let textMessage = '';

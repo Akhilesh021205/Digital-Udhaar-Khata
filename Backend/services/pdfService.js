@@ -1,5 +1,6 @@
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
+const { getFrontendUrl } = require('../utils/urlHelper');
 
 async function getQrCodeBuffer(upiId, storeName, amount) {
   if (!upiId || amount <= 0) return null;
@@ -17,7 +18,7 @@ async function getQrCodeBuffer(upiId, storeName, amount) {
 async function getVerificationQrBuffer(customerId) {
   if (!customerId) return null;
   try {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = getFrontendUrl();
     const verifyUrl = `${frontendUrl}/pay/${customerId}`;
     console.log(`Generating verification QR Code locally for customer: ${customerId}`);
     return await QRCode.toBuffer(verifyUrl, { width: 150, margin: 1 });

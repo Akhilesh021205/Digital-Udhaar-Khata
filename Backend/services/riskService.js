@@ -1,6 +1,7 @@
 const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const { sendEmail } = require('./mailService');
+const { getFrontendUrl } = require('../utils/urlHelper');
 
 /**
  * Calculate and update a customer's risk level, credit score, and due prediction.
@@ -139,7 +140,7 @@ const updateRiskLevel = async (customerId) => {
       try {
         const storeName = customer.owner?.storeName || 'AI Digital Khata';
         const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = getFrontendUrl();
         
         let riskText = `Namaste ${customerFirstName}!\n\n⚠️ IMPORTANT CREDIT ALERT: Your credit profile status at ${storeName} has changed.\n\nYour credit score is now ${customer.creditScore}/900 (Risk Level: ${riskLevel.toUpperCase()}).\n\nKindly clear your outstanding balance of ₹${customer.balance.toFixed(2)} to improve your credit standing.\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
         
