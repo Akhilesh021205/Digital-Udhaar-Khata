@@ -7,7 +7,8 @@ module.exports = {
       cors: {
         origin: "*",
         methods: ["GET", "POST"]
-      }
+      },
+      destroyUpgrade: false
     });
 
     io.on('connection', (socket) => {

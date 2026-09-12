@@ -148,7 +148,7 @@ const exotelWss = createExotelVoicebotServer(server);
 server.on('upgrade', (request, socket, head) => {
   try {
     const pathname = new URL(request.url, `http://${request.headers.host || 'localhost'}`).pathname;
-    if (pathname === '/exotel/voicebot') {
+    if (pathname === '/exotel/voicebot' || pathname === '/exotel/voicebot/') {
       exotelWss.handleUpgrade(request, socket, head, (ws) => {
         exotelWss.emit('connection', ws, request);
       });
