@@ -50,15 +50,13 @@ const sendPcmAudioInChunks = async (ws, streamSid, pcmBuffer) => {
 
 // Fallback audio PCM generator for test greeting if TTS latency occurs
 const generateTestGreetingPcm = () => {
-  // Simple 8kHz 16-bit PCM tone sequence representing test greeting audio
   const sampleRate = 8000;
-  const durationSec = 1.5;
+  const durationSec = 1.0;
   const numSamples = sampleRate * durationSec;
   const buffer = Buffer.alloc(numSamples * 2);
 
   for (let i = 0; i < numSamples; i++) {
     const t = i / sampleRate;
-    // 440 Hz tone with exponential decay envelope
     const sample = Math.sin(2 * Math.PI * 440 * t) * Math.exp(-t * 2) * 16000;
     buffer.writeInt16LE(Math.floor(sample), i * 2);
   }
@@ -130,8 +128,9 @@ const createExotelVoicebotServer = (server) => {
           }
 
           case 'start': {
-            console.log('[VOICEBOT] Start event received');
-            streamSid = data.stream_sid || data.streamSid || data.start?.streamSid || data.sid;
+            streamSid = data.stream_sid || data.streamSid || data.start?.streamSid || data.sid || data.call_sid;
+            console.log(`[VOICEBOT] Start event received (streamSid: ${streamSid || 'active'})`);
+
             const phone = data.from || data.caller || data.phone || data.start?.from;
             const customField = data.custom_field || data.start?.customField ? 
               (typeof (data.custom_field || data.start?.customField) === 'string' ? JSON.parse(data.custom_field || data.start?.customField) : (data.custom_field || data.start?.customField)) : {};
@@ -157,15 +156,18 @@ const createExotelVoicebotServer = (server) => {
                 greeting = `Hello ${name}, this is an automated payment reminder from ${shop}. Your outstanding amount is ${due} rupees. When would you be able to make the payment?`;
               }
 
-              // Send Sarvam TTS speech over WebSocket
-              const { audioBuffer } = await generateSpeech(greeting, lang, 8000);
-              if (audioBuffer && audioBuffer.length > 0) {
-                await sendPcmAudioInChunks(ws, streamSid, audioBuffer);
-              } else {
-                console.warn('[VOICEBOT] Fallback: Sending test PCM greeting audio');
-                const testPcm = generateTestGreetingPcm();
-                await sendPcmAudioInChunks(ws, streamSid, testPcm);
-              }
+              // Send immediate test PCM audio frames to keep Exotel stream active instantly
+              const testPcm = generateTestGreetingPcm();
+              await sendPcmAudioInChunks(ws, streamSid, testPcm);
+
+              // Generate and send Sarvam AI speech greeting asynchronously
+              generateSpeech(greeting, lang, 8000).then(async ({ audioBuffer }) => {
+                if (audioBuffer && audioBuffer.length > 0 && ws.readyState === WebSocket.OPEN) {
+                  await sendPcmAudioInChunks(ws, streamSid, audioBuffer);
+                }
+              }).catch((err) => {
+                console.error('[VOICEBOT] Initial greeting TTS error:', err.message);
+              });
             }
             break;
           }
