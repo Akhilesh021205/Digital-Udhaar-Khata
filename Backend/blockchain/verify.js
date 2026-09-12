@@ -60,35 +60,44 @@ async function verifyChain(ownerId, options = {}) {
       // Since some transaction details (amount, type) are needed for the hash formula,
       // let's query the transaction if it is not embedded in the block.
       // Wait, let's load transaction details to rebuild the hash input.
-      const Transaction = require('../models/Transaction');
-      const tx = await Transaction.findById(block.transactionId);
-      
-      if (!tx) {
-        blockValid = false;
-        reason = 'Associated transaction not found';
-      } else {
-        const timestampStr = block.timestamp.toISOString ? block.timestamp.toISOString() : new Date(block.timestamp).toISOString();
-        
-        // Recalculate hash using the exact formula
-        const recalculatedHash = calculateBlockHash(
-          block.previousHash,
-          block.transactionId.toString(),
-          block.customerId.toString(),
-          tx.amount,
-          tx.type,
-          timestampStr,
-          block.nonce
-        );
-
-        if (block.hash !== recalculatedHash) {
+      if (block.index === 0) {
+        // Genesis block is the anchor block. Check signature and previousHash link.
+        const isSigValid = verifySignature(block.hash, block.signature, block.publicKey);
+        if (!isSigValid || block.previousHash !== '0') {
           blockValid = false;
-          reason = `Hash mismatch (Stored: ${block.hash}, Recalculated: ${recalculatedHash})`;
+          reason = 'Genesis block integrity check failed (invalid signature or linkage)';
+        }
+      } else {
+        const Transaction = require('../models/Transaction');
+        const tx = await Transaction.findById(block.transactionId);
+        
+        if (!tx) {
+          blockValid = false;
+          reason = 'Associated transaction not found';
         } else {
-          // Verify digital signature
-          const isSigValid = verifySignature(block.hash, block.signature, block.publicKey);
-          if (!isSigValid) {
+          const timestampStr = block.timestamp.toISOString ? block.timestamp.toISOString() : new Date(block.timestamp).toISOString();
+          
+          // Recalculate hash using the exact formula
+          const recalculatedHash = calculateBlockHash(
+            block.previousHash,
+            block.transactionId.toString(),
+            block.customerId.toString(),
+            tx.amount,
+            tx.type,
+            timestampStr,
+            block.nonce
+          );
+
+          if (block.hash !== recalculatedHash) {
             blockValid = false;
-            reason = 'Digital signature invalid';
+            reason = `Hash mismatch (Stored: ${block.hash}, Recalculated: ${recalculatedHash})`;
+          } else {
+            // Verify digital signature
+            const isSigValid = verifySignature(block.hash, block.signature, block.publicKey);
+            if (!isSigValid) {
+              blockValid = false;
+              reason = 'Digital signature invalid';
+            }
           }
         }
       }

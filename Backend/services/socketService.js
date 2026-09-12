@@ -25,5 +25,11 @@ module.exports = {
       console.log('Emitting real-time page refresh event for:', type);
       io.emit('refresh_data', { type });
     }
+  },
+  emitEvent: (eventName, data) => {
+    if (io) {
+      console.log(`Emitting real-time event [${eventName}]:`, data);
+      io.emit(eventName, data);
+    }
   }
 };

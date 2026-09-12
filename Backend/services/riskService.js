@@ -108,25 +108,23 @@ const updateRiskLevel = async (customerId) => {
       }
     }
 
-    // Deterministic calculation based on customer's ID and name for privacy and UI demo consistency
-    const seed = customer._id.toString() || customer.name || 'default';
-    let hash = 5381;
-    for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) + hash) + seed.charCodeAt(i);
-    }
-    hash = Math.abs(hash);
-
-    score = 580 + (hash % 261);
-    
-    if (score >= 720) {
+    // Clean record check: If customer has 0 transactions or balance <= 0, default to Trusted
+    if (transactions.length === 0 || customer.balance <= 0) {
+      score = 800;
       duePrediction = 'trusted';
       riskLevel = 'low';
-    } else if (score >= 620) {
-      duePrediction = 'delay';
-      riskLevel = 'medium';
     } else {
-      duePrediction = 'risky';
-      riskLevel = 'high';
+      score = Math.min(900, Math.max(300, score));
+      if (score >= 720) {
+        duePrediction = 'trusted';
+        riskLevel = 'low';
+      } else if (score >= 620) {
+        duePrediction = 'delay';
+        riskLevel = 'medium';
+      } else {
+        duePrediction = 'risky';
+        riskLevel = 'high';
+      }
     }
 
     // Update customer document
@@ -139,7 +137,7 @@ const updateRiskLevel = async (customerId) => {
     // Trigger email reminder if risk level increases (more risk than previous, or is medium/high and changed)
     if (customer.email && riskLevel !== 'low' && riskLevel !== previousRiskLevel) {
       try {
-        const storeName = customer.owner?.storeName || 'Digital Udhaar';
+        const storeName = customer.owner?.storeName || 'AI Digital Khata';
         const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         
@@ -153,7 +151,7 @@ const updateRiskLevel = async (customerId) => {
             </div>
             
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Namaste <strong>${customerFirstName}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an alert from <strong>Digital Udhaar</strong> regarding your credit standing. Your account profile status at <strong>${storeName}</strong> has been updated due to payment delays.</p>
+            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an alert from <strong>AI Digital Khata</strong> regarding your credit standing. Your account profile status at <strong>${storeName}</strong> has been updated due to payment delays.</p>
             
             <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 16px; border-radius: 8px; margin: 16px 0; text-align: left;">
               <span style="font-size: 13px; color: #991b1b; display: block; font-weight: bold;">🚨 Credit Standing Downgrade:</span>
@@ -177,7 +175,7 @@ const updateRiskLevel = async (customerId) => {
             </div>
             
             <hr style="border: 0; border-top: 1px solid #fca5a5; margin: 32px 0 24px 0;" />
-            <p style="font-size: 11px; color: #f87171; text-align: center; margin: 0;">This is an automated credit alert sent by Digital Udhaar.</p>
+            <p style="font-size: 11px; color: #f87171; text-align: center; margin: 0;">This is an automated credit alert sent by AI Digital Khata.</p>
           </div>
         `;
 

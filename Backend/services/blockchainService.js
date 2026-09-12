@@ -140,8 +140,11 @@ class BlockchainService {
         });
 
         if (!result.isValid) {
+          const failedCount = Array.isArray(result.failedBlocks) 
+            ? result.failedBlocks.length 
+            : (typeof result.failedBlocks === 'number' ? result.failedBlocks : 0);
           console.warn(
-            `⚠️ [SECURITY CRITICAL] Scheduled audit detected ledger tampering for user: ${user.email} (${user._id}). Mismatched blocks: ${result.failedBlocks.length}.`
+            `⚠️ [SECURITY CRITICAL] Scheduled audit detected ledger tampering for user: ${user.email} (${user._id}). Mismatched blocks: ${failedCount}.`
           );
         }
       }

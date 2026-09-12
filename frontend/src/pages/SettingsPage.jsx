@@ -1181,7 +1181,7 @@ const SettingsPage = () => {
       const createOptions = {
         publicKey: {
           challenge,
-          rp: { name: "Digital Udhaar Khata" },
+          rp: { name: "AI Digital Khata" },
           user: {
             id: new TextEncoder().encode(user._id),
             name: user.email,
@@ -1256,415 +1256,128 @@ const SettingsPage = () => {
   return (
     <>
       <Header title={t('settings')} subtitle={t('manageProfile')} />
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto lg:mx-0">
-        <div className="lg:col-span-7 space-y-6">
-        
-        {/* Profile Card */}
-        <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
-          <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">{t('storeProfile')}</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Profile Picture Section */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider mb-2">{t('profilePicture')}</label>
-              <div className="flex items-center gap-6 p-4 bg-soft-white border border-soft-gray rounded-xl w-full flex-wrap sm:flex-nowrap">
-                {/* Avatar Preview */}
-                <div className="relative w-20 h-20 flex-shrink-0">
-                  <div 
-                    className="w-20 h-20 rounded-full bg-pure-white border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
-                    onClick={() => fileInputRef.current.click()}
-                  >
-                    {form.avatar ? (
-                      <img src={form.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xs text-slate-gray font-bold">Upload</span>
-                    )}
-                  </div>
-                  {/* Plus badge */}
-                  <div className="absolute bottom-0 right-0 bg-orange w-6 h-6 rounded-full flex items-center justify-center text-white border-2 border-pure-white cursor-pointer shadow pointer-events-none">
-                    <HiPlus size={14} />
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Presets Selection */}
-                <div className="space-y-1.5 flex-1">
-                  <span className="text-xs font-bold text-slate-gray mb-1.5 block">
-                    {t('selectPresetOrUpload')}
-                  </span>
-                  <div className="flex gap-3 flex-wrap">
-                    {presets.map((p, idx) => {
-                      const isSelected = form.avatar === p.value;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setForm({ ...form, avatar: p.value })}
-                          className={`w-11 h-11 rounded-full bg-pure-white border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${
-                            isSelected 
-                              ? 'border-orange ring-2 ring-orange/20 scale-105' 
-                              : 'border-soft-gray hover:border-slate-gray/30'
-                          }`}
-                        >
-                          <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('yourName')}</label>
-              <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('storeName')}</label>
-              <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.storeName} onChange={(e) => setForm({ ...form, storeName: e.target.value })} required />
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('phoneNumber')}</label>
-              <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-
-            <button className="inline-flex items-center justify-center px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm hover:shadow disabled:opacity-50 mt-2" type="submit" disabled={saving}>
-              {saving ? t('saving') : t('saveChanges')}
-            </button>
-          </form>
-        </div>
-
-        {/* App Security Card */}
-        <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
-          <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">App Security</h3>
-          <div className="space-y-4">
-            
-            <div className="flex justify-between items-center py-2.5 border-b border-soft-gray/40">
-              <div className="text-left">
-                <h4 className="text-sm font-bold text-deep-navy m-0">Security PIN</h4>
-                <p className="text-xs text-slate-gray m-0 mt-0.5">Protect your  register with a secure 4-digit PIN</p>
-              </div>
-              <button 
-                onClick={() => navigate('/security-setup')}
-                className="px-4 py-2 bg-light-cream border border-soft-gray hover:border-orange rounded-xl text-xs font-bold text-deep-navy hover:text-orange transition-colors cursor-pointer"
-              >
-                Change PIN
-              </button>
-            </div>
-
-            <div className="flex justify-between items-center py-2.5">
-              <div className="text-left">
-                <h4 className="text-sm font-bold text-deep-navy m-0">Biometric Unlock</h4>
-                <p className="text-xs text-slate-gray m-0 mt-0.5">Use device fingerprint scanner or face camera to unlock</p>
-              </div>
-              <div className="flex items-center">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={user?.isBiometricEnabled || false} 
-                    onChange={handleToggleBiometrics}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-soft-gray rounded-full peer peer-focus:ring-2 peer-focus:ring-orange/20 peer-checked:after:translate-x-full peer-checked:after:border-pure-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-pure-white after:border-soft-gray after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange"></div>
-                </label>
-              </div>
-            </div>
-
-
-          </div>
-        </div>
-
-        {/* Mobile UPI Card (visible only on mobile) */}
-        <div className="block lg:hidden bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
-                <FaQrcode size={20} />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-deep-navy m-0">UPI Payments & QR</h4>
-                <p className="text-xs text-slate-gray m-0 mt-0.5 leading-relaxed">
-                  {user?.upiId ? `Active VPA: ${user.upiId}` : 'Set up UPI to generate dynamic customer payment QR codes.'}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setUpiIdInput(user?.upiId || '');
-                setMobileDrawerOpen(true);
-              }}
-              className="px-4 py-2 bg-light-cream border border-soft-gray hover:border-orange rounded-xl text-xs font-bold text-deep-navy hover:text-orange transition-colors cursor-pointer"
-            >
-              Configure
-            </button>
-          </div>
-        </div>
-
-        {/* Delete Protection (Trash Bin) Card */}
-        <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="text-lg font-bold text-deep-navy m-0">Trash Bin (Delete Protection)</h3>
-            <span className="bg-orange/10 text-orange text-xs font-bold px-2.5 py-1 rounded-full">
-              30 Days Recovery
-            </span>
-          </div>
-          <p className="text-xs text-slate-gray m-0 mb-4 leading-relaxed">
-            Customers you delete are kept here for 30 days. Restoring them recovers their balance and full transaction ledger.
-          </p>
-
-          {loadingTrash ? (
-            <div className="flex justify-center py-4">
-              <div className="w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : trashedCustomers.length === 0 ? (
-            <div className="text-center py-6 bg-soft-white border border-dashed border-soft-gray/60 rounded-xl">
-              <span className="text-xs text-slate-gray">Trash bin is empty</span>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {trashedCustomers.map((customer) => {
-                const deletedDate = new Date(customer.deletedAt);
-                const expiryDate = new Date(deletedDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-                const diffTime = expiryDate - Date.now();
-                const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-
-                return (
-                  <div key={customer._id} className="flex justify-between items-center p-3.5 bg-soft-white/60 border border-soft-gray/50 rounded-xl hover:bg-soft-white transition-colors">
-                    <div className="text-left">
-                      <span className="text-sm font-bold text-deep-navy block">{customer.name}</span>
-                      <span className="text-[11px] text-slate-gray block mt-0.5">
-                        Balance: <strong className={customer.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500"}>₹{Math.abs(customer.balance)}</strong>
-                      </span>
-                      <span className="text-[10px] text-orange block mt-1 font-semibold flex items-center gap-1">
-                        <FiClock className="w-3 h-3 text-orange" /> {daysRemaining} days left before permanent deletion
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => handleRestoreCustomer(customer._id)}
-                      className="px-3 py-1.5 bg-orange/10 hover:bg-orange text-orange hover:text-white rounded-lg text-xs font-bold border border-orange/20 transition-all cursor-pointer"
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+        {/* Left Column: Profile, Security, UPI & Trash Bin */}
+        <div className="lg:col-span-6 space-y-6">
+          {/* 1. Profile Card */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+            <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">{t('storeProfile')}</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Profile Picture Section */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider mb-2">{t('profilePicture')}</label>
+                <div className="flex items-center gap-6 p-4 bg-soft-white border border-soft-gray rounded-xl w-full flex-wrap sm:flex-nowrap">
+                  {/* Avatar Preview */}
+                  <div className="relative w-20 h-20 flex-shrink-0">
+                    <div 
+                      className="w-20 h-20 rounded-full bg-pure-white border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
+                      onClick={() => fileInputRef.current.click()}
                     >
-                      Restore
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Data Backup & Verification Card */}
-        <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
-          <h3 className="text-lg font-bold text-deep-navy mb-2 mt-0">Data Backup & Restore</h3>
-          <p className="text-xs text-slate-gray m-0 mb-6 leading-relaxed">
-            Securely back up your entire data to servers or restore from a previously saved copy. A confirmation email is sent for every backup and restoration.
-          </p>
-          <div className="p-5 bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl mb-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="text-left">
-                <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1 mb-1">
-                  <FiCloud className="w-3.5 h-3.5" /> Secure Cloud Backup
-                </span>
-                <h4 className="text-sm font-bold text-deep-navy m-0">1-Click Cloud Backup & Restore</h4>
-                <p className="text-[11px] text-slate-gray mt-1 mb-3 leading-relaxed">
-                  Save your ledger & cashbook directly to your secure account cloud. Restores instantly without choosing any local files.
-                </p>
-
-                {loadingCloudBackup ? (
-                  <div className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[11px] text-slate-gray">Checking cloud status...</span>
-                  </div>
-                ) : cloudBackupInfo ? (
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                      <FiCheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Last cloud backup: {new Date(cloudBackupInfo.updatedAt).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-slate-gray block">
-                      Includes: <strong>{cloudBackupInfo.customersCount}</strong> customers • <strong>{cloudBackupInfo.transactionsCount}</strong> ledger transactions • <strong>{cloudBackupInfo.cashbookCount}</strong> cashbook entries
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-[11px] text-orange font-bold flex items-center gap-1.5">
-                    <FiAlertTriangle className="w-3.5 h-3.5 text-orange" /> No cloud backup found. Back up your data to the cloud to prevent loss.
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-row md:flex-col gap-2.5 min-w-[180px]">
-                <button
-                  type="button"
-                  disabled={backingUpCloud}
-                  onClick={handleCreateCloudBackup}
-                  className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold border-none transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {backingUpCloud ? (
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <><FiCloud className="w-3.5 h-3.5" /> Backup to Cloud</>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={restoringCloud || !cloudBackupInfo}
-                  onClick={handleRestoreCloudBackup}
-                  className={`flex-1 py-2 px-4 text-white rounded-xl text-xs font-bold border-none transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
-                    !cloudBackupInfo 
-                      ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed opacity-50' 
-                      : 'bg-orange hover:bg-orange-hover'
-                  }`}
-                >
-                  {restoringCloud ? (
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <><FiRefreshCw className="w-3.5 h-3.5" /> Restore from Cloud</>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-soft-gray"></div>
-            <span className="flex-shrink mx-4 text-[10px] text-slate-gray font-bold uppercase tracking-wider">Or Backup Locally</span>
-            <div className="flex-grow border-t border-soft-gray"></div>
-          </div>
-
-          {/* Local Storage Backup Block */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            <div className="p-4 bg-soft-white border border-soft-gray rounded-xl flex flex-col justify-between">
-              <div className="text-left">
-                <h4 className="text-xs font-bold text-deep-navy flex items-center gap-1.5 m-0">
-                  <FiDownload className="w-3.5 h-3.5 text-slate-gray" /> Download Local File
-                </h4>
-                <p className="text-[10px] text-slate-gray mt-1 mb-4 leading-relaxed">
-                  Downloads a JSON file containing all ledger & cashbook records.
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={backingUp}
-                onClick={handleCreateBackup}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-deep-navy dark:text-white rounded-xl text-xs font-bold border border-soft-gray transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                {backingUp ? (
-                  <span className="w-3.5 h-3.5 border-2 border-deep-navy border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>Download JSON</>
-                )}
-              </button>
-            </div>
-
-            <div className="p-4 bg-soft-white border border-soft-gray rounded-xl flex flex-col justify-between">
-              <div className="text-left">
-                <h4 className="text-xs font-bold text-deep-navy flex items-center gap-1.5 m-0">
-                  <FiUpload className="w-3.5 h-3.5 text-slate-gray" /> Upload Local File
-                </h4>
-                <p className="text-[10px] text-slate-gray mt-1 mb-4 leading-relaxed">
-                  Upload a previously downloaded backup JSON file to restore data.
-                </p>
-              </div>
-              <label className="relative w-full py-2 bg-light-cream border border-soft-gray hover:border-orange text-deep-navy hover:text-orange rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center">
-                {restoring ? (
-                  <span className="w-3.5 h-3.5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>Upload JSON File</>
-                )}
-                <input
-                  type="file"
-                  accept=".json"
-                  disabled={restoring}
-                  onChange={handleRestoreBackup}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Login Activity Tracker Card */}
-        <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
-          <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">Login Activity History</h3>
-          <p className="text-xs text-slate-gray m-0 mb-4 leading-relaxed">
-            Monitor active devices and IP locations that logged into your store. Suspicious attempts trigger security alerts.
-          </p>
-
-          {loadingActivities ? (
-            <div className="flex justify-center py-4">
-              <div className="w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : loginActivities.length === 0 ? (
-            <div className="text-center py-6 bg-soft-white border border-soft-gray rounded-xl">
-              <span className="text-xs text-slate-gray">No login activity records found</span>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-              {loginActivities.map((activity, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => {
-                    setSelectedActivity({ ...activity, isCurrent: idx === 0 });
-                    setShowActivityModal(true);
-                  }}
-                  className="p-3.5 bg-soft-white/60 hover:bg-soft-white border border-soft-gray/50 hover:border-orange/30 rounded-xl flex justify-between items-start text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group"
-                >
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-deep-navy group-hover:text-orange block flex items-center gap-1.5 transition-colors">
-                      <FiSmartphone className="w-3.5 h-3.5 text-slate-gray group-hover:text-orange transition-colors" /> {activity.deviceName} ({activity.browser})
-                      {idx === 0 && (
-                        <span className="bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                          Current
-                        </span>
+                      {form.avatar ? (
+                        <img src={form.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs text-slate-gray font-bold">Upload</span>
                       )}
-                    </span>
-                    <span className="text-[10px] text-slate-gray block flex items-center gap-1">
-                      <FiMapPin className="w-3 h-3 text-slate-gray/80" /> IP: {activity.ipAddress} • {activity.location}
-                    </span>
+                    </div>
+                    {/* Plus badge */}
+                    <div className="absolute bottom-0 right-0 bg-orange w-6 h-6 rounded-full flex items-center justify-center text-white border-2 border-pure-white cursor-pointer shadow pointer-events-none">
+                      <HiPlus size={14} />
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-[10px] text-slate-gray font-medium">
-                      {new Date(activity.loginTime).toLocaleString()}
+
+                  {/* Presets Selection */}
+                  <div className="space-y-1.5 flex-1">
+                    <span className="text-xs font-bold text-slate-gray mb-1.5 block">
+                      {t('selectPresetOrUpload')}
                     </span>
-                    <span className="text-[9px] text-orange opacity-0 group-hover:opacity-100 transition-opacity font-bold uppercase tracking-wider">
-                      Manage Options &rarr;
-                    </span>
+                    <div className="flex gap-3 flex-wrap">
+                      {presets.map((p, idx) => {
+                        const isSelected = form.avatar === p.value;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setForm({ ...form, avatar: p.value })}
+                            className={`w-11 h-11 rounded-full bg-pure-white border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${
+                              isSelected 
+                                ? 'border-orange ring-2 ring-orange/20 scale-105' 
+                                : 'border-soft-gray hover:border-slate-gray/30'
+                            }`}
+                          >
+                            <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('yourName')}</label>
+                <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('storeName')}</label>
+                <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.storeName} onChange={(e) => setForm({ ...form, storeName: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('phoneNumber')}</label>
+                <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+
+              <button className="inline-flex items-center justify-center px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm hover:shadow disabled:opacity-50 mt-2" type="submit" disabled={saving}>
+                {saving ? t('saving') : t('saveChanges')}
+              </button>
+            </form>
+          </div>
+
+          {/* 2. App Security Card */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+            <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">App Security</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2.5 border-b border-soft-gray/40">
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-deep-navy m-0">Security PIN</h4>
+                  <p className="text-xs text-slate-gray m-0 mt-0.5">Protect your register with a secure 4-digit PIN</p>
+                </div>
+                <button 
+                  onClick={() => navigate('/security-setup')}
+                  className="px-4 py-2 bg-light-cream border border-soft-gray hover:border-orange rounded-xl text-xs font-bold text-deep-navy hover:text-orange transition-colors cursor-pointer"
+                >
+                  Change PIN
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center py-2.5">
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-deep-navy m-0">Biometric Unlock</h4>
+                  <p className="text-xs text-slate-gray m-0 mt-0.5">Use device fingerprint scanner or face camera to unlock</p>
+                </div>
+                <div className="flex items-center">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={user?.isBiometricEnabled || false} 
+                      onChange={handleToggleBiometrics}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-soft-gray rounded-full peer peer-focus:ring-2 peer-focus:ring-orange/20 peer-checked:after:translate-x-full peer-checked:after:border-pure-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-pure-white after:border-soft-gray after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange"></div>
+                  </label>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Emergency Lock (One Click Lock) Card */}
-        <div className="bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-2xl p-7 shadow-sm">
-          <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2 mt-0">Emergency Account Lock</h3>
-          <p className="text-xs text-red-600/80 dark:text-red-400/80 m-0 mb-5 leading-relaxed">
-            If you suspect unauthorized access, click the button below. This will log out all other active sessions, reset/lock your password, and send a security notification email. You will need to reset your password to log back in.
-          </p>
-          <button
-            type="button"
-            disabled={locking}
-            onClick={handleEmergencyLock}
-            className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm flex items-center justify-center gap-2"
-          >
-            {locking ? (
-              <span className="w-4 h-4 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <><FiAlertOctagon className="w-4 h-4" /> Activate Emergency Lock</>
-            )}
-          </button>
-        </div>
-      </div>
-
-        {/* Right Column: UPI Settings (Desktop View - hidden on mobile) */}
-        <div className="hidden lg:block lg:col-span-5">
-          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm sticky top-24">
+          {/* 3. UPI Payment Settings Card */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
             <div className="flex items-center justify-between pb-4 border-b border-soft-gray/50 mb-5">
               <h3 className="text-lg font-bold text-deep-navy m-0 flex items-center gap-2">
                 <FaQrcode className="text-orange" size={20} />
@@ -1683,8 +1396,265 @@ const SettingsPage = () => {
                 </button>
               )}
             </div>
-
             {renderUpiSettingsContent()}
+          </div>
+
+          {/* 4. Delete Protection (Trash Bin) Card */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-lg font-bold text-deep-navy m-0">Trash Bin (Delete Protection)</h3>
+              <span className="bg-orange/10 text-orange text-xs font-bold px-2.5 py-1 rounded-full">
+                30 Days Recovery
+              </span>
+            </div>
+            <p className="text-xs text-slate-gray m-0 mb-4 leading-relaxed">
+              Customers you delete are kept here for 30 days. Restoring them recovers their balance and full transaction ledger.
+            </p>
+
+            {loadingTrash ? (
+              <div className="flex justify-center py-4">
+                <div className="w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : trashedCustomers.length === 0 ? (
+              <div className="text-center py-6 bg-soft-white border border-dashed border-soft-gray/60 rounded-xl">
+                <span className="text-xs text-slate-gray">Trash bin is empty</span>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {trashedCustomers.map((customer) => {
+                  const deletedDate = new Date(customer.deletedAt);
+                  const expiryDate = new Date(deletedDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                  const diffTime = expiryDate - Date.now();
+                  const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+                  return (
+                    <div key={customer._id} className="flex justify-between items-center p-3.5 bg-soft-white/60 border border-soft-gray/50 rounded-xl hover:bg-soft-white transition-colors">
+                      <div className="text-left">
+                        <span className="text-sm font-bold text-deep-navy block">{customer.name}</span>
+                        <span className="text-[11px] text-slate-gray block mt-0.5">
+                          Balance: <strong className={customer.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500"}>₹{Math.abs(customer.balance)}</strong>
+                        </span>
+                        <span className="text-[10px] text-orange block mt-1 font-semibold flex items-center gap-1">
+                          <FiClock className="w-3 h-3 text-orange" /> {daysRemaining} days left before permanent deletion
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleRestoreCustomer(customer._id)}
+                        className="px-3 py-1.5 bg-orange/10 hover:bg-orange text-orange hover:text-white rounded-lg text-xs font-bold border border-orange/20 transition-all cursor-pointer"
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Data Backup, Login Activity & Emergency Lock */}
+        <div className="lg:col-span-6 space-y-6">
+          {/* 5. Data Backup & Restore Card */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+            <h3 className="text-lg font-bold text-deep-navy mb-2 mt-0">Data Backup & Restore</h3>
+            <p className="text-xs text-slate-gray m-0 mb-6 leading-relaxed">
+              Securely back up your entire data to servers or restore from a previously saved copy. A confirmation email is sent for every backup and restoration.
+            </p>
+            <div className="p-5 bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl mb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="text-left">
+                  <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1 mb-1">
+                    <FiCloud className="w-3.5 h-3.5" /> Secure Cloud Backup
+                  </span>
+                  <h4 className="text-sm font-bold text-deep-navy m-0">1-Click Cloud Backup & Restore</h4>
+                  <p className="text-[11px] text-slate-gray mt-1 mb-3 leading-relaxed">
+                    Save your ledger & cashbook directly to your secure account cloud. Restores instantly without choosing any local files.
+                  </p>
+
+                  {loadingCloudBackup ? (
+                    <div className="flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[11px] text-slate-gray">Checking cloud status...</span>
+                    </div>
+                  ) : cloudBackupInfo ? (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                        <FiCheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Last cloud backup: {new Date(cloudBackupInfo.updatedAt).toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-slate-gray block">
+                        Includes: <strong>{cloudBackupInfo.customersCount}</strong> customers • <strong>{cloudBackupInfo.transactionsCount}</strong> ledger transactions • <strong>{cloudBackupInfo.cashbookCount}</strong> cashbook entries
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-orange font-bold flex items-center gap-1.5">
+                      <FiAlertTriangle className="w-3.5 h-3.5 text-orange" /> No cloud backup found. Back up your data to the cloud to prevent loss.
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-row md:flex-col gap-2.5 min-w-[180px]">
+                  <button
+                    type="button"
+                    disabled={backingUpCloud}
+                    onClick={handleCreateCloudBackup}
+                    className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold border-none transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {backingUpCloud ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <><FiCloud className="w-3.5 h-3.5" /> Backup to Cloud</>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={restoringCloud || !cloudBackupInfo}
+                    onClick={handleRestoreCloudBackup}
+                    className={`flex-1 py-2 px-4 text-white rounded-xl text-xs font-bold border-none transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                      !cloudBackupInfo 
+                        ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed opacity-50' 
+                        : 'bg-orange hover:bg-orange-hover'
+                    }`}
+                  >
+                    {restoringCloud ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <><FiRefreshCw className="w-3.5 h-3.5" /> Restore from Cloud</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-soft-gray"></div>
+              <span className="flex-shrink mx-4 text-[10px] text-slate-gray font-bold uppercase tracking-wider">Or Backup Locally</span>
+              <div className="flex-grow border-t border-soft-gray"></div>
+            </div>
+
+            {/* Local Storage Backup Block */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div className="p-4 bg-soft-white border border-soft-gray rounded-xl flex flex-col justify-between">
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-deep-navy flex items-center gap-1.5 m-0">
+                    <FiDownload className="w-3.5 h-3.5 text-slate-gray" /> Download Local File
+                  </h4>
+                  <p className="text-[10px] text-slate-gray mt-1 mb-4 leading-relaxed">
+                    Downloads a JSON file containing all ledger & cashbook records.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={backingUp}
+                  onClick={handleCreateBackup}
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-deep-navy dark:text-white rounded-xl text-xs font-bold border border-soft-gray transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {backingUp ? (
+                    <span className="w-3.5 h-3.5 border-2 border-deep-navy border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>Download JSON</>
+                  )}
+                </button>
+              </div>
+
+              <div className="p-4 bg-soft-white border border-soft-gray rounded-xl flex flex-col justify-between">
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-deep-navy flex items-center gap-1.5 m-0">
+                    <FiUpload className="w-3.5 h-3.5 text-slate-gray" /> Upload Local File
+                  </h4>
+                  <p className="text-[10px] text-slate-gray mt-1 mb-4 leading-relaxed">
+                    Upload a previously downloaded backup JSON file to restore data.
+                  </p>
+                </div>
+                <label className="relative w-full py-2 bg-light-cream border border-soft-gray hover:border-orange text-deep-navy hover:text-orange rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center">
+                  {restoring ? (
+                    <span className="w-3.5 h-3.5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>Upload JSON File</>
+                  )}
+                  <input
+                    type="file"
+                    accept=".json"
+                    disabled={restoring}
+                    onChange={handleRestoreBackup}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Login Activity History Card */}
+          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+            <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">Login Activity History</h3>
+            <p className="text-xs text-slate-gray m-0 mb-4 leading-relaxed">
+              Monitor active devices and IP locations that logged into your store. Suspicious attempts trigger security alerts.
+            </p>
+
+            {loadingActivities ? (
+              <div className="flex justify-center py-4">
+                <div className="w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : loginActivities.length === 0 ? (
+              <div className="text-center py-6 bg-soft-white border border-soft-gray rounded-xl">
+                <span className="text-xs text-slate-gray">No login activity records found</span>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                {loginActivities.map((activity, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => {
+                      setSelectedActivity({ ...activity, isCurrent: idx === 0 });
+                      setShowActivityModal(true);
+                    }}
+                    className="p-3.5 bg-soft-white/60 hover:bg-soft-white border border-soft-gray/50 hover:border-orange/30 rounded-xl flex justify-between items-start text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group"
+                  >
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-deep-navy group-hover:text-orange block flex items-center gap-1.5 transition-colors">
+                        <FiSmartphone className="w-3.5 h-3.5 text-slate-gray group-hover:text-orange transition-colors" /> {activity.deviceName} ({activity.browser})
+                        {idx === 0 && (
+                          <span className="bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                            Current
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[10px] text-slate-gray block flex items-center gap-1">
+                        <FiMapPin className="w-3 h-3 text-slate-gray/80" /> IP: {activity.ipAddress} • {activity.location}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[10px] text-slate-gray font-medium">
+                        {new Date(activity.loginTime).toLocaleString()}
+                      </span>
+                      <span className="text-[9px] text-orange opacity-0 group-hover:opacity-100 transition-opacity font-bold uppercase tracking-wider">
+                        Manage Options &rarr;
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 7. Emergency Account Lock Card */}
+          <div className="bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-2xl p-7 shadow-sm">
+            <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2 mt-0">Emergency Account Lock</h3>
+            <p className="text-xs text-red-600/80 dark:text-red-400/80 m-0 mb-5 leading-relaxed">
+              If you suspect unauthorized access, click the button below. This will log out all other active sessions, reset/lock your password, and send a security notification email. You will need to reset your password to log back in.
+            </p>
+            <button
+              type="button"
+              disabled={locking}
+              onClick={handleEmergencyLock}
+              className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm flex items-center justify-center gap-2"
+            >
+              {locking ? (
+                <span className="w-4 h-4 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <><FiAlertOctagon className="w-4 h-4" /> Activate Emergency Lock</>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1700,7 +1670,7 @@ const SettingsPage = () => {
                   <Shield className="w-6 h-6" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 font-outfit">Enable Secure Unlock</h2>
-                <p className="text-xs text-slate-500 mt-2 mb-6">Choose a biometric method to set up secure unlock for Digital Udhaar Khata.</p>
+                <p className="text-xs text-slate-500 mt-2 mb-6">Choose a biometric method to set up secure unlock for AI Digital Khata.</p>
 
                 <div className="w-full space-y-3">
                   <button

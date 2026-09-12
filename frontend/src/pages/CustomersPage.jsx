@@ -10,9 +10,11 @@ import ConfirmDialog from '../components/Common/ConfirmDialog';
 import { useLanguage } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlineTrash, HiOutlineMicrophone, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation, HiOutlineClock, HiOutlineMail, HiOutlineArrowUp, HiOutlineArrowDown } from 'react-icons/hi';
+import LocationAddressInput, { navigateToAddress } from '../components/Common/LocationAddressInput';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlineTrash, HiOutlineMicrophone, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation, HiOutlineClock, HiOutlineMail, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineLocationMarker, HiOutlineExternalLink, HiOutlineSparkles, HiOutlinePhone } from 'react-icons/hi';
 import { FaWhatsapp, FaSms, FaMobileAlt, FaPhone } from 'react-icons/fa';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import AiVoiceCallModal from '../components/AI/AiVoiceCallModal';
 
 const defaultUserSvg = `
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -80,7 +82,17 @@ const CustomersPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', avatar: customerPresets[0].value });
+  const [selectedCallCustomer, setSelectedCallCustomer] = useState(null);
+  const [form, setForm] = useState({ 
+    name: '', 
+    phone: '', 
+    email: '', 
+    address: '', 
+    avatar: customerPresets[0].value,
+    preferredLanguage: 'te-IN',
+    phoneType: 'smartphone',
+    aiReminderEnabled: true
+  });
   const [submitting, setSubmitting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState({});
   const fileInputRef = useRef(null);
@@ -169,12 +181,12 @@ const CustomersPage = () => {
       const { data } = await API.get('/customers', { params });
       const rawCustomers = data?.data || [];
       const enriched = rawCustomers.map(c => {
-        const prediction = getDeterministicPrediction(c._id, c.name);
+        const prediction = getDeterministicPrediction(c);
         return {
           ...c,
-          duePrediction: prediction.duePrediction,
-          creditScore: prediction.creditScore,
-          riskLevel: prediction.riskLevel
+          duePrediction: c.duePrediction || prediction.duePrediction,
+          creditScore: c.creditScore || prediction.creditScore,
+          riskLevel: c.riskLevel || prediction.riskLevel
         };
       });
       setCustomers(enriched);
@@ -343,6 +355,22 @@ const CustomersPage = () => {
                           {c.email}
                         </span>
                       )}
+                      {c.address && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigateToAddress(c.address);
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-semibold mt-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200/60 transition-colors w-max cursor-pointer border-none"
+                          title={`Navigate to ${c.address}`}
+                        >
+                          <HiOutlineLocationMarker size={12} />
+                          <span className="truncate max-w-[130px]">{c.address}</span>
+                          <HiOutlineExternalLink size={10} />
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-sm align-middle font-bold ${c.balance > 0 ? 'text-red-give' : 'text-green-get'}`}>
@@ -416,6 +444,17 @@ const CustomersPage = () => {
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-green-get/10 hover:bg-green-get/20 text-green-get text-[10px] font-bold rounded-lg border-none cursor-pointer transition-colors"
                       >
                         <HiOutlineArrowDown size={11} /> You Got
+                      </button>
+                      <button
+                        title="Start AI Voice Call Assistant"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedCallCustomer(c);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white text-[10px] font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm"
+                      >
+                        <HiOutlinePhone size={11} /> AI Call
                       </button>
                       {c.balance > 0 && (
                         <button 
@@ -520,8 +559,63 @@ const CustomersPage = () => {
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('address')}</label>
-            <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} />
+            <LocationAddressInput
+              value={form.address}
+              onChange={(val) => setForm({ ...form, address: val })}
+              placeholder="Enter address manually or use GPS map location"
+            />
           </div>
+
+          {/* AI Voice Assistant Configuration */}
+          <div className="p-3 bg-orange/5 dark:bg-orange-950/20 border border-orange/20 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-deep-navy dark:text-white flex items-center gap-1.5">
+                <HiOutlineSparkles size={16} className="text-orange" /> AI Voice Assistant Settings
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.aiReminderEnabled}
+                  onChange={(e) => setForm({ ...form, aiReminderEnabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange"></div>
+                <span className="ml-2 text-xs font-bold text-slate-gray">
+                  {form.aiReminderEnabled ? 'ON' : 'OFF'}
+                </span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">Preferred Language</label>
+                <select
+                  className="w-full px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
+                  value={form.preferredLanguage}
+                  onChange={(e) => setForm({ ...form, preferredLanguage: e.target.value })}
+                >
+                  <option value="te-IN">Telugu (తెలుగు)</option>
+                  <option value="hi-IN">Hindi (हिंदी)</option>
+                  <option value="en-IN">English</option>
+                  <option value="ta-IN">Tamil (தமிழ்)</option>
+                  <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">Phone Type</label>
+                <select
+                  className="w-full px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
+                  value={form.phoneType}
+                  onChange={(e) => setForm({ ...form, phoneType: e.target.value })}
+                >
+                  <option value="smartphone">Smartphone</option>
+                  <option value="basic">Basic Phone (Feature)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 pt-3 border-t border-soft-gray">
             <button type="button" className="px-4 py-2.5 bg-transparent border border-soft-gray text-slate-gray hover:bg-slate-gray/5 rounded-xl text-sm font-semibold cursor-pointer transition-colors" onClick={() => setShowForm(false)}>{t('cancel')}</button>
             <button type="submit" className="px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm" disabled={submitting}>{submitting ? t('saving') : t('save')}</button>
@@ -777,6 +871,13 @@ const CustomersPage = () => {
           </div>
         </div>
       )}
+      {/* AI Voice Call Simulator Modal */}
+      <AiVoiceCallModal
+        isOpen={!!selectedCallCustomer}
+        onClose={() => setSelectedCallCustomer(null)}
+        customer={selectedCallCustomer}
+        onCallCompleted={fetchCustomers}
+      />
     </>
   );
 };

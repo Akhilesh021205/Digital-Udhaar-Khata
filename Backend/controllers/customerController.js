@@ -114,7 +114,7 @@ const getCustomer = async (req, res, next) => {
 // @route   POST /api/customers
 const createCustomer = async (req, res, next) => {
   try {
-    const { name, phone, email, address, notes, avatar, paymentDueDate } = req.body;
+    const { name, phone, email, address, notes, avatar, paymentDueDate, preferredLanguage, phoneType, aiReminderEnabled } = req.body;
 
     // Check if email exists/is valid if provided
     if (email && !(await validateEmailExists(email))) {
@@ -147,6 +147,9 @@ const createCustomer = async (req, res, next) => {
       notes: notes || '',
       avatar: avatar || '',
       paymentDueDate: paymentDueDate || null,
+      preferredLanguage: preferredLanguage || 'te-IN',
+      phoneType: phoneType || 'smartphone',
+      aiReminderEnabled: aiReminderEnabled !== undefined ? aiReminderEnabled : true,
       owner: req.user._id,
     });
 
@@ -164,6 +167,7 @@ const createCustomer = async (req, res, next) => {
     });
 
     cache.invalidatePrefix(`customers_${req.user._id}`);
+    cache.invalidatePrefix(`stats_${req.user._id}`);
     socketService.emitRefresh('customers');
 
     res.status(201).json({
@@ -179,7 +183,7 @@ const createCustomer = async (req, res, next) => {
 // @route   PUT /api/customers/:id
 const updateCustomer = async (req, res, next) => {
   try {
-    const { name, phone, email, address, notes, avatar, paymentDueDate } = req.body;
+    const { name, phone, email, address, notes, avatar, paymentDueDate, preferredLanguage, phoneType, aiReminderEnabled } = req.body;
 
     // Check if email exists/is valid if provided
     if (email && !(await validateEmailExists(email))) {
@@ -209,10 +213,14 @@ const updateCustomer = async (req, res, next) => {
     if (notes !== undefined) customer.notes = notes;
     if (avatar !== undefined) customer.avatar = avatar;
     if (paymentDueDate !== undefined) customer.paymentDueDate = paymentDueDate || null;
+    if (preferredLanguage !== undefined) customer.preferredLanguage = preferredLanguage;
+    if (phoneType !== undefined) customer.phoneType = phoneType;
+    if (aiReminderEnabled !== undefined) customer.aiReminderEnabled = aiReminderEnabled;
 
     await customer.save();
 
     cache.invalidatePrefix(`customers_${req.user._id}`);
+    cache.invalidatePrefix(`stats_${req.user._id}`);
     socketService.emitRefresh('customers');
 
     res.status(200).json({
@@ -260,6 +268,7 @@ const deleteCustomer = async (req, res, next) => {
     });
 
     cache.invalidatePrefix(`customers_${req.user._id}`);
+    cache.invalidatePrefix(`stats_${req.user._id}`);
     socketService.emitRefresh('customers');
 
     res.status(200).json({
@@ -335,6 +344,7 @@ const restoreCustomer = async (req, res, next) => {
     });
 
     cache.invalidatePrefix(`customers_${req.user._id}`);
+    cache.invalidatePrefix(`stats_${req.user._id}`);
     socketService.emitRefresh('customers');
 
     res.status(200).json({

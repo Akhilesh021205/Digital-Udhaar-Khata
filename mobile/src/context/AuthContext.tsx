@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const authenticateBiometrically = async (): Promise<boolean> => {
     try {
       const success = await biometricService.authenticate(
-        `Verify your identity to unlock Digital Udhaar`
+        `Verify your identity to unlock AI Digital Khata`
       );
 
       if (success) {

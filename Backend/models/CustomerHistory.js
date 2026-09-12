@@ -24,7 +24,7 @@ const customerHistorySchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['credit', 'debit', 'customer_created', 'customer_deleted'],
+      enum: ['credit', 'debit', 'customer_created', 'customer_deleted', 'ai_voice_reminder'],
       required: true,
     },
     amount: {

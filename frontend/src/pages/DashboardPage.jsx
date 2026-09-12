@@ -10,15 +10,19 @@ import { useLanguage } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import { toast } from 'react-toastify';
+import LocationAddressInput from '../components/Common/LocationAddressInput';
 import {
   HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineUsers,
   HiOutlineCreditCard, HiOutlineExclamation, HiOutlineClock,
   HiOutlineMicrophone, HiOutlineUser, HiOutlineX,
   HiOutlineSearch, HiOutlineFilter, HiOutlinePlus,
   HiOutlineDotsVertical, HiOutlineDocumentText, HiOutlineDatabase,
-  HiOutlineCog, HiOutlineBell, HiOutlineUserAdd
+  HiOutlineCog, HiOutlineBell, HiOutlineUserAdd,
+  HiOutlineTrendingUp, HiOutlineSparkles, HiOutlineCheckCircle, HiOutlineShieldCheck,
+  HiOutlineBookOpen, HiOutlinePhone
 } from 'react-icons/hi';
 import { FaWhatsapp, FaSms, FaMobileAlt, FaPhone } from 'react-icons/fa';
+import AiVoiceCallModal from '../components/AI/AiVoiceCallModal';
 
 const defaultUserSvg = `
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -78,7 +82,19 @@ const customerPresets = [
 ];
 
 const avatarColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
-const getAvatarColor = (name) => avatarColors[name.charCodeAt(0) % avatarColors.length];
+const getAvatarColor = (name) => avatarColors[(name || 'A').charCodeAt(0) % avatarColors.length];
+
+const formatPhoneDisplay = (phone) => {
+  if (!phone) return '';
+  const clean = phone.toString().trim().replace(/\s+/g, '');
+  if (clean.startsWith('+')) {
+    return clean.replace(/^(\+\d{2})(\d+)$/, '$1 $2');
+  }
+  if (clean.length === 10) {
+    return `+91 ${clean}`;
+  }
+  return clean;
+};
 
 const DashboardPage = () => {
   const { t, lang } = useLanguage();
@@ -92,6 +108,7 @@ const DashboardPage = () => {
   const [txnForm, setTxnForm] = useState({ customer: '', type: 'credit', amount: '', description: '', date: new Date().toISOString().split('T')[0], paymentMode: 'cash' });
   const [submitting, setSubmitting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState({});
+  const [selectedCallCustomer, setSelectedCallCustomer] = useState(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [custFilter, setCustFilter] = useState('all');
   const [custSearch, setCustSearch] = useState('');
@@ -102,12 +119,12 @@ const DashboardPage = () => {
   const customerList = useMemo(() => {
     const rawList = Array.isArray(customers) ? customers : [];
     return rawList.map(c => {
-      const prediction = getDeterministicPrediction(c._id, c.name);
+      const prediction = getDeterministicPrediction(c);
       return {
         ...c,
-        duePrediction: prediction.duePrediction,
-        creditScore: prediction.creditScore,
-        riskLevel: prediction.riskLevel
+        duePrediction: c.duePrediction || prediction.duePrediction,
+        creditScore: c.creditScore || prediction.creditScore,
+        riskLevel: c.riskLevel || prediction.riskLevel
       };
     });
   }, [customers]);
@@ -237,6 +254,23 @@ const DashboardPage = () => {
     }
   };
 
+  const handleWhatsAppRemind = (customer) => {
+    if (!customer) {
+      toast.warning('Please select a customer first');
+      return;
+    }
+    const phone = customer.phone?.replace(/[^0-9]/g, '');
+    if (!phone) {
+      toast.error('Customer phone number not available');
+      return;
+    }
+    const dueAmount = Math.abs(customer.balance || 0);
+    const message = `Hello ${customer.name}, your total outstanding balance at ${user?.storeName || 'our store'} is ₹${dueAmount.toLocaleString('en-IN')}. Kindly clear the payment at your earliest convenience. Thank you!`;
+    const formattedPhone = phone.startsWith('91') && phone.length === 12 ? phone : `91${phone}`;
+    const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
   const fetchAll = async () => {
     try {
       const [statsRes, txnRes, custRes] = await Promise.all([
@@ -273,10 +307,29 @@ const DashboardPage = () => {
     });
   }, [customerList, custSearch, custFilter]);
 
+  const validTransactions = useMemo(() => {
+    if (!Array.isArray(transactions) || customerList.length === 0) return [];
+    const activeCustIds = new Set(customerList.map(c => c._id));
+    return transactions.filter(t => {
+      const custId = typeof t.customer === 'object' ? t.customer?._id : t.customer;
+      return custId && activeCustIds.has(custId);
+    });
+  }, [transactions, customerList]);
+
   const statsMeta = useMemo(() => {
-    const youWillGet = stats?.youWillGet || 0;
-    const youWillGive = stats?.youWillGive || 0;
-    const totalUdharVal = youWillGet + youWillGive || 1;
+    let youWillGet = 0;
+    let youWillGive = 0;
+    let customersWithDues = 0;
+    let advanceAccounts = 0;
+
+    if (customerList.length > 0) {
+      youWillGet = customerList.reduce((acc, c) => acc + (c.balance > 0 ? c.balance : 0), 0);
+      youWillGive = customerList.reduce((acc, c) => acc + (c.balance < 0 ? Math.abs(c.balance) : 0), 0);
+      customersWithDues = customerList.filter(c => c.balance > 0).length;
+      advanceAccounts = customerList.filter(c => c.balance < 0).length;
+    }
+
+    const totalUdharVal = (youWillGet + youWillGive) || 1;
     const creditPct = (youWillGet / totalUdharVal) * 100;
     const debitPct = (youWillGive / totalUdharVal) * 100;
     const radius = 35;
@@ -287,6 +340,8 @@ const DashboardPage = () => {
     return {
       youWillGet,
       youWillGive,
+      customersWithDues,
+      advanceAccounts,
       totalUdharVal,
       creditPct,
       debitPct,
@@ -296,11 +351,13 @@ const DashboardPage = () => {
       creditStroke,
       debitStroke
     };
-  }, [stats]);
+  }, [customerList]);
 
   const {
     youWillGet,
     youWillGive,
+    customersWithDues,
+    advanceAccounts,
     totalUdharVal,
     creditPct,
     debitPct,
@@ -349,7 +406,7 @@ const DashboardPage = () => {
     </div>
   );
 
-  const transactionList = Array.isArray(transactions) ? transactions : [];
+  const transactionList = validTransactions;
 
   const handleBackup = () => {
     toast.success('Database backup completed successfully.');
@@ -373,141 +430,187 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       <Header
-        title={t('dashboard')}
-        subtitle={t('overviewOfStore')}
+        title={t('dashboard') || 'Dashboard'}
+        subtitle={t('overviewOfStore') || 'Overview of your store'}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-        <div className="p-3.5 sm:p-5 bg-orange/8 border border-orange/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
-          <div className="min-w-0 flex-1 pr-1">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('totalBalance') || 'Total Balance'}</span>
-            <span className="text-base sm:text-xl font-black text-deep-navy block mt-0.5 font-outfit truncate">
-              ₹{((stats?.youWillGet || 0) - (stats?.youWillGive || 0)).toLocaleString('en-IN')}
+      {/* Top 4 Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Card 1: Total Balance */}
+        <div className="p-5 bg-slate-900 text-white rounded-2xl shadow-sm border border-slate-800 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-md">
+          <div>
+            <span className="text-xs font-semibold text-slate-400 block tracking-wide">
+              {t('totalBalance') || 'Total Balance'}
             </span>
-            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{t('totalUdhar') || 'Total Transactions Balance'}</span>
+            <div className="mt-2.5 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight truncate">
+                ₹{(youWillGet - youWillGive).toLocaleString('en-IN')}
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 flex items-center justify-center font-bold text-base shrink-0">
+                ₹
+              </div>
+            </div>
           </div>
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-orange text-white flex items-center justify-center font-bold text-sm sm:text-lg shadow-sm shrink-0">
-            ₹
+          <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span>{t('totalUdhar') || 'Total Ledger Balance'}</span>
+            <span className="text-emerald-400 font-bold flex items-center gap-1">
+              <HiOutlineTrendingUp className="w-3.5 h-3.5" /> Live
+            </span>
           </div>
         </div>
 
-        <div className="p-3.5 sm:p-5 bg-green-get/8 border border-green-get/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
-          <div className="min-w-0 flex-1 pr-1">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('youWillGet')}</span>
-            <span className="text-base sm:text-xl font-black text-green-get block mt-0.5 font-outfit truncate">
-              ₹{(stats?.youWillGet || 0).toLocaleString('en-IN')}
+        {/* Card 2: You'll Receive */}
+        <div className="p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
+          <div>
+            <span className="text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
+              You'll Receive
             </span>
-            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{stats?.customersWithDues || 0} {t('customers')}</span>
+            <div className="mt-2.5 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-outfit tracking-tight truncate">
+                ₹{youWillGet.toLocaleString('en-IN')}
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 flex items-center justify-center text-lg shrink-0">
+                <HiOutlineArrowDown />
+              </div>
+            </div>
           </div>
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-green-get text-white flex items-center justify-center text-sm sm:text-xl shadow-sm shrink-0">
-            <HiOutlineArrowDown />
+          <div className="mt-4 pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-gray dark:text-slate-400 font-medium">
+            <span>{customersWithDues} customers</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Pending</span>
           </div>
         </div>
 
-        <div className="p-3.5 sm:p-5 bg-red-give/8 border border-red-give/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
-          <div className="min-w-0 flex-1 pr-1">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('youWillGive')}</span>
-            <span className="text-base sm:text-xl font-black text-red-give block mt-0.5 font-outfit truncate">
-              ₹{(stats?.youWillGive || 0).toLocaleString('en-IN')}
+        {/* Card 3: You'll Pay */}
+        <div className="p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
+          <div>
+            <span className="text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
+              You'll Pay
             </span>
-            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{t('advancePayments') || 'Advance accounts'}</span>
+            <div className="mt-2.5 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-outfit tracking-tight truncate">
+                ₹{youWillGive.toLocaleString('en-IN')}
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/50 flex items-center justify-center text-lg shrink-0">
+                <HiOutlineArrowUp />
+              </div>
+            </div>
           </div>
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-red-give text-white flex items-center justify-center text-sm sm:text-xl shadow-sm shrink-0">
-            <HiOutlineArrowUp />
+          <div className="mt-4 pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-gray dark:text-slate-400 font-medium">
+            <span>{advanceAccounts} accounts</span>
+            <span className="font-semibold text-rose-600 dark:text-rose-400">Advance</span>
           </div>
         </div>
 
-        <div className="p-3.5 sm:p-5 bg-slate-gray/8 border border-slate-gray/20 rounded-2xl shadow-xs flex items-center justify-between transition-all hover:shadow-md min-w-0">
-          <div className="min-w-0 flex-1 pr-1">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-gray block tracking-wide truncate">{t('totalTransactions') || 'Total Transactions'}</span>
-            <span className="text-base sm:text-xl font-black text-deep-navy block mt-0.5 font-outfit truncate">
-              {(stats?.todayTransactions || 0) + (stats?.pendingTransactions || 0)}
+        {/* Card 4: Total Transactions */}
+        <div className="p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
+          <div>
+            <span className="text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
+              Total Transactions
             </span>
-            <span className="text-[9px] sm:text-sm text-slate-gray block mt-0.5 font-medium truncate">{t('thisMonth') || 'This Month'}</span>
+            <div className="mt-2.5 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-black text-deep-navy dark:text-white font-outfit tracking-tight truncate">
+                {validTransactions.length}
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-soft-gray dark:border-slate-700 flex items-center justify-center text-lg shrink-0">
+                <HiOutlineCreditCard />
+              </div>
+            </div>
           </div>
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-slate-gray text-white flex items-center justify-center text-sm sm:text-xl shadow-sm shrink-0">
-            <HiOutlineCreditCard />
+          <div className="mt-4 pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-gray dark:text-slate-400 font-medium">
+            <span>{t('thisMonth') || 'This Month'}</span>
+            <span className="font-semibold text-deep-navy dark:text-white">Active</span>
           </div>
         </div>
       </div>
 
+      {/* Main Grid Section */}
       <div className="grid grid-cols-12 gap-6">
+        {/* Left Column (8 cols): Customer Table & Bottom Widgets */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
-          <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
+          {/* Customers Section */}
+          <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-5 sm:p-6">
             {customerList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-slate-gray/10 text-slate-gray flex items-center justify-center mb-4">
-                  <HiOutlineUsers size={32} />
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
+                  <HiOutlineUsers size={28} />
                 </div>
-                <h4 className="text-sm font-bold text-deep-navy">No Customers Added</h4>
-                <p className="text-xs text-slate-gray max-w-xs mt-1 mb-4">
-                  Manage your digital Transactions accounts easily. Add your first customer to get started.
+                <h4 className="text-sm font-bold text-deep-navy dark:text-white">No Customers Added</h4>
+                <p className="text-xs text-slate-gray dark:text-slate-400 max-w-xs mt-1 mb-4">
+                  Manage your digital khata records easily. Add your first customer to get started.
                 </p>
                 <button
                   onClick={() => setShowCustModal(true)}
-                  className="px-5 py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer border-none flex items-center gap-2"
+                  className="px-4 py-2.5 bg-orange hover:bg-orange-hover text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer border-none flex items-center gap-2"
                 >
                   <HiOutlinePlus size={16} /> Add Customer
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <h3 className="text-base font-bold text-deep-navy">{t('customers')}</h3>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex bg-light-cream rounded-xl p-0.5 border border-soft-gray">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                  <div>
+                    <h3 className="text-base font-bold text-deep-navy dark:text-white">{t('customers') || 'Customers'}</h3>
+                    <p className="text-xs text-slate-gray dark:text-slate-400 font-medium mt-0.5">Manage customer balances and ledger records</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <div className="flex bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-soft-gray/60 dark:border-slate-700/60">
                       <button
                         onClick={() => setCustFilter('all')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${custFilter === 'all' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
-                          }`}
+                        className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
+                          custFilter === 'all' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-deep-navy dark:hover:text-white'
+                        }`}
                       >
                         All
                       </button>
                       <button
                         onClick={() => setCustFilter('get')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${custFilter === 'get' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
-                          }`}
+                        className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
+                          custFilter === 'get' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                        }`}
                       >
-                        You Will Get
+                        You'll Receive
                       </button>
                       <button
                         onClick={() => setCustFilter('pay')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${custFilter === 'pay' ? 'bg-orange text-white shadow-xs' : 'text-slate-gray hover:text-deep-navy'
-                          }`}
+                        className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
+                          custFilter === 'pay' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
+                        }`}
                       >
-                        You Will Pay
+                        You'll Pay
                       </button>
                     </div>
-                    <div className="relative flex-1 sm:w-48">
-                      <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-gray" size={16} />
+
+                    <div className="relative flex-1 sm:w-44">
+                      <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-gray" size={15} />
                       <input
                         type="text"
                         value={custSearch}
                         onChange={(e) => setCustSearch(e.target.value)}
                         placeholder="Search customers..."
-                        className="w-full pl-9 pr-4 py-2 border border-soft-gray rounded-xl bg-light-cream/40 text-xs focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none text-deep-navy"
+                        className="w-full pl-8 pr-3 py-1.5 border border-soft-gray dark:border-slate-700 rounded-xl bg-pure-white dark:bg-slate-800 text-xs focus:border-orange focus:ring-1 focus:ring-orange/20 outline-none text-deep-navy dark:text-white"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-soft-gray">
-                  <table className="w-full border-collapse">
+                <div className="overflow-x-auto rounded-xl border border-soft-gray/80 dark:border-slate-800">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-light-cream/40 border-b border-soft-gray">
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-slate-gray uppercase tracking-wider">Customer</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-slate-gray uppercase tracking-wider">Type</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-slate-gray uppercase tracking-wider">Total Balance</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-slate-gray uppercase tracking-wider">Prediction</th>
-                        <th className="text-center px-4 py-3 text-xs font-semibold text-slate-gray uppercase tracking-wider">Action</th>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-soft-gray/80 dark:border-slate-800">
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Customer</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Type</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Total Balance</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-soft-gray/30">
+                    <tbody className="divide-y divide-soft-gray/40 dark:divide-slate-800">
                       {filteredCustomers.length === 0 ? (
                         <tr>
-                          <td colSpan="5" className="text-center py-8 text-xs font-semibold text-slate-gray">
-                            No customers matching your search/filters
+                          <td colSpan="5" className="text-center py-8 text-xs font-semibold text-slate-gray dark:text-slate-400">
+                            No customers matching your search filter
                           </td>
                         </tr>
                       ) : (
@@ -515,56 +618,68 @@ const DashboardPage = () => {
                           <tr
                             key={c._id}
                             onClick={() => setSelectedCustomerId(c._id)}
-                            className={`hover:bg-slate-gray/5 transition-all duration-200 cursor-pointer ${activeCustomer?._id === c._id ? 'bg-orange/5 font-semibold' : ''
-                              }`}
+                            className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer ${
+                              activeCustomer?._id === c._id ? 'bg-rose-50/30 dark:bg-rose-950/10' : ''
+                            }`}
                           >
-                            <td className="px-4 py-3 text-sm font-semibold text-deep-navy flex items-center gap-3">
-                              {c.avatar ? (
-                                <img
-                                  src={c.avatar}
-                                  alt={c.name}
-                                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-soft-gray shadow-xs"
-                                />
-                              ) : (
-                                <div
-                                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner"
-                                  style={{ background: getAvatarColor(c.name) }}
-                                >
-                                  {c.name.charAt(0).toUpperCase()}
+                            <td className="px-4 py-3 text-sm font-semibold text-deep-navy dark:text-white">
+                              <div className="flex items-center gap-3">
+                                {c.avatar ? (
+                                  <img
+                                    src={c.avatar}
+                                    alt={c.name}
+                                    className="w-8 h-8 rounded-full object-cover shrink-0 border border-soft-gray dark:border-slate-700"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs"
+                                    style={{ background: getAvatarColor(c.name) }}
+                                  >
+                                    {c.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <span className="block truncate text-sm font-bold text-deep-navy dark:text-white">{c.name}</span>
+                                  <span className="text-[11px] text-slate-gray dark:text-slate-400 font-normal block mt-0.5">{formatPhoneDisplay(c.phone)}</span>
                                 </div>
-                              )}
-                              <div>
-                                <span className="block">{c.name}</span>
-                                <span className="text-[10px] text-slate-gray font-normal block mt-0.5">{c.phone}</span>
                               </div>
                             </td>
+
                             <td className="px-4 py-3 text-xs">
-                              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${c.balance >= 0 ? 'bg-green-get/10 text-green-get' : 'bg-red-give/10 text-red-give'
-                                }`}>
-                                {c.balance >= 0 ? 'You Will Get' : 'You Will Pay'}
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
+                                c.balance >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/40'
+                              }`}>
+                                {c.balance >= 0 ? "You'll Receive" : "You'll Pay"}
                               </span>
                             </td>
-                            <td className={`px-4 py-3 text-sm font-bold font-outfit ${c.balance >= 0 ? 'text-green-get' : 'text-red-give'
-                              }`}>
-                              ₹{Math.abs(c.balance).toLocaleString('en-IN')}
+
+                            <td className="px-4 py-3 text-sm font-bold font-outfit">
+                              <span className={c.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                ₹{Math.abs(c.balance).toLocaleString('en-IN')}
+                              </span>
                             </td>
+
                             <td className="px-4 py-3 text-xs">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase border ${c.duePrediction === 'trusted' ? 'bg-green-get/10 text-green-get border-green-get/20' :
-                                  c.duePrediction === 'delay' ? 'bg-warning-pending/10 text-warning-pending border-warning-pending/20' :
-                                    'bg-red-give/10 text-red-give border-red-give/20'
-                                }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${c.duePrediction === 'trusted' ? 'bg-green-get' :
-                                    c.duePrediction === 'delay' ? 'bg-warning-pending' :
-                                      'bg-red-give'
-                                  }`} />
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
+                                c.duePrediction === 'trusted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40' :
+                                c.duePrediction === 'delay' ? 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40' :
+                                'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/40'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  c.duePrediction === 'trusted' ? 'bg-emerald-500' :
+                                  c.duePrediction === 'delay' ? 'bg-amber-500' :
+                                  'bg-rose-500'
+                                }`} />
                                 {c.duePrediction === 'trusted' ? 'Trusted' : c.duePrediction === 'delay' ? 'Delay' : 'Risky'}
                               </span>
                             </td>
+
                             <td className="px-4 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setActiveDropdownId(activeDropdownId === c._id ? null : c._id)}
-                                className={`p-1.5 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer transition-colors ${activeDropdownId === c._id ? 'bg-slate-gray/10 text-deep-navy' : ''
-                                  }`}
+                                className={`p-1.5 text-slate-gray hover:text-deep-navy dark:hover:text-white rounded-lg transition-colors border-none bg-transparent cursor-pointer ${
+                                  activeDropdownId === c._id ? 'bg-slate-100 dark:bg-slate-800 text-deep-navy dark:text-white' : ''
+                                }`}
                               >
                                 <HiOutlineDotsVertical size={16} />
                               </button>
@@ -578,13 +693,13 @@ const DashboardPage = () => {
                                       setActiveDropdownId(null);
                                     }}
                                   />
-                                  <div className="absolute right-4 top-10 bg-pure-white border border-soft-gray/80 rounded-xl shadow-lg py-1.5 min-w-[160px] z-50 animate-in fade-in slide-in-from-top-2 duration-100 text-left">
+                                  <div className="absolute right-4 top-10 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-xl shadow-lg py-1.5 min-w-[150px] z-50 animate-in fade-in duration-100 text-left">
                                     <button
                                       onClick={() => {
                                         navigate(`/customers/${c._id}`);
                                         setActiveDropdownId(null);
                                       }}
-                                      className="w-full text-left px-4 py-2.5 hover:bg-slate-gray/5 text-xs text-deep-navy font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                                      className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-deep-navy dark:text-white font-semibold flex items-center gap-2 border-none bg-transparent cursor-pointer"
                                     >
                                       <HiOutlineUser size={14} className="text-slate-gray" />
                                       View Ledger
@@ -602,10 +717,20 @@ const DashboardPage = () => {
                                         setShowTxnModal(true);
                                         setActiveDropdownId(null);
                                       }}
-                                      className="w-full text-left px-4 py-2.5 hover:bg-slate-gray/5 text-xs text-deep-navy font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                                      className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-deep-navy dark:text-white font-semibold flex items-center gap-2 border-none bg-transparent cursor-pointer"
                                     >
                                       <HiOutlinePlus size={14} className="text-slate-gray" />
                                       Add Entry
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedCallCustomer(c);
+                                        setActiveDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-orange font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                                    >
+                                      <HiOutlinePhone size={14} className="text-orange" />
+                                      Start AI Call
                                     </button>
                                     <button
                                       onClick={(e) => {
@@ -613,7 +738,7 @@ const DashboardPage = () => {
                                         setActiveDropdownId(null);
                                       }}
                                       disabled={sendingEmail[c._id]}
-                                      className="w-full text-left px-4 py-2.5 hover:bg-slate-gray/5 text-xs text-deep-navy font-bold flex items-center gap-2 border-none bg-transparent cursor-pointer disabled:opacity-50"
+                                      className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-deep-navy dark:text-white font-semibold flex items-center gap-2 border-none bg-transparent cursor-pointer disabled:opacity-50"
                                     >
                                       <HiOutlineBell size={14} className="text-slate-gray" />
                                       {sendingEmail[c._id] ? 'Sending...' : 'Send Reminder'}
@@ -632,288 +757,293 @@ const DashboardPage = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-bold text-deep-navy">{t('recentTransactions')}</h3>
-                <Link to="/transactions" className="text-xs font-semibold text-orange hover:underline">{t('viewAll')}</Link>
+          {/* Bottom 3 Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+            {/* Widget 1: Recent Transactions */}
+            <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-bold text-deep-navy dark:text-white">{t('recentTransactions') || 'Recent Transactions'}</h3>
+                  <Link to="/history" className="text-xs font-semibold text-orange hover:underline">{t('viewAll') || 'View All'}</Link>
+                </div>
+                {transactionList.length === 0 ? (
+                  <div className="text-center py-6 space-y-1">
+                    <h4 className="text-xs font-semibold text-slate-gray dark:text-slate-400">No transactions recorded</h4>
+                    <p className="text-[10px] text-slate-gray/70 dark:text-slate-500">New transactions will appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {transactionList.slice(0, 3).map((txn) => (
+                      <div key={txn._id} className="flex items-center justify-between p-2 rounded-xl bg-slate-50/50 dark:bg-slate-800/40 border border-soft-gray/40 dark:border-slate-800">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-deep-navy dark:text-white shrink-0">
+                            {txn.customer?.name?.charAt(0)?.toUpperCase() || 'C'}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold text-deep-navy dark:text-white block truncate">{txn.customer?.name || 'Customer'}</span>
+                            <span className="text-[10px] text-slate-gray dark:text-slate-400 block mt-0.5">{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className={`text-xs font-bold block font-outfit ${txn.type === 'credit' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            {txn.type === 'credit' ? '+' : '-'}₹{txn.amount.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[9px] text-slate-gray dark:text-slate-400 block font-medium">
+                            {txn.type === 'credit' ? 'Udhar' : 'Jama'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {transactionList.length === 0 ? (
-                <div className="text-center py-10 space-y-2">
-                  <h3 className="text-xs font-semibold text-slate-gray">No transactions yet</h3>
-                  <p className="text-[11px] text-slate-gray/60">Create transaction to view stats</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {transactionList.slice(0, 4).map((txn) => (
-                    <div key={txn._id} className="flex items-center justify-between p-3 hover:bg-slate-gray/5 rounded-xl border border-soft-gray/40 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-light-cream flex items-center justify-center font-bold text-xs text-deep-navy shrink-0 shadow-inner">
-                          {txn.customer?.name?.charAt(0)?.toUpperCase() || 'C'}
-                        </div>
-                        <div>
-                          <span className="text-xs font-semibold text-deep-navy block">{txn.customer?.name || 'Customer Name'}</span>
-                          <span className="text-[9px] text-slate-gray block mt-0.5">{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-xs font-bold block ${txn.type === 'credit' ? 'text-red-give' : 'text-green-get'}`}>
-                          {txn.type === 'credit' ? '+' : '-'}₹{txn.amount.toLocaleString('en-IN')}
-                        </span>
-                        <span className="text-[9px] text-slate-gray block mt-0.5 uppercase tracking-wider font-semibold">
-                          {txn.type === 'credit' ? t('udhaar') : t('jama')}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
-              <h3 className="text-base font-bold text-deep-navy mb-4">{t('reportsOverview') || 'Reports Overview'}</h3>
-              <div className="flex items-center justify-between gap-4">
-                <div className="space-y-3.5 flex-1">
-                  <div>
-                    <span className="text-[10px] font-semibold text-slate-gray uppercase block tracking-wider">Total Transactions</span>
-                    <span className="text-lg font-black text-deep-navy font-outfit block mt-0.5">
-                      ₹{(stats?.youWillGet || 0).toLocaleString('en-IN')}
-                    </span>
+            {/* Widget 2: Reports Summary */}
+            <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-deep-navy dark:text-white mb-3">{t('reportsOverview') || 'Reports Summary'}</h3>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="space-y-2.5 flex-1">
+                    <div>
+                      <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block uppercase tracking-wider">Total Receivables</span>
+                      <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-outfit block mt-0.5">
+                        ₹{youWillGet.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block uppercase tracking-wider">Total Payables</span>
+                      <span className="text-base font-black text-rose-600 dark:text-rose-400 font-outfit block mt-0.5">
+                        ₹{youWillGive.toLocaleString('en-IN')}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-semibold text-slate-gray uppercase block tracking-wider">Net Balance</span>
-                    <span className="text-lg font-black text-orange font-outfit block mt-0.5">
-                      ₹{Math.abs((stats?.youWillGet || 0) - (stats?.youWillGive || 0)).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-                <div className="relative flex items-center justify-center shrink-0">
-                  <svg width="150" height="150" viewBox="0 0 100 100" className="transform -rotate-90">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      className="stroke-soft-gray"
-                      strokeWidth={strokeWidth}
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      className="stroke-orange transition-all duration-700"
-                      strokeWidth={strokeWidth}
-                      fill="transparent"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={circumference - (creditStroke || 0.1)}
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      className="stroke-green-get transition-all duration-700"
-                      strokeWidth={strokeWidth}
-                      fill="transparent"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={circumference - (debitStroke || 0.1)}
-                      transform={`rotate(${(youWillGet / totalUdharVal) * 360} 50 50)`}
-                    />
-                  </svg>
-                  <div className="absolute flex flex-col items-center justify-center text-center">
-                    <span className="text-[9px] text-slate-gray font-bold uppercase tracking-wider">Transactions</span>
-                    <span className="text-xs font-extrabold text-deep-navy font-outfit mt-0.5">
-                      {Math.round((youWillGet / totalUdharVal) * 100)}%
-                    </span>
+
+                  <div className="relative flex items-center justify-center shrink-0">
+                    <svg width="90" height="90" viewBox="0 0 100 100" className="transform -rotate-90">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r={radius}
+                        className="stroke-soft-gray dark:stroke-slate-800"
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r={radius}
+                        className="stroke-emerald-500 transition-all duration-500"
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference - (creditStroke || 0.1)}
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r={radius}
+                        className="stroke-rose-500 transition-all duration-500"
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference - (debitStroke || 0.1)}
+                        transform={`rotate(${(youWillGet / totalUdharVal) * 360} 50 50)`}
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center text-center">
+                      <span className="text-[9px] text-slate-gray dark:text-slate-400 font-bold">Ratio</span>
+                      <span className="text-xs font-black text-deep-navy dark:text-white font-outfit">
+                        {Math.round((youWillGet / totalUdharVal) * 100)}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-center gap-4 mt-5 border-t border-soft-gray/30 pt-3.5 text-[10px] font-semibold text-slate-gray">
+              <div className="flex items-center justify-center gap-4 mt-3 border-t border-soft-gray/40 dark:border-slate-800 pt-2 text-[10px] font-semibold text-slate-gray dark:text-slate-400">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange inline-block" />
-                  <span>Get</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                  <span>Receive</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-get inline-block" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
                   <span>Pay</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Widget 3: Credit Insights */}
+            <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-deep-navy dark:text-white flex items-center gap-1.5">
+                    <HiOutlineShieldCheck className="text-emerald-500 text-base" />
+                    Credit Insights
+                  </h3>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-soft-gray/50 dark:border-slate-800">
+                    <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider block">Store Score</span>
+                    <div className="flex items-baseline justify-between mt-1">
+                      <span className="text-base font-black text-deep-navy dark:text-white font-outfit">94 / 100</span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Optimal Risk</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center text-slate-gray dark:text-slate-400">
+                      <span>Active Ledgers</span>
+                      <span className="font-bold text-deep-navy dark:text-white font-outfit">{customers.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-gray dark:text-slate-400">
+                      <span>On-Time Reminders</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 font-outfit">98.5%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 pt-2 border-t border-soft-gray/40 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                <span className="text-slate-gray dark:text-slate-400">Auto Backup</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">Active</span>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Right Column (4 cols): Customer Details Panel */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
-          {/* Quick Actions */}
-          <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6">
-            <h3 className="text-base font-bold text-deep-navy mb-4">{t('quickActions') || 'Quick Actions'}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowCustModal(true)}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-orange/10 text-orange flex items-center justify-center text-lg">
-                  <HiOutlineUserAdd />
-                </div>
-                <span>Add Customer</span>
-              </button>
-              <button
-                onClick={() => openTxnModal('credit')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-green-get/10 text-green-get flex items-center justify-center text-lg">
-                  <HiOutlineCreditCard />
-                </div>
-                <span>Add Entry</span>
-              </button>
-              <button
-                onClick={() => navigate('/transactions')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-info-analytics/10 text-info-analytics flex items-center justify-center text-lg">
-                  <HiOutlineDocumentText />
-                </div>
-                <span>Reports</span>
-              </button>
-              <button
-                onClick={() => navigate('/reminders')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-warning-pending/10 text-warning-pending flex items-center justify-center text-lg">
-                  <HiOutlineBell />
-                </div>
-                <span>Reminders</span>
-              </button>
-              <button
-                onClick={handleBackup}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-gray/10 text-slate-gray flex items-center justify-center text-lg">
-                  <HiOutlineDatabase />
-                </div>
-                <span>Backup</span>
-              </button>
-              <button
-                onClick={() => navigate('/settings')}
-                className="p-4 bg-pure-white border border-soft-gray rounded-xl flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:border-orange hover:shadow-xs hover:-translate-y-0.5 transition-all text-deep-navy font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-gray/10 text-slate-gray flex items-center justify-center text-lg">
-                  <HiOutlineCog />
-                </div>
-                <span>Settings</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Customer Details */}
-          <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm p-6 flex flex-col gap-5">
-            <div className="flex justify-between items-center pb-2 border-b border-soft-gray/30">
-              <h3 className="text-base font-bold text-deep-navy">{t('customerDetails') || 'Customer Details'}</h3>
+          <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col gap-5">
+            <div className="flex justify-between items-center pb-3 border-b border-soft-gray/50 dark:border-slate-800">
+              <h3 className="text-base font-bold text-deep-navy dark:text-white">{t('customerDetails') || 'Customer Details'}</h3>
               {activeCustomer && (
                 <button
                   onClick={() => navigate(`/customers/${activeCustomer._id}`)}
-                  className="p-1.5 hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy rounded-lg border-none cursor-pointer flex items-center justify-center"
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-deep-navy dark:text-white font-bold text-xs rounded-lg transition-colors border-none cursor-pointer flex items-center gap-1"
                 >
-                  <HiOutlineUser size={16} />
+                  <HiOutlineUser size={13} /> View Ledger
                 </button>
               )}
             </div>
 
             {!activeCustomer ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center border border-dashed border-soft-gray rounded-2xl bg-light-cream/20">
-                <div className="w-12 h-12 rounded-full bg-slate-gray/5 text-slate-gray/40 flex items-center justify-center mb-3">
-                  <HiOutlineUser size={24} />
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center border border-dashed border-soft-gray dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
+                  <HiOutlineUser size={22} />
                 </div>
-                <span className="text-xs font-semibold text-slate-gray">No Customer Selected</span>
-                <p className="text-[10px] text-slate-gray/60 mt-1 max-w-[200px]">
-                  Add a customer to view Transactions, Balance, Logs, and perform actions.
+                <span className="text-xs font-bold text-deep-navy dark:text-white">No Customer Selected</span>
+                <p className="text-[11px] text-slate-gray dark:text-slate-400 mt-1 max-w-[200px]">
+                  Select a customer from the table to view balance details and activity.
                 </p>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-4">
+                {/* Profile header */}
+                <div className="flex items-center gap-3.5">
                   {activeCustomer.avatar ? (
                     <img
                       src={activeCustomer.avatar}
                       alt={activeCustomer.name}
-                      className="w-14 h-14 rounded-full object-cover shrink-0 border border-soft-gray shadow-md"
+                      className="w-12 h-12 rounded-full object-cover shrink-0 border border-soft-gray dark:border-slate-700 shadow-xs"
                     />
                   ) : (
                     <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-md"
+                      className="w-12 h-12 rounded-full flex items-center justify-center font-black text-base text-white shrink-0 shadow-xs"
                       style={{ background: getAvatarColor(activeCustomer.name) }}
                     >
                       {activeCustomer.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="min-w-0">
-                    <h4 className="text-base font-bold text-deep-navy truncate">{activeCustomer.name}</h4>
-                    <p className="text-xs text-slate-gray font-medium mt-0.5">{activeCustomer.phone}</p>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-base font-bold text-deep-navy dark:text-white truncate">{activeCustomer.name}</h4>
+                    <p className="text-xs text-slate-gray dark:text-slate-400 font-medium mt-0.5">{formatPhoneDisplay(activeCustomer.phone)}</p>
+                    {activeCustomer.email && (
+                      <p className="text-[11px] text-slate-gray/70 dark:text-slate-400 truncate mt-0.5">{activeCustomer.email}</p>
+                    )}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-slate-950 to-slate-800 text-white p-5 rounded-2xl shadow-md border border-slate-900 flex flex-col justify-between relative overflow-hidden">
-                  <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest">Net Outstanding Balance</span>
-                  <span className="text-3xl font-black font-outfit mt-2 tracking-tight">
-                    ₹{Math.abs(activeCustomer.balance).toLocaleString('en-IN')}
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-3">
-                    <span className={`w-2 h-2 rounded-full ${activeCustomer.balance >= 0 ? 'bg-red-give animate-pulse' : 'bg-green-get'}`} />
-                    <span className="text-[10px] text-zinc-300 font-bold uppercase tracking-wider">
-                      {activeCustomer.balance >= 0 ? 'You Will Get (Due)' : 'You Will Give (Advance)'}
+
+                {/* Outstanding Amount Main Card */}
+                <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-slate-400 block tracking-wide">
+                      Total Outstanding
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                      activeCustomer.duePrediction === 'trusted' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'
+                    }`}>
+                      {activeCustomer.duePrediction === 'trusted' ? 'Trusted' : 'Delay Risk'}
+                    </span>
+                  </div>
+
+                  <div className="mt-3">
+                    <span className="text-3xl font-black font-outfit tracking-tight block">
+                      ₹{Math.abs(activeCustomer.balance).toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-400 mt-1 block">
+                      {activeCustomer.balance >= 0 ? "You'll Receive" : "You'll Pay (Advance)"}
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="p-3 bg-light-cream border border-soft-gray rounded-xl">
-                    <span className="text-[9px] font-semibold text-slate-gray uppercase block tracking-wider">Added</span>
-                    <span className="text-xs font-bold text-red-give block mt-1 font-outfit">
+
+                {/* Sub Metrics Grid */}
+                <div className="grid grid-cols-3 gap-2.5 text-center">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-xl">
+                    <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block">Udhar</span>
+                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400 block mt-0.5 font-outfit">
                       ₹{activeCustomer.balance >= 0 ? activeCustomer.balance.toLocaleString('en-IN') : '0'}
                     </span>
                   </div>
-                  <div className="p-3 bg-light-cream border border-soft-gray rounded-xl">
-                    <span className="text-[9px] font-semibold text-slate-gray uppercase block tracking-wider">Paid</span>
-                    <span className="text-xs font-bold text-green-get block mt-1 font-outfit">
+
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-xl">
+                    <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block">Jama</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5 font-outfit">
                       ₹{activeCustomer.balance < 0 ? Math.abs(activeCustomer.balance).toLocaleString('en-IN') : '0'}
                     </span>
                   </div>
-                  <div className="p-3 bg-light-cream border border-soft-gray rounded-xl">
-                    <span className="text-[9px] font-semibold text-slate-gray uppercase block tracking-wider">Txns</span>
-                    <span className="text-xs font-bold text-deep-navy block mt-1 font-outfit">
-                      {activeCustomer.totalTransactions || 0}
+
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-xl">
+                    <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block">Entries</span>
+                    <span className="text-xs font-bold text-deep-navy dark:text-white block mt-0.5 font-outfit">
+                      {activeCustomer.totalTransactions || activeCustomerTxns.length || 0}
                     </span>
                   </div>
                 </div>
+
+                {/* Recent Customer Activity */}
                 <div className="space-y-2">
-                  <span className="text-[10px] font-semibold text-slate-gray uppercase tracking-wider block">Activity Logs</span>
+                  <span className="text-xs font-bold text-deep-navy dark:text-white block">Recent Activity</span>
                   {loadingTxns ? (
-                    <div className="flex items-center justify-center py-6 bg-light-cream/20 border border-soft-gray/30 rounded-xl">
-                      <div className="w-5 h-5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+                    <div className="flex items-center justify-center py-5 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                      <div className="w-4 h-4 border-2 border-orange border-t-transparent rounded-full animate-spin" />
                     </div>
                   ) : activeCustomerTxns.length === 0 ? (
-                    <div className="text-center py-4 bg-light-cream/40 border border-dashed border-soft-gray rounded-xl">
-                      <span className="text-[10px] text-slate-gray">No activity logged</span>
+                    <div className="text-center py-3 bg-slate-50 dark:bg-slate-800/30 border border-dashed border-soft-gray dark:border-slate-800 rounded-xl">
+                      <span className="text-[11px] text-slate-gray dark:text-slate-400">No activity logged yet</span>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
                       {activeCustomerTxns.map((t) => (
-                        <div key={t._id} className="flex justify-between items-center p-2 bg-light-cream border border-soft-gray/50 rounded-lg text-xs">
-                          <span className="font-semibold text-deep-navy truncate max-w-[100px]">{t.description || 'Transaction entry'}</span>
-                          <span className={`font-bold ${t.type === 'credit' ? 'text-red-give' : 'text-green-get'}`}>
-                            ₹{t.amount}
+                        <div key={t._id} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/40 dark:border-slate-800 rounded-lg text-xs">
+                          <span className="font-semibold text-deep-navy dark:text-white truncate max-w-[130px]">{t.description || 'Transaction entry'}</span>
+                          <span className={`font-bold font-outfit ${t.type === 'credit' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            {t.type === 'credit' ? '+' : '-'}₹{t.amount}
                           </span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="flex gap-3 mt-1">
+
+                {/* Main Prominent Action Buttons */}
+                <div className="flex gap-3 pt-1">
                   <button
                     onClick={() => openCustomerTxnModal('credit')}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer border-none bg-red-give text-white hover:bg-red-hover"
+                    className="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer border-none bg-rose-600 hover:bg-rose-700 text-white active:scale-[0.98]"
                   >
                     + Add Udhar
                   </button>
                   <button
                     onClick={() => openCustomerTxnModal('debit')}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer border-none bg-green-get text-white hover:bg-green-hover"
+                    className="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.98]"
                   >
                     Get Paid
                   </button>
@@ -926,49 +1056,51 @@ const DashboardPage = () => {
 
       {isSupported && (
         <button
-          className={`fixed bottom-20 right-20 lg:bottom-6 lg:right-24 w-12 h-12 lg:w-14 lg:h-14 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${listening ? 'ring-4 ring-red-give/30 bg-red-give animate-pulse' : ''
-            }`}
+          className={`fixed bottom-20 right-6 lg:bottom-6 lg:right-6 w-12 h-12 lg:w-13 lg:h-13 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
+            listening ? 'ring-4 ring-rose-600/30 bg-rose-600 animate-pulse' : ''
+          }`}
           onClick={handleVoice}
           title={listening ? "Stop Listening" : "Voice Entry"}
         >
-          {listening ? <HiOutlineX className="w-5 h-5 lg:w-6 lg:h-6" /> : <HiOutlineMicrophone className="w-5 h-5 lg:w-6 lg:h-6" />}
+          {listening ? <HiOutlineX className="w-5 h-5" /> : <HiOutlineMicrophone className="w-5 h-5" />}
         </button>
       )}
 
-      <Modal isOpen={showTxnModal} onClose={() => setShowTxnModal(false)} title={t('addTransaction')}>
+      {/* Transaction Modal */}
+      <Modal isOpen={showTxnModal} onClose={() => setShowTxnModal(false)} title={t('addTransaction') || 'Add Transaction'}>
         <form onSubmit={handleAddTxn} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('customers')} *</label>
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('customers') || 'Customer'} *</label>
             <select
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              className="w-full px-3.5 py-2.5 bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 rounded-xl text-deep-navy dark:text-white text-sm outline-none focus:border-orange"
               required
               value={txnForm.customer}
               onChange={(e) => setTxnForm({ ...txnForm, customer: e.target.value })}
             >
-              <option value="">{t('selectCustomer')}</option>
+              <option value="">{t('selectCustomer') || 'Select Customer'}</option>
               {customerList.map((c) => (
                 <option key={c._id} value={c._id}>
-                  {c.name} (Outstanding: ₹{Math.abs(c.balance).toLocaleString('en-IN')} {c.balance >= 0 ? 'Due' : 'Advance'})
+                  {c.name} (Outstanding: ₹{Math.abs(c.balance).toLocaleString('en-IN')} {c.balance >= 0 ? "Due" : "Advance"})
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('type')} *</label>
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('type') || 'Entry Type'} *</label>
             <select
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              className="w-full px-3.5 py-2.5 bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 rounded-xl text-deep-navy dark:text-white text-sm outline-none focus:border-orange"
               value={txnForm.type}
               onChange={(e) => setTxnForm({ ...txnForm, type: e.target.value })}
             >
-              <option value="credit">{t('udhaarDesc')}</option>
-              <option value="debit">{t('jamaDesc')}</option>
+              <option value="credit">You Gave (Udhar)</option>
+              <option value="debit">You Got (Jama / Payment Received)</option>
             </select>
           </div>
           {txnForm.type === 'debit' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">Payment Mode *</label>
+              <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider mb-1.5">Payment Mode *</label>
               <select
-                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                className="w-full px-3.5 py-2.5 bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 rounded-xl text-deep-navy dark:text-white text-sm outline-none focus:border-orange"
                 value={txnForm.paymentMode || 'cash'}
                 onChange={(e) => setTxnForm({ ...txnForm, paymentMode: e.target.value })}
               >
@@ -979,11 +1111,11 @@ const DashboardPage = () => {
             </div>
           )}
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('amount')} *</label>
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('amount') || 'Amount'} *</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-gray font-extrabold text-base">₹</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-gray font-bold text-base">₹</span>
               <input
-                className="w-full pl-8 pr-4 py-2.5 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 font-bold"
+                className="w-full pl-8 pr-3.5 py-2.5 bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 rounded-xl text-deep-navy dark:text-white placeholder-slate-gray/40 text-sm outline-none focus:border-orange font-bold font-outfit"
                 type="number"
                 min="0.01"
                 step="0.01"
@@ -995,26 +1127,27 @@ const DashboardPage = () => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('description')}</label>
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('description') || 'Description'}</label>
             <input
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              className="w-full px-3.5 py-2.5 bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 rounded-xl text-deep-navy dark:text-white text-sm outline-none focus:border-orange"
               value={txnForm.description}
               onChange={(e) => setTxnForm({ ...txnForm, description: e.target.value })}
-              placeholder="E.g., Grocery purchase"
+              placeholder="E.g., Rice & Grocery items"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">{t('date')}</label>
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('date') || 'Date'}</label>
             <div className="flex gap-2 mb-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setTxnForm({ ...txnForm, date: new Date().toISOString().split('T')[0] })}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${txnForm.date === new Date().toISOString().split('T')[0]
+                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                  txnForm.date === new Date().toISOString().split('T')[0]
                     ? 'bg-orange text-white border-orange shadow-xs'
-                    : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
-                  }`}
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-gray border-soft-gray dark:border-slate-700'
+                }`}
               >
-                Today ({new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
+                Today
               </button>
               <button
                 type="button"
@@ -1023,96 +1156,34 @@ const DashboardPage = () => {
                   yesterday.setDate(yesterday.getDate() - 1);
                   setTxnForm({ ...txnForm, date: yesterday.toISOString().split('T')[0] });
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${txnForm.date === new Date(Date.now() - 86400000).toISOString().split('T')[0]
+                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                  txnForm.date === new Date(Date.now() - 86400000).toISOString().split('T')[0]
                     ? 'bg-orange text-white border-orange shadow-xs'
-                    : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
-                  }`}
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-gray border-soft-gray dark:border-slate-700'
+                }`}
               >
                 Yesterday
               </button>
             </div>
             <input
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy text-sm outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+              className="w-full px-3.5 py-2.5 bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 rounded-xl text-deep-navy dark:text-white text-sm outline-none focus:border-orange"
               type="date"
               value={txnForm.date}
               onChange={(e) => setTxnForm({ ...txnForm, date: e.target.value })}
             />
           </div>
 
-          {/* Live Preview Card */}
-          {txnForm.customer && txnForm.amount && parseFloat(txnForm.amount) > 0 && (() => {
-            const selectedCust = customers.find(c => c._id === txnForm.customer);
-            if (!selectedCust) return null;
-            const currentBal = selectedCust.balance;
-            const txnAmount = parseFloat(txnForm.amount) || 0;
-            const isCredit = txnForm.type === 'credit';
-            const newBal = isCredit ? (currentBal + txnAmount) : (currentBal - txnAmount);
-            return (
-              <div className="bg-slate-50/50 dark:bg-slate-900/30 border border-soft-gray/80 rounded-2xl p-4 space-y-3 shadow-inner">
-                <div className="text-[10px] font-bold text-slate-gray/70 uppercase tracking-widest border-b border-soft-gray/30 pb-2 flex items-center justify-between">
-                  <span>Balance Preview</span>
-                  <span className="text-[9px] bg-slate-200/60 dark:bg-slate-800 text-slate-gray px-2 py-0.5 rounded-md font-semibold">Live Preview</span>
-                </div>
-
-                <div className="flex justify-between items-center gap-1.5 text-center relative">
-                  {/* Card 1: Current */}
-                  <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl">
-                    <span className="text-[9px] text-slate-gray font-bold uppercase tracking-wider">Current</span>
-                    <span className="text-xs font-mono font-bold text-deep-navy mt-1">
-                      ₹{Math.abs(currentBal).toLocaleString('en-IN')}
-                    </span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${currentBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                      }`}>
-                      {currentBal >= 0 ? 'Due' : 'Advance'}
-                    </span>
-                  </div>
-
-                  {/* Arrow 1 */}
-                  <span className="text-slate-gray/30 text-xs shrink-0 select-none">➜</span>
-
-                  {/* Card 2: Transaction */}
-                  <div className="flex-1 flex flex-col items-center justify-center p-2 bg-pure-white border border-soft-gray/50 rounded-xl shadow-xs">
-                    <span className="text-[9px] text-slate-gray font-bold uppercase tracking-wider">Transaction</span>
-                    <span className={`text-xs font-mono font-black mt-1 ${isCredit ? 'text-red-give' : 'text-green-get'}`}>
-                      {isCredit ? '+' : '-'}₹{txnAmount.toLocaleString('en-IN')}
-                    </span>
-                    <span className={`text-[8px] font-bold px-1 py-0.5 rounded-md mt-1 text-white ${isCredit ? 'bg-red-give' : 'bg-green-get'
-                      }`}>
-                      {isCredit ? 'Gave' : 'Got'}
-                    </span>
-                  </div>
-
-                  {/* Arrow 2 */}
-                  <span className="text-slate-gray/30 text-xs shrink-0 select-none">➜</span>
-
-                  {/* Card 3: New Balance */}
-                  <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl">
-                    <span className="text-[9px] text-slate-gray font-bold uppercase tracking-wider">New Balance</span>
-                    <span className={`text-xs font-mono font-extrabold mt-1 ${newBal >= 0 ? 'text-red-give' : 'text-green-get'
-                      }`}>
-                      ₹{Math.abs(newBal).toLocaleString('en-IN')}
-                    </span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${newBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                      }`}>
-                      {newBal >= 0 ? 'Due' : 'Advance'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-soft-gray/50">
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-soft-gray dark:border-slate-800">
             <button
               type="button"
-              className="px-5 py-2.5 rounded-lg border border-soft-gray text-slate-gray bg-transparent cursor-pointer font-medium text-sm hover:bg-slate-gray/5"
+              className="px-4 py-2 rounded-xl border border-soft-gray dark:border-slate-700 text-slate-gray dark:text-slate-300 bg-transparent cursor-pointer font-semibold text-xs hover:bg-slate-100 dark:hover:bg-slate-800"
               onClick={() => setShowTxnModal(false)}
             >
-              {t('cancel')}
+              {t('cancel') || 'Cancel'}
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-lg bg-orange text-white border-none cursor-pointer font-bold text-sm hover:bg-orange-hover disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-orange text-white border-none cursor-pointer font-bold text-xs hover:bg-orange-hover disabled:opacity-50"
               disabled={submitting}
             >
               {submitting ? 'Adding...' : 'Add Transaction'}
@@ -1121,28 +1192,22 @@ const DashboardPage = () => {
         </form>
       </Modal>
 
+      {/* Customer Modal */}
       <Modal isOpen={showCustModal} onClose={() => setShowCustModal(false)} title={t('addCustomer') || 'Add Customer'}>
         <form onSubmit={handleAddCustSubmit} className="space-y-4">
-          {/* Profile Picture Section */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider mb-2">Profile Photo</label>
-            <div className="flex items-center gap-4 p-3 bg-soft-white border border-soft-gray rounded-xl w-full">
-              {/* Avatar Preview */}
-              <div className="relative w-16 h-16 flex-shrink-0">
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Profile Photo</label>
+            <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800/40 border border-soft-gray dark:border-slate-700 rounded-xl w-full">
+              <div className="relative w-14 h-14 shrink-0">
                 <div
-                  className="w-16 h-16 rounded-full bg-pure-white border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
+                  className="w-14 h-14 rounded-full bg-pure-white dark:bg-slate-800 border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-xs"
                   onClick={() => custFileRef.current.click()}
-                  type="button"
                 >
                   {custForm.avatar ? (
                     <img src={custForm.avatar} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] text-slate-gray font-extrabold uppercase">Upload</span>
+                    <span className="text-[10px] text-slate-gray font-bold uppercase">Upload</span>
                   )}
-                </div>
-                {/* Plus badge */}
-                <div className="absolute bottom-0 right-0 bg-orange w-5 h-5 rounded-full flex items-center justify-center text-white border border-pure-white cursor-pointer shadow pointer-events-none">
-                  <span className="text-xs font-bold">+</span>
                 </div>
                 <input
                   type="file"
@@ -1153,88 +1218,86 @@ const DashboardPage = () => {
                 />
               </div>
 
-              {/* Presets Selection */}
               <div className="space-y-1 flex-1">
-                <span className="text-[10px] font-bold text-slate-gray mb-1 block">
-                  Select Preset or Upload Custom
+                <span className="text-[10px] font-bold text-slate-gray dark:text-slate-400 mb-1 block">
+                  Select Preset or Upload Photo
                 </span>
                 <div className="flex gap-2 flex-wrap">
-                  {customerPresets.map((p, idx) => {
-                    const isSelected = custForm.avatar === p.value;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all p-0 cursor-pointer ${isSelected ? 'border-orange scale-110 shadow-sm' : 'border-soft-gray opacity-70 hover:opacity-100'
-                          }`}
-                        onClick={() => setCustForm(prev => ({ ...prev, avatar: p.value }))}
-                      >
-                        <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
-                      </button>
-                    );
-                  })}
+                  {customerPresets.map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all p-0 cursor-pointer ${
+                        custForm.avatar === p.value ? 'border-orange scale-105 shadow-xs' : 'border-soft-gray dark:border-slate-700 opacity-70 hover:opacity-100'
+                      }`}
+                      onClick={() => setCustForm(prev => ({ ...prev, avatar: p.value }))}
+                    >
+                      <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('customerName') || 'Customer Name'} *</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">{t('customerName') || 'Customer Name'} *</label>
             <input
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              className="w-full px-3.5 py-2 border border-soft-gray dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-orange bg-pure-white dark:bg-slate-800 text-deep-navy dark:text-white"
               required
               value={custForm.name}
               onChange={(e) => setCustForm({ ...custForm, name: e.target.value })}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('phone') || 'Phone'} *</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">{t('phone') || 'Phone'} *</label>
             <input
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              className="w-full px-3.5 py-2 border border-soft-gray dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-orange bg-pure-white dark:bg-slate-800 text-deep-navy dark:text-white"
               required
               value={custForm.phone}
               onChange={(e) => setCustForm({ ...custForm, phone: e.target.value })}
               placeholder="+91 9876543210"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Email Address</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Email Address</label>
             <input
               type="email"
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              className="w-full px-3.5 py-2 border border-soft-gray dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-orange bg-pure-white dark:bg-slate-800 text-deep-navy dark:text-white"
               value={custForm.email || ''}
               onChange={(e) => setCustForm({ ...custForm, email: e.target.value })}
               placeholder="customer@example.com"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Payment Due Date</label>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">Payment Due Date</label>
             <input
               type="date"
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+              className="w-full px-3.5 py-2 border border-soft-gray dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-orange bg-pure-white dark:bg-slate-800 text-deep-navy dark:text-white"
               value={custForm.paymentDueDate || ''}
               onChange={(e) => setCustForm({ ...custForm, paymentDueDate: e.target.value })}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('address') || 'Address'}</label>
-            <input
-              className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all text-deep-navy"
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider">{t('address') || 'Address'}</label>
+            <LocationAddressInput
               value={custForm.address}
-              onChange={(e) => setCustForm({ ...custForm, address: e.target.value })}
+              onChange={(val) => setCustForm({ ...custForm, address: val })}
+              placeholder="Enter address manually or use GPS map location"
             />
           </div>
-          <div className="flex justify-end gap-3 pt-3 border-t border-soft-gray">
+
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-soft-gray dark:border-slate-800">
             <button
               type="button"
-              className="px-4 py-2.5 bg-transparent border border-soft-gray text-slate-gray hover:bg-slate-gray/5 rounded-xl text-sm font-semibold cursor-pointer transition-colors"
+              className="px-4 py-2 bg-transparent border border-soft-gray dark:border-slate-700 text-slate-gray dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
               onClick={() => setShowCustModal(false)}
             >
               {t('cancel') || 'Cancel'}
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50"
+              className="px-4 py-2 bg-orange hover:bg-orange-hover text-white rounded-xl text-xs font-bold border-none cursor-pointer transition-colors shadow-xs disabled:opacity-50"
               disabled={custSubmitting}
             >
               {custSubmitting ? (t('saving') || 'Saving...') : (t('save') || 'Save')}
@@ -1245,22 +1308,22 @@ const DashboardPage = () => {
 
       {listening && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-deep-navy/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-pure-white border border-soft-gray p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-red-give/10 flex items-center justify-center text-red-give relative">
-              <span className="absolute w-16 h-16 rounded-full bg-red-give/20 animate-ping" />
+          <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 relative">
+              <span className="absolute w-16 h-16 rounded-full bg-rose-600/20 animate-ping" />
               <HiOutlineMicrophone size={32} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-deep-navy">
+              <h3 className="text-base font-bold text-deep-navy dark:text-white">
                 {lang === 'hi' ? 'सुन रहा हूँ...' : lang === 'te' ? 'వింటున్నాను...' : 'Listening...'}
               </h3>
-              <p className="text-xs text-slate-gray mt-1 font-medium">
+              <p className="text-xs text-slate-gray dark:text-slate-400 mt-1 font-medium">
                 {lang === 'hi' ? 'बोलिए (जैसे: "रवि ने 300 रुपये दिए")' : lang === 'te' ? 'మాట్లాడండి (ఉదాహరణకు: "రవి 300 రూపాయలు తీసుకున్నాడు")' : 'Speak now (e.g., "Ravi took 300 rupees")'}
               </p>
             </div>
             <button
               onClick={stopListening}
-              className="mt-2 w-full py-2.5 px-4 bg-deep-navy hover:bg-deep-navy-hover text-white font-bold text-sm rounded-xl border-none cursor-pointer shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
+              className="mt-2 w-full py-2.5 px-4 bg-deep-navy hover:bg-deep-navy-hover text-white font-bold text-sm rounded-xl border-none cursor-pointer shadow-sm flex items-center justify-center gap-2"
             >
               <HiOutlineX size={18} />
               {lang === 'hi' ? 'रोकें (Stop)' : lang === 'te' ? 'ఆపండి (Stop)' : 'Stop Listening'}
@@ -1268,6 +1331,13 @@ const DashboardPage = () => {
           </div>
         </div>
       )}
+      {/* AI Voice Call Simulator Modal */}
+      <AiVoiceCallModal
+        isOpen={!!selectedCallCustomer}
+        onClose={() => setSelectedCallCustomer(null)}
+        customer={selectedCallCustomer}
+        onCallCompleted={fetchAll}
+      />
     </div>
   );
 };

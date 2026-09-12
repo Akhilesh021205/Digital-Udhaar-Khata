@@ -82,7 +82,7 @@ const BlockchainPage = () => {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Private Blockchain Audit Ledger</h1>
             <p className="text-slate-300 text-sm leading-relaxed">
-              Every financial transaction recorded in Digital Udhaar Khata is cryptographically anchored using SHA-256 block hashing. Any attempt to modify amounts directly in the database will break the cryptographic chain and trigger an instant tamper alert.
+              Every financial transaction recorded in AI Digital Khata is cryptographically anchored using SHA-256 block hashing. Any attempt to modify amounts directly in the database will break the cryptographic chain and trigger an instant tamper alert.
             </p>
           </div>
 

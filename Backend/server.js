@@ -1,5 +1,7 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
+// Server entry point
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
@@ -58,8 +60,10 @@ app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/reminder', require('./routes/reminderRoutes'));
+app.use('/api/cashfree', require('./routes/reminderRoutes'));
 app.use('/api/cashbook', require('./routes/cashbookRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/ai-calls', require('./routes/aiCallRoutes'));
 app.use('/api/history', require('./routes/historyRoutes'));
 app.use('/api/backup', require('./routes/backupRoutes'));
 app.use('/api/blockchain', require('./routes/blockchainRoutes'));
@@ -82,7 +86,7 @@ app.get('/webhook', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Udhaar Khata API is running' });
+  res.json({ status: 'ok', message: 'AI Digital Khata API is running' });
 });
 
 // Admin-only Hidden Blockchain Status Endpoint
@@ -131,16 +135,39 @@ setTimeout(() => {
 // Error handler
 app.use(errorHandler);
 
-const http = require('http');
 const socketService = require('./services/socketService');
+const { createExotelVoicebotServer } = require('./voice/exotelVoicebot');
 
 const server = http.createServer(app);
 server.keepAliveTimeout = 65000; // 65 seconds keep-alive timeout
 server.headersTimeout = 66000;    // 66 seconds headers timeout
 socketService.init(server);
 
+// Attach Exotel Voicebot WSS upgrade listener for /exotel/voicebot
+const exotelWss = createExotelVoicebotServer(server);
+server.on('upgrade', (request, socket, head) => {
+  try {
+    const pathname = new URL(request.url, `http://${request.headers.host || 'localhost'}`).pathname;
+    if (pathname === '/exotel/voicebot') {
+      exotelWss.handleUpgrade(request, socket, head, (ws) => {
+        exotelWss.emit('connection', ws, request);
+      });
+    }
+  } catch (err) {
+    console.error('[WSS] Upgrade error:', err.message);
+  }
+});
+
 const PORT = process.env.PORT || 4000;
+
+// Gracefully close server on Nodemon restart to release port immediately
+process.once('SIGUSR2', () => {
+  server.close(() => {
+    process.kill(process.pid, 'SIGUSR2');
+  });
+});
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+

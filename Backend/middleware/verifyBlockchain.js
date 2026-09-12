@@ -19,8 +19,9 @@ const verifyBlockchain = async (req, res, next) => {
       });
 
       if (!result.isValid) {
+        const failedCount = typeof result.failedBlocks === 'number' ? result.failedBlocks : (Array.isArray(result.failedBlocks) ? result.failedBlocks.length : 0);
         console.warn(
-          `⚠️ [SECURITY WARNING] Private ledger tampering detected for User: ${req.user._id}. Mismatched hashes: ${result.failedBlocks.length}.`
+          `⚠️ [SECURITY WARNING] Private ledger tampering detected for User: ${req.user._id}. Mismatched hashes: ${failedCount}.`
         );
       }
     }

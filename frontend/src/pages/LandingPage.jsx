@@ -29,18 +29,17 @@ import { useTheme } from '../context/ThemeContext';
 
 const LandingPage = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [ctaPhoneNumber, setCtaPhoneNumber] = useState('');
   const [tiltStyle, setTiltStyle] = useState({});
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  const handleGetStarted = (e, phoneVal) => {
+  const handleGetStarted = (e) => {
     e.preventDefault();
-    if (!phoneVal) {
+    if (!phoneNumber) {
       toast.error('Please enter a phone number to get started.');
       return;
     }
-    navigate(`/register?phone=${encodeURIComponent(phoneVal)}`);
+    navigate(`/register?phone=${encodeURIComponent(phoneNumber)}`);
   };
 
   useEffect(() => {
@@ -106,8 +105,8 @@ const LandingPage = () => {
           }
 
           @keyframes uk-pulse-soft {
-            0%, 100% { box-shadow: 0 0 0 8px rgba(233, 43, 53, 0.10); }
-            50% { box-shadow: 0 0 0 14px rgba(233, 43, 53, 0); }
+            0%, 100% { box-shadow: 0 0 0 8px rgba(185, 28, 28, 0.12); }
+            50% { box-shadow: 0 0 0 14px rgba(185, 28, 28, 0); }
           }
 
           @keyframes uk-drift {
@@ -165,7 +164,7 @@ const LandingPage = () => {
             transform: translateY(-10px) !important;
             box-shadow: 0 20px 40px rgba(16, 21, 37, 0.12) !important;
           }
-          .uk-float-card-red:hover { box-shadow: 0 16px 36px rgba(233, 43, 53, 0.18) !important; border-color: rgba(233, 43, 53, 0.4) !important; }
+          .uk-float-card-red:hover { box-shadow: 0 16px 36px rgba(185, 28, 28, 0.18) !important; border-color: rgba(185, 28, 28, 0.4) !important; }
           .uk-float-card-green:hover { box-shadow: 0 16px 36px rgba(3, 166, 106, 0.18) !important; border-color: rgba(3, 166, 106, 0.4) !important; }
           .uk-float-card-blue:hover { box-shadow: 0 16px 36px rgba(40, 88, 232, 0.18) !important; border-color: rgba(40, 88, 232, 0.4) !important; }
 
@@ -189,23 +188,33 @@ const LandingPage = () => {
         `}
       </style>
 
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_18%,rgba(233,43,53,0.14),transparent_24rem),radial-gradient(circle_at_18%_32%,rgba(3,166,106,0.08),transparent_20rem),linear-gradient(180deg,#fff9f5_0%,#ffffff_65%)] dark:bg-[radial-gradient(circle_at_78%_18%,rgba(233,43,53,0.18),transparent_24rem),radial-gradient(circle_at_18%_32%,rgba(3,166,106,0.12),transparent_20rem),linear-gradient(180deg,#111827_0%,#0f1523_70%)]" />
- 
+      {/* Background Radial Glow */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#fff9f5] via-white to-white dark:from-[#0f1523] dark:to-[#0f1523]" />
+
+      {/* TOP HEADER NAVIGATION */}
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-white/80 backdrop-blur-xl transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/80">
-        <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between gap-2 sm:gap-6 px-3 sm:px-5 md:px-10 lg:px-16">
+        <div className="w-full max-w-[1600px] mx-auto flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-6 px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24">
+          
+          {/* Logo Branding */}
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="flex cursor-pointer items-center gap-1.5 sm:gap-3 border-0 bg-transparent p-0"
           >
-            <span className="grid h-9 w-9 sm:h-12 sm:w-12 place-items-center rounded-lg sm:rounded-xl bg-gradient-to-br from-[#e92b35] to-[#ff5862] p-1.5 sm:p-2 text-white shadow-[0_6px_15px_rgba(233,43,53,0.18)] sm:shadow-[0_12px_30px_rgba(233,43,53,0.26)]">
+            <span className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
               <Logo />
             </span>
-            <span className="font-outfit text-sm sm:text-lg font-black tracking-wide text-[#101525] dark:text-white">
-              Udhaar Khata
-            </span>
+            <div className="text-left">
+              <span className="font-outfit text-base sm:text-xl font-black tracking-wide text-[#101525] dark:text-white block leading-tight">
+                AI Digital Khata
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 block">
+                Smarter Credit. Simpler Business.
+              </span>
+            </div>
           </button>
- 
+
+          {/* Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={toggleTheme}
@@ -215,9 +224,9 @@ const LandingPage = () => {
             >
               {theme === 'dark' ? <HiOutlineSun className="text-amber-400" size={16} /> : <HiOutlineMoon size={16} />}
             </button>
- 
+
             <button
-              className="cursor-pointer rounded-lg sm:rounded-xl border-0 bg-gradient-to-br from-[#e92b35] to-[#ff4f5d] px-3.5 py-2 sm:px-5 sm:py-3 text-xs sm:text-sm font-black text-white shadow-[0_8px_20px_rgba(233,43,53,0.20)] sm:shadow-[0_16px_34px_rgba(233,43,53,0.30)] transition-all hover:-translate-y-0.5 hover:shadow-xl active:scale-95"
+              className="cursor-pointer rounded-lg sm:rounded-xl border-0 bg-gradient-to-br from-[#B91C1C] to-[#991B1B] hover:from-[#991B1B] hover:to-[#7F1D1D] px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
               onClick={() => navigate('/login')}
               type="button"
             >
@@ -226,64 +235,89 @@ const LandingPage = () => {
           </div>
         </div>
       </header>
- 
+
+      {/* HERO SECTION */}
       <main className="overflow-x-hidden">
-        <section className="mx-auto grid min-h-[650px] max-w-7xl grid-cols-1 items-center gap-8 sm:gap-12 px-5 pb-6 pt-24 sm:pt-28 lg:grid-cols-[0.92fr_1.08fr] lg:px-16">
-          <div className="uk-rise text-left">
+        <section className="w-full max-w-[1600px] mx-auto grid min-h-[680px] grid-cols-1 items-center gap-8 lg:gap-12 px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 pb-10 pt-24 sm:pt-28 lg:grid-cols-12">
+          
+          {/* Left Column Text Content */}
+          <div className="uk-rise text-left lg:col-span-6 xl:col-span-5">
             <h1 className="font-outfit max-w-2xl text-4xl sm:text-5xl lg:text-7xl font-black leading-tight sm:leading-[0.98] tracking-normal text-[#101525] dark:text-white">
               Udhaar ka hisaab,
-              <span className="block text-[#e92b35]">ab bilkul easy.</span>
+              <span className="block text-[#B91C1C]">ab bilkul easy.</span>
             </h1>
- 
+
             <p className="mt-3 sm:mt-4 max-w-2xl text-base sm:text-lg lg:text-xl font-bold leading-relaxed text-[#2b3242] dark:text-slate-100">
               Track credit, collect faster, and know exactly who owes what without searching notebooks or WhatsApp chats.
             </p>
- 
+
             <p className="mt-2.5 sm:mt-3 max-w-xl text-xs sm:text-sm lg:text-base font-medium leading-relaxed sm:leading-7 text-[#667085] dark:text-slate-300">
-              Udhaar Khata gives your business a simple digital register with payment reminders, daily reports, secure backups, and a smooth desktop experience.
+              AI Digital Khata gives your business a simple digital register with payment reminders, daily reports, secure backups, and a smooth desktop experience.
             </p>
- 
+
+            {/* Quick Registration Bar */}
+            <form onSubmit={handleGetStarted} className="mt-6 flex flex-col sm:flex-row items-center gap-2.5 max-w-md">
+              <div className="flex items-center w-full rounded-xl border border-black/15 bg-white dark:bg-slate-900 dark:border-white/15 px-3.5 py-2.5 shadow-sm">
+                <span className="text-xs font-bold text-slate-400 mr-2 border-r border-slate-200 dark:border-slate-700 pr-2">+91</span>
+                <input
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 dark:text-white outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto cursor-pointer whitespace-nowrap rounded-xl bg-[#B91C1C] hover:bg-[#991B1B] px-5 py-3 text-xs sm:text-sm font-black text-white shadow-md transition-all active:scale-95"
+              >
+                Get Started →
+              </button>
+            </form>
+
             <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-black">
-              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#03a66a]/20 bg-[#03a66a]/10 px-3 py-1.5 sm:px-3.5 sm:py-2 text-[#067a52] dark:text-emerald-300">
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#03a66a]/20 bg-[#03a66a]/10 px-3 py-1.5 text-[#067a52] dark:text-emerald-300">
                 <HiOutlineShieldCheck size={14} /> Safe records
               </span>
-              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#e92b35]/20 bg-[#e92b35]/10 px-3 py-1.5 sm:px-3.5 sm:py-2 text-[#bf1f28] dark:text-red-200">
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#B91C1C]/20 bg-[#FEF2F2] px-3 py-1.5 text-[#B91C1C] dark:text-red-300">
                 <HiOutlineBell size={14} /> Smart reminders
               </span>
-              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#2858e8]/20 bg-[#2858e8]/10 px-3 py-1.5 sm:px-3.5 sm:py-2 text-[#2858e8] dark:text-blue-300">
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#2858e8]/20 bg-[#2858e8]/10 px-3 py-1.5 text-[#2858e8] dark:text-blue-300">
                 <HiOutlineCloudUpload size={14} /> Cloud backup
               </span>
             </div>
           </div>
- 
+
+          {/* Right Column Product Visual Mockups */}
           <div
-            className="uk-rise relative min-h-[350px] sm:min-h-[460px] lg:min-h-[500px] mt-6 lg:mt-0 [perspective:1200px]"
+            className="uk-rise relative min-h-[350px] sm:min-h-[460px] lg:min-h-[500px] mt-6 lg:mt-0 lg:col-span-6 xl:col-span-7 [perspective:1200px]"
             onMouseMove={handleTilt}
             onMouseLeave={resetTilt}
           >
-            <div className="uk-morph absolute inset-x-8 bottom-6 top-12 rounded-[40%] bg-[radial-gradient(circle_at_50%_30%,rgba(233,43,53,0.16),transparent_20rem),radial-gradient(circle_at_72%_70%,rgba(40,88,232,0.11),transparent_18rem)] blur-[2px]" />
- 
-            <div className="uk-drift absolute left-8 top-9 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ff606b] to-[#e92b35] text-lg font-black text-white shadow-[0_18px_32px_rgba(233,43,53,0.26)]">
+            <div className="uk-morph absolute inset-x-8 bottom-6 top-12 rounded-[40%] bg-[radial-gradient(circle_at_50%_30%,rgba(185,28,28,0.12),transparent_20rem),radial-gradient(circle_at_72%_70%,rgba(40,88,232,0.11),transparent_18rem)] blur-[2px]" />
+
+            <div className="uk-drift absolute left-8 top-9 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#DC2626] to-[#B91C1C] text-lg font-black text-white shadow-lg">
               {rupee}
             </div>
- 
+
             <div className="uk-drift absolute right-20 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#33d399] to-[#03a66a] text-sm font-black text-white shadow-lg [animation-delay:1.1s]">
               <HiOutlineCheck size={20} />
             </div>
- 
-            <div className="uk-float-large relative lg:absolute right-0 top-0 lg:top-12 w-full max-w-[655px] mx-auto">
+
+            {/* Laptop Mockup */}
+            <div className="uk-float-large relative lg:absolute right-0 top-0 lg:top-4 w-full max-w-[760px] mx-auto">
               <div
                 className="overflow-hidden rounded-[24px] border-[6px] sm:border-[8px] border-[#111a2f] bg-[#fbfdff] dark:bg-slate-900 shadow-[0_24px_70px_rgba(16,21,37,0.16)] transition-all duration-300 ease-out"
                 style={tiltStyle}
               >
                 <div className="grid min-h-[404px] grid-cols-1 sm:grid-cols-[74px_1fr]">
                   <aside className="hidden sm:block border-r border-[#edf0f4] bg-gradient-to-b from-white to-[#fbf7f6] px-3.5 py-5">
-                    <div className="mx-auto mb-4 h-8 w-8 rounded-[10px] bg-gradient-to-br from-[#ffc7cc] to-[#ef6b74]" />
-                    <div className="mx-auto mb-3 h-3 w-11 rounded-full bg-[#f5d6da]" />
+                    <div className="mx-auto mb-4 h-8 w-8 rounded-[10px] bg-gradient-to-br from-[#fca5a5] to-[#b91c1c]" />
+                    <div className="mx-auto mb-3 h-3 w-11 rounded-full bg-[#fecaca]" />
                     <div className="mx-auto mb-3 h-3 w-9 rounded-full bg-[#eceff3]" />
                     <div className="mx-auto h-3 w-9 rounded-full bg-[#eceff3]" />
                   </aside>
- 
+
                   <div className="p-4 sm:p-5">
                     <div className="mb-4 flex items-center justify-between gap-3 font-black">
                       <span className="text-sm sm:text-base">Dashboard</span>
@@ -291,51 +325,48 @@ const LandingPage = () => {
                         <HiOutlineSearch size={14} />
                         <span>Search customers</span>
                       </div>
-                      <span className="uk-pulse-soft h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-[#e92b35]" />
+                      <span className="uk-pulse-soft h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-[#B91C1C]" />
                     </div>
- 
+
                     <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                      <div className="uk-float-card uk-float-card-red rounded-xl border border-[#ffd6da] bg-[#fff4f5] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#e92b35] cursor-pointer">
+                      <div className="uk-float-card uk-float-card-red rounded-xl border border-[#fca5a5] bg-[#fef2f2] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#B91C1C] cursor-pointer">
                         You will get
                         <span className="mt-1 sm:mt-2 block text-base sm:text-lg text-[#101525] dark:text-[#101525]">
-                          {rupee}
-                          <AnimatedCounter endValue={245000} formatter={(val) => new Intl.NumberFormat('en-IN').format(val)} />
+                          {rupee}2,45,000
                         </span>
                       </div>
                       <div className="uk-float-card uk-float-card-green rounded-xl border border-[#c7f1e5] bg-[#effbf7] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#03a66a] cursor-pointer">
                         You will give
                         <span className="mt-1 sm:mt-2 block text-base sm:text-lg text-[#101525] dark:text-[#101525]">
-                          {rupee}
-                          <AnimatedCounter endValue={76500} formatter={(val) => new Intl.NumberFormat('en-IN').format(val)} />
+                          {rupee}76,500
                         </span>
                       </div>
                       <div className="uk-float-card uk-float-card-blue rounded-xl border border-[#dce5ff] bg-[#f2f5ff] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#2858e8] cursor-pointer">
                         Net balance
                         <span className="mt-1 sm:mt-2 block text-base sm:text-lg text-[#101525] dark:text-[#101525]">
-                          {rupee}
-                          <AnimatedCounter endValue={168500} formatter={(val) => new Intl.NumberFormat('en-IN').format(val)} />
+                          {rupee}1,68,500
                         </span>
                       </div>
                     </div>
- 
+
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.05fr_0.95fr]">
                       <div className="flex h-36 sm:h-40 items-end gap-2 rounded-xl border border-[#e6e9ef] bg-gradient-to-b from-white to-[#f8fbff] p-3 pt-5">
                         {[58, 82, 45, 72, 66, 92].map((height, index) => (
                           <span
                             key={index}
-                            className={`uk-grow flex-1 rounded-t-md ${index === 1 || index === 4 ? 'bg-gradient-to-b from-[#20c997] to-[#03a66a]' : index === 2 ? 'bg-gradient-to-b from-[#5b7cfa] to-[#2858e8]' : 'bg-gradient-to-b from-[#ff5c67] to-[#e92b35]'}`}
+                            className={`uk-grow flex-1 rounded-t-md ${index === 1 || index === 4 ? 'bg-gradient-to-b from-[#20c997] to-[#03a66a]' : index === 2 ? 'bg-gradient-to-b from-[#5b7cfa] to-[#2858e8]' : 'bg-gradient-to-b from-[#dc2626] to-[#b91c1c]'}`}
                             style={{ height: `${height}%`, animationDelay: `${index * 70}ms` }}
                           />
                         ))}
                       </div>
- 
+
                       <div className="grid gap-2">
                         <DashboardRow initial="R" name="Ramesh Kumar" status="Due today" amount={`${rupee}12,500`} tone="red" />
                         <DashboardRow initial="S" name="Suresh Traders" status="Paid" amount={`+${rupee}8,000`} tone="green" />
                         <DashboardRow initial="A" name="Anil Store" status="Reminder sent" amount={`${rupee}5,600`} tone="red" />
                       </div>
                     </div>
- 
+
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                       <div className="rounded-xl border border-[#e6e9ef] bg-white p-3 text-[10px] sm:text-xs font-black">
                         Payment reminders
@@ -350,12 +381,13 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
- 
+
+            {/* Overlapping Phone Mockup */}
             <div className="uk-float-small absolute -left-1 top-48 z-20 hidden h-[355px] w-[174px] overflow-hidden rounded-[25px] border-[8px] border-[#20293b] bg-white shadow-[0_28px_55px_rgba(16,21,37,0.20)] md:block">
               <div className="m-0 h-full rounded-[17px] border-[3px] border-[#cfd6df] bg-gradient-to-b from-[#fbfdff] to-[#fff8f7] p-3">
                 <div className="mb-3 flex items-center justify-between font-black text-[#101525]">
                   <span>Khata</span>
-                  <span className="uk-pulse-soft h-3 w-3 rounded-full bg-[#e92b35]" />
+                  <span className="uk-pulse-soft h-3 w-3 rounded-full bg-[#B91C1C]" />
                 </div>
                 <MobileCard title="Receivable" value={`${rupee}2.45L`} />
                 <MobileCard title="Reminder due" value={`${rupee}12,500`} tone="red" />
@@ -366,29 +398,28 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
- 
-            <div className="absolute bottom-4 right-2 z-30 flex items-center gap-1.5 rounded-2xl border border-[#03a66a]/20 bg-white/95 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-black text-[#03a66a] shadow-[0_18px_40px_rgba(16,21,37,0.14)] [animation:uk-rise_900ms_440ms_both,uk-pulse-soft_2.4s_ease-in-out_infinite]">
+
+            <div className="absolute bottom-4 right-2 z-30 flex items-center gap-1.5 rounded-2xl border border-[#03a66a]/20 bg-white/95 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-black text-[#03a66a] shadow-[0_18px_40px_rgba(16,21,37,0.14)]">
               <HiOutlineBadgeCheck size={16} />
               <span>Payment tracked</span>
             </div>
           </div>
         </section>
- 
-        <section className="mx-auto max-w-7xl px-5 md:px-10 lg:px-16 pt-8 sm:pt-12 pb-4">
-          <div className="bg-gradient-to-r from-[#0F172A] to-[#E22D34] text-white rounded-3xl shadow-xl p-6 sm:p-8 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden">
-            <div className="absolute w-[200px] h-[200px] bg-white/5 rounded-full blur-2xl -top-[50px] -right-[50px] pointer-events-none" />
- 
-            {/* Left Side */}
-            <div className="text-left space-y-2 sm:space-y-3 flex-1 lg:max-w-xl">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold font-outfit text-white leading-tight" style={{ color: '#ffffff' }}>
-                Start your digital udhaar book
+
+        {/* CTA BANNER */}
+        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 pt-8 sm:pt-12 pb-4">
+          <div className="bg-gradient-to-r from-[#0F172A] to-[#991B1B] text-white rounded-3xl shadow-xl p-6 sm:p-10 md:p-12 lg:p-14 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden">
+            <div className="absolute w-[300px] h-[300px] bg-white/5 rounded-full blur-2xl -top-[50px] -right-[50px] pointer-events-none" />
+
+            <div className="text-left space-y-2 sm:space-y-3 flex-1 lg:max-w-2xl">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold font-outfit text-white leading-tight" style={{ color: '#ffffff' }}>
+                Start your AI Digital Khata today
               </h2>
               <p className="text-xs sm:text-sm text-white/90 leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                 Keep customer records, reminders, and payments in one place.
               </p>
             </div>
- 
-            {/* Right Side Buttons */}
+
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[320px] shrink-0">
               <button
                 onClick={() => navigate('/register')}
@@ -408,36 +439,38 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
- 
-        <section className="mx-auto max-w-7xl px-5 py-12 sm:py-20 md:px-10 lg:px-16" id="features">
+
+        {/* FEATURES GRID */}
+        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 py-12 sm:py-20" id="features">
           <SectionHead
             kicker="Everything in one place"
             title="A clean khata system your team can actually use every day."
             text="Fast entries, clear balances, timely reminders, and practical reports make daily business simpler from morning opening to night closing."
           />
- 
+
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
-            <FeatureCard icon={<HiOutlineDocumentText size={22} />} title="Digital Udhaar Register" text="Add credit and debit entries in seconds with customer-wise history, dates, notes, and total balances." />
+            <FeatureCard icon={<HiOutlineDocumentText size={22} />} title="AI Digital Khata Register" text="Add credit and debit entries in seconds with customer-wise history, dates, notes, and total balances." />
             <FeatureCard icon={<HiOutlineBell size={22} />} title="Smart Reminders" text="Send polite follow-ups through SMS or WhatsApp and reduce awkward manual calls." />
             <FeatureCard icon={<HiOutlineTrendingUp size={22} />} title="Reports & Insights" text="See who owes you, which payments are pending, and how your store cashflow is moving." />
             <FeatureCard icon={<HiOutlineShieldCheck size={22} />} title="Secure Cloud Backup" text="Keep records protected and accessible, even if your notebook, phone, or laptop is unavailable." />
           </div>
         </section>
- 
-        <section className="mx-auto max-w-7xl px-5 py-12 sm:py-20 md:px-10 lg:px-16" id="how-it-works">
+
+        {/* WORKFLOW STEPS */}
+        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 py-12 sm:py-20" id="how-it-works">
           <SectionHead
             kicker="Simple workflow"
             title="From customer entry to payment collection in three calm steps."
             text="The interface is designed for repeat daily use: less thinking, fewer taps, and clearer numbers."
           />
- 
+
           <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="relative lg:min-h-[430px] flex flex-col gap-4 lg:block py-6 lg:py-0 overflow-hidden rounded-lg border border-[#e9edf3] bg-[linear-gradient(90deg,rgba(233,43,53,0.06)_1px,transparent_1px),linear-gradient(rgba(233,43,53,0.06)_1px,transparent_1px),#fff] bg-[size:36px_36px] dark:border-white/10">
+            <div className="relative lg:min-h-[430px] flex flex-col gap-4 lg:block py-6 lg:py-0 overflow-hidden rounded-lg border border-[#e9edf3] bg-[linear-gradient(90deg,rgba(185,28,28,0.06)_1px,transparent_1px),linear-gradient(rgba(185,28,28,0.06)_1px,transparent_1px),#fff] bg-[size:36px_36px] dark:border-white/10">
               <ProcessCard className="lg:top-14" icon={<HiOutlineUserAdd size={22} />} title="Add customer" text="Phone, name, opening balance" />
-              <ProcessCard className="lg:top-[172px] [animation-delay:0.55s]" icon={<HiOutlineBookOpen size={22} />} title="Record transaction" text="Credit or payment received" />
-              <ProcessCard className="lg:top-[290px] [animation-delay:1.1s]" icon={<HiOutlineBell size={22} />} title="Send reminder" text="Collect on time" />
+              <ProcessCard className="lg:top-[172px]" icon={<HiOutlineBookOpen size={22} />} title="Record transaction" text="Credit or payment received" />
+              <ProcessCard className="lg:top-[290px]" icon={<HiOutlineBell size={22} />} title="Send reminder" text="Collect on time" />
             </div>
- 
+
             <div className="grid gap-3 sm:gap-4">
               <StepCard number="1" title="Add every customer once" text="Create a clean customer profile with phone number, balance status, and history." />
               <StepCard number="2" title="Track daily udhaar instantly" text="Record money given or received and let the dashboard update totals automatically." />
@@ -445,13 +478,14 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
- 
-        <section className="mx-auto max-w-7xl px-5 py-12 sm:py-20 md:px-10 lg:px-16" id="reviews">
+
+        {/* CUSTOMER REVIEWS */}
+        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 py-12 sm:py-20" id="reviews">
           <SectionHead
             kicker="Built for real shops"
             title="Less confusion at the counter. More clarity in your cashflow."
           />
- 
+
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
             <ReviewCard initials="RK" name="Ravi Kirana" role="Retail store owner" quote="Earlier I checked three notebooks for one balance. Now the amount is clear in one screen." />
             <ReviewCard initials="MT" name="Meena Textiles" role="Wholesale business" quote="Payment reminders save time. Customers get a clear message and I can focus on sales." />
@@ -459,14 +493,15 @@ const LandingPage = () => {
           </div>
         </section>
       </main>
- 
+
+      {/* FOOTER */}
       <footer className="border-t border-[#ebe6df] bg-white py-8 sm:py-10 transition-colors duration-300 dark:border-white/10 dark:bg-slate-950">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-5 text-xs sm:text-sm font-bold text-[#667085] md:flex-row md:items-center md:px-10 lg:px-16 text-center md:text-left">
+        <div className="w-full max-w-[1600px] mx-auto flex flex-col justify-between gap-4 px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 text-xs sm:text-sm font-bold text-[#667085] md:flex-row md:items-center text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#e92b35] to-[#ff5862] p-1.5 text-white">
+            <span className="w-9 h-9 flex items-center justify-center shrink-0">
               <Logo />
             </span>
-            <span className="font-outfit text-sm sm:text-base font-black text-[#101525] dark:text-white">Udhaar Khata</span>
+            <span className="font-outfit text-sm sm:text-base font-black text-[#101525] dark:text-white">AI Digital Khata</span>
           </div>
           <span className="text-[11px] sm:text-xs md:text-sm">Digital ledger for modern Indian businesses.</span>
         </div>
@@ -474,40 +509,33 @@ const LandingPage = () => {
     </div>
   );
 };
- 
+
 const DashboardRow = ({ initial, name, status, amount, tone }) => (
   <div className="grid grid-cols-[30px_1fr_auto] items-center gap-2 rounded-lg border border-[#e6e9ef] bg-white p-2 text-[10px] sm:text-[11px] font-black text-[#101525]">
-    <span className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-full text-[10px] sm:text-xs ${tone === 'green' ? 'bg-[#03a66a]/10 text-[#03a66a]' : 'bg-[#e92b35]/10 text-[#e92b35]'}`}>
+    <span className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-full text-[10px] sm:text-xs ${tone === 'green' ? 'bg-[#03a66a]/10 text-[#03a66a]' : 'bg-[#B91C1C]/10 text-[#B91C1C]'}`}>
       {initial}
     </span>
     <span className="truncate text-left">
       {name}
       <span className="block text-[9px] sm:text-[10px] font-bold text-[#667085] truncate">{status}</span>
     </span>
-    <strong className={`whitespace-nowrap ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#e92b35]'}`}>{amount}</strong>
+    <strong className={`whitespace-nowrap ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#B91C1C]'}`}>{amount}</strong>
   </div>
 );
- 
+
 const MobileCard = ({ title, value, tone = 'red' }) => (
   <div className="mb-2 rounded-lg border border-[#e9edf3] bg-white p-2 text-[10px] font-black text-[#101525]">
     {title}
-    <span className={`block pt-1 text-xs ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#e92b35]'}`}>
+    <span className={`block pt-1 text-xs ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#B91C1C]'}`}>
       {value}
     </span>
   </div>
 );
- 
-const Metric = ({ value, text }) => (
-  <div className="px-6 py-8">
-    <strong className="block text-4xl font-black text-[#101525] dark:text-white">{value}</strong>
-    <span className="mt-2 block text-sm font-bold leading-6 text-[#667085] dark:text-slate-300">{text}</span>
-  </div>
-);
- 
+
 const SectionHead = ({ kicker, title, text }) => (
   <div className="mb-6 sm:mb-10 flex flex-col justify-between gap-3 sm:gap-5 lg:flex-row lg:items-end text-left">
     <div>
-      <p className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-black uppercase tracking-wide text-[#e92b35]">{kicker}</p>
+      <p className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-black uppercase tracking-wide text-[#B91C1C]">{kicker}</p>
       <h2 className="font-outfit max-w-3xl text-2xl sm:text-3xl md:text-5xl font-black leading-tight text-[#101525] dark:text-white">
         {title}
       </h2>
@@ -515,17 +543,17 @@ const SectionHead = ({ kicker, title, text }) => (
     {text && <p className="max-w-lg text-xs sm:text-sm font-semibold leading-relaxed sm:leading-7 text-[#667085] dark:text-slate-300">{text}</p>}
   </div>
 );
- 
+
 const FeatureCard = ({ icon, title, text }) => (
   <article className="uk-reveal uk-float-card min-h-fit sm:min-h-[250px] rounded-xl border border-[#e9edf3] bg-white/90 p-5 sm:p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90 text-left">
-    <div className="mb-4 sm:mb-6 grid h-12 w-12 sm:h-14 sm:w-14 place-items-center rounded-xl sm:rounded-2xl bg-[#fff0f1] text-[#e92b35]">
+    <div className="mb-4 sm:mb-6 grid h-12 w-12 sm:h-14 sm:w-14 place-items-center rounded-xl sm:rounded-2xl bg-[#FEF2F2] text-[#B91C1C]">
       {icon}
     </div>
     <h3 className="font-outfit mb-2 sm:mb-3 text-base sm:text-lg font-black text-[#101525] dark:text-white">{title}</h3>
     <p className="text-xs sm:text-sm font-semibold leading-normal sm:leading-7 text-[#667085] dark:text-slate-300">{text}</p>
   </article>
 );
- 
+
 const ProcessCard = ({ className, icon, title, text }) => (
   <div className={`uk-slide-card lg:absolute left-3 right-3 lg:left-12 lg:right-12 flex min-h-[78px] items-center gap-4 rounded-lg border border-[#e9edf3] bg-white p-4 shadow-[0_18px_42px_rgba(16,21,37,0.10)] text-left ${className}`}>
     <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#101525] text-white">
@@ -537,17 +565,17 @@ const ProcessCard = ({ className, icon, title, text }) => (
     </span>
   </div>
 );
- 
+
 const StepCard = ({ number, title, text }) => (
   <article className="uk-reveal uk-float-card rounded-xl border border-[#e9edf3] bg-white/90 p-5 sm:p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90 text-left">
-    <span className="mb-3 sm:mb-4 grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-[#e92b35] text-xs sm:text-sm font-black text-white">
+    <span className="mb-3 sm:mb-4 grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-[#B91C1C] text-xs sm:text-sm font-black text-white">
       {number}
     </span>
     <h3 className="font-outfit mb-1.5 sm:mb-2 text-base sm:text-lg font-black text-[#101525] dark:text-white">{title}</h3>
     <p className="text-xs sm:text-sm font-semibold leading-normal sm:leading-7 text-[#667085] dark:text-slate-300">{text}</p>
   </article>
 );
- 
+
 const ReviewCard = ({ initials, name, role, quote }) => (
   <article className="uk-reveal uk-float-card rounded-xl border border-[#e9edf3] bg-white/90 p-5 sm:p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90 text-left">
     <div className="mb-4 sm:mb-5 flex gap-1 text-[#f4aa24]">
@@ -557,7 +585,7 @@ const ReviewCard = ({ initials, name, role, quote }) => (
     </div>
     <p className="text-xs sm:text-sm font-semibold leading-normal sm:leading-7 text-[#667085] dark:text-slate-300">"{quote}"</p>
     <div className="mt-5 sm:mt-6 flex items-center gap-3">
-      <span className="grid h-9 w-9 sm:h-11 sm:w-11 place-items-center rounded-full bg-gradient-to-br from-[#e92b35] to-[#ff6872] text-xs sm:text-sm font-black text-white">
+      <span className="grid h-9 w-9 sm:h-11 sm:w-11 place-items-center rounded-full bg-gradient-to-br from-[#B91C1C] to-[#991B1B] text-xs sm:text-sm font-black text-white">
         {initials}
       </span>
       <div>
@@ -567,29 +595,5 @@ const ReviewCard = ({ initials, name, role, quote }) => (
     </div>
   </article>
 );
- 
-const AnimatedCounter = ({ endValue, duration = 1200, formatter }) => {
-  const [count, setCount] = useState(0);
- 
-  useEffect(() => {
-    let startTimestamp = null;
-    let cancelled = false;
-    const step = (timestamp) => {
-      if (cancelled) return;
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      setCount(Math.floor(progress * endValue));
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      }
-    };
-    window.requestAnimationFrame(step);
-    return () => {
-      cancelled = true;
-    };
-  }, [endValue, duration]);
- 
-  return <span>{formatter ? formatter(count) : count}</span>;
-};
- 
+
 export default LandingPage;

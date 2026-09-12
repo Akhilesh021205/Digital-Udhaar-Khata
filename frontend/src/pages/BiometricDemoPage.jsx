@@ -196,7 +196,7 @@ const BiometricDemoPage = () => {
             <Logo />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800 font-outfit">Digital Udhaar Khata</h1>
+            <h1 className="text-lg font-bold text-slate-800 font-outfit">AI Digital Khata</h1>
             <p className="text-xs text-slate-500 font-medium">Biometric Flow Simulator</p>
           </div>
         </div>

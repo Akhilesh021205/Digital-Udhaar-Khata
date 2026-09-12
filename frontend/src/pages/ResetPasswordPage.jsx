@@ -2,9 +2,37 @@ import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 import Logo from '../components/Common/Logo';
-import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineEye, HiOutlineEyeOff, HiCheck } from 'react-icons/hi';
 import { toast } from 'react-toastify';
 import { useAuth } from '../hooks/useAuth';
+
+const passwordRules = [
+  {
+    id: 'length',
+    label: 'At least 8 characters long',
+    test: (pw) => pw.length >= 8
+  },
+  {
+    id: 'uppercase',
+    label: '1 Capital letter (A-Z)',
+    test: (pw) => /[A-Z]/.test(pw)
+  },
+  {
+    id: 'lowercase',
+    label: '1 Small letter (a-z)',
+    test: (pw) => /[a-z]/.test(pw)
+  },
+  {
+    id: 'number',
+    label: '1 Number (0-9)',
+    test: (pw) => /[0-9]/.test(pw)
+  },
+  {
+    id: 'special',
+    label: '1 Special character (!@#$%^&*)',
+    test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(pw)
+  }
+];
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -23,8 +51,9 @@ const ResetPasswordPage = () => {
     setError('');
     setSuccess('');
 
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    const failedRules = passwordRules.filter(rule => !rule.test(form.password));
+    if (failedRules.length > 0) {
+      setError('Password must contain at least 8 characters, 1 capital letter, 1 small letter, 1 number, and 1 special character.');
       return;
     }
 
@@ -57,38 +86,38 @@ const ResetPasswordPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center udhaar-page-bg p-5 relative overflow-hidden">
-      <div className="w-full max-w-md p-10 bg-pure-white border border-soft-gray rounded-2xl shadow-lg relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-light-cream border border-soft-gray flex items-center justify-center p-2 shadow-inner">
+      <div className="w-full max-w-md p-8 sm:p-10 bg-pure-white border border-soft-gray rounded-3xl shadow-xl relative z-10">
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-[#DC2626] text-white flex items-center justify-center p-3 shadow-md">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-deep-navy mb-1">Reset Password</h1>
-          <p className="text-sm text-slate-gray">Choose a new password for your account</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 mb-1 font-jakarta">Reset Password</h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Choose a strong new password for your account</p>
         </div>
         
         {error && (
-          <div className="bg-red-give/10 border border-red-give/20 rounded-lg p-3.5 mb-4 text-red-give text-sm text-center font-medium animate-pulse">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-4 text-[#DC2626] text-sm text-center font-semibold animate-pulse shadow-xs">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-get/10 border border-green-get/20 rounded-lg p-3.5 mb-4 text-green-get text-sm text-center font-medium">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 mb-4 text-emerald-700 text-sm text-center font-bold">
             {success} <br/>
-            <span className="text-xs text-slate-gray font-normal">Redirecting to login page...</span>
+            <span className="text-xs text-slate-500 font-medium">Redirecting to login page...</span>
           </div>
         )}
         
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-4 text-left" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               New Password
             </label>
             <div className="relative">
               <input 
-                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all pr-12"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all pr-12"
                 type={showPassword ? 'text' : 'password'} 
-                placeholder="••••••••" 
+                placeholder="Min 8 characters (e.g. Abc@1234)" 
                 required
                 disabled={loading || !!success}
                 value={form.password} 
@@ -97,23 +126,65 @@ const ResetPasswordPage = () => {
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-gray cursor-pointer p-1 flex items-center justify-center hover:text-deep-navy transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer p-1 flex items-center justify-center hover:text-slate-700 transition-colors"
                 disabled={loading || !!success}
               >
-                {showPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+                {showPassword ? <HiOutlineEyeOff size={18} /> : <HiOutlineEye size={18} />}
               </button>
+            </div>
+
+            {/* Password Requirements Checklist */}
+            <div className="p-3 mt-2 bg-slate-50/80 border border-slate-200/80 rounded-2xl space-y-2">
+              <div className="flex justify-between items-center text-[11px] font-bold">
+                <span className="text-slate-600 uppercase tracking-wider">Requirements:</span>
+                <span className={
+                  form.password.length === 0 ? 'text-slate-400 font-semibold' :
+                  passwordRules.filter(r => r.test(form.password)).length <= 2 ? 'text-red-600 font-bold' :
+                  passwordRules.filter(r => r.test(form.password)).length <= 4 ? 'text-amber-600 font-bold' :
+                  'text-emerald-600 font-extrabold'
+                }>
+                  {form.password.length === 0 ? 'Not Started' :
+                   passwordRules.filter(r => r.test(form.password)).length <= 2 ? 'Weak' :
+                   passwordRules.filter(r => r.test(form.password)).length <= 4 ? 'Medium' :
+                   'Strong ✓'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 border-t border-slate-200/60">
+                {passwordRules.map((rule) => {
+                  const isPassed = rule.test(form.password);
+                  return (
+                    <div
+                      key={rule.id}
+                      className={`flex items-center gap-1.5 text-xs transition-colors duration-200 ${
+                        isPassed ? 'text-emerald-700 font-bold' : 'text-slate-400 font-medium'
+                      }`}
+                    >
+                      {isPassed ? (
+                        <div className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                          <HiCheck className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                        </div>
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center shrink-0 text-[9px] text-slate-400 font-extrabold">
+                          &bull;
+                        </div>
+                      )}
+                      <span className="truncate">{rule.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-gray uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Confirm New Password
             </label>
             <div className="relative">
               <input 
-                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all pr-12"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all pr-12"
                 type={showConfirmPassword ? 'text' : 'password'} 
-                placeholder="••••••••" 
+                placeholder="Re-enter password" 
                 required
                 disabled={loading || !!success}
                 value={form.confirmPassword} 
@@ -122,24 +193,24 @@ const ResetPasswordPage = () => {
               <button 
                 type="button" 
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-gray cursor-pointer p-1 flex items-center justify-center hover:text-deep-navy transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer p-1 flex items-center justify-center hover:text-slate-700 transition-colors"
                 disabled={loading || !!success}
               >
-                {showConfirmPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+                {showConfirmPassword ? <HiOutlineEyeOff size={18} /> : <HiOutlineEye size={18} />}
               </button>
             </div>
           </div>
 
           <button 
-            className="w-full py-3.5 px-6 font-semibold text-sm rounded-lg bg-orange text-white hover:bg-orange-hover transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full py-3.5 px-6 font-extrabold text-sm rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white transition-all shadow-md hover:shadow-lg active:scale-[0.99] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-3 font-jakarta tracking-wide"
             type="submit" 
             disabled={loading || !!success}
           >
             {loading ? 'Resetting password...' : 'Reset Password'}
           </button>
         </form>
-        <div className="text-center mt-6 text-sm text-slate-gray">
-          Back to <Link to="/login" className="text-orange font-semibold hover:underline">Sign In</Link>
+        <div className="text-center mt-5 text-xs sm:text-sm text-slate-500 font-medium">
+          Back to <Link to="/login" className="text-[#DC2626] font-extrabold hover:underline ml-1">Sign In</Link>
         </div>
       </div>
     </div>

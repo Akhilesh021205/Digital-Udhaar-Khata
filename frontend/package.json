@@ -18,6 +18,7 @@
     "axios": "^1.16.1",
     "capacitor-native-biometric": "^4.2.2",
     "face-api.js": "^0.22.2",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

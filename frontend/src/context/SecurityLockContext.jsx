@@ -4,14 +4,21 @@ import SecurityLockScreen from '../components/Security/SecurityLockScreen';
 
 const SecurityLockContext = createContext();
 
+const INACTIVITY_TIMEOUT_MS = 60000; // 1 minute inactivity timeout
+
 export const SecurityLockProvider = ({ children }) => {
   const { user, loading } = useAuth();
   const [unlocked, setUnlocked] = useState(() => {
     const wasUnlocked = localStorage.getItem('udhaar-unlocked') === 'true';
     if (wasUnlocked) {
-      const lastActive = parseInt(localStorage.getItem('udhaar-last-active') || '0', 10);
+      const lastActiveRaw = localStorage.getItem('udhaar-last-active');
+      if (!lastActiveRaw) {
+        localStorage.setItem('udhaar-last-active', Date.now().toString());
+        return true;
+      }
+      const lastActive = parseInt(lastActiveRaw, 10);
       const now = Date.now();
-      if (now - lastActive < 40000) {
+      if (!isNaN(lastActive) && lastActive > 0 && (now - lastActive < INACTIVITY_TIMEOUT_MS)) {
         return true;
       } else {
         localStorage.setItem('udhaar-unlocked', 'false');
@@ -21,21 +28,50 @@ export const SecurityLockProvider = ({ children }) => {
     return false;
   });
 
-  // Keep last-active timestamp updated during active user sessions
+  const handleUnlock = () => {
+    const now = Date.now().toString();
+    localStorage.setItem('udhaar-unlocked', 'true');
+    localStorage.setItem('udhaar-last-active', now);
+    setUnlocked(true);
+  };
+
+  // Keep last-active timestamp updated during active user sessions & check for inactivity timeout
   useEffect(() => {
-    if (!unlocked || !user) return;
+    if (!unlocked || !user || !user.hasPin) return;
 
     let lastUpdate = Date.now();
     localStorage.setItem('udhaar-last-active', lastUpdate.toString());
 
     const updateActivity = () => {
       const now = Date.now();
-      // Throttle localStorage updates to prevent performance degradation
-      if (now - lastUpdate > 5000) {
+      // Throttle localStorage updates to once per second
+      if (now - lastUpdate > 1000) {
         lastUpdate = now;
         localStorage.setItem('udhaar-last-active', now.toString());
       }
     };
+
+    // Periodic check for 1-minute inactivity timeout
+    const checkInactivityInterval = setInterval(() => {
+      const lastActiveRaw = localStorage.getItem('udhaar-last-active');
+      const now = Date.now();
+
+      if (!lastActiveRaw) {
+        localStorage.setItem('udhaar-last-active', now.toString());
+        return;
+      }
+
+      const lastActive = parseInt(lastActiveRaw, 10);
+      if (isNaN(lastActive) || lastActive <= 0) {
+        localStorage.setItem('udhaar-last-active', now.toString());
+        return;
+      }
+
+      if (now - lastActive >= INACTIVITY_TIMEOUT_MS) {
+        setUnlocked(false);
+        localStorage.setItem('udhaar-unlocked', 'false');
+      }
+    }, 3000);
 
     window.addEventListener('mousemove', updateActivity);
     window.addEventListener('keydown', updateActivity);
@@ -44,6 +80,7 @@ export const SecurityLockProvider = ({ children }) => {
     window.addEventListener('touchstart', updateActivity);
 
     return () => {
+      clearInterval(checkInactivityInterval);
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('click', updateActivity);
@@ -56,9 +93,15 @@ export const SecurityLockProvider = ({ children }) => {
   useEffect(() => {
     const isUnlocked = localStorage.getItem('udhaar-unlocked') === 'true';
     if (isUnlocked && !unlocked) {
-      const lastActive = parseInt(localStorage.getItem('udhaar-last-active') || '0', 10);
+      const lastActiveRaw = localStorage.getItem('udhaar-last-active');
       const now = Date.now();
-      if (now - lastActive < 40000) {
+      if (!lastActiveRaw) {
+        localStorage.setItem('udhaar-last-active', now.toString());
+        setUnlocked(true);
+        return;
+      }
+      const lastActive = parseInt(lastActiveRaw, 10);
+      if (!isNaN(lastActive) && (now - lastActive < INACTIVITY_TIMEOUT_MS)) {
         setUnlocked(true);
       } else {
         localStorage.setItem('udhaar-unlocked', 'false');
@@ -66,7 +109,7 @@ export const SecurityLockProvider = ({ children }) => {
     }
   }, [user, unlocked]);
 
-  // Lock the app when visibility becomes hidden (minimized, tab switch, locked screen) with a 40s grace period
+  // Lock the app when visibility becomes hidden (minimized, tab switch) only after 1 minute
   useEffect(() => {
     if (!user || !user.hasPin) return;
 
@@ -77,12 +120,16 @@ export const SecurityLockProvider = ({ children }) => {
       } else if (document.visibilityState === 'visible') {
         const wasUnlocked = localStorage.getItem('udhaar-unlocked') === 'true';
         if (wasUnlocked) {
-          const lastActive = parseInt(localStorage.getItem('udhaar-last-active') || '0', 10);
-          if (now - lastActive >= 40000) {
+          const lastActiveRaw = localStorage.getItem('udhaar-last-active');
+          if (!lastActiveRaw) {
+            localStorage.setItem('udhaar-last-active', now.toString());
+            return;
+          }
+          const lastActive = parseInt(lastActiveRaw, 10);
+          if (!isNaN(lastActive) && (now - lastActive >= INACTIVITY_TIMEOUT_MS)) {
             setUnlocked(false);
             localStorage.setItem('udhaar-unlocked', 'false');
           } else {
-            // Refreshes the last active time as long as user is active
             localStorage.setItem('udhaar-last-active', now.toString());
           }
         }
@@ -104,14 +151,8 @@ export const SecurityLockProvider = ({ children }) => {
     }
   }, [user]);
 
-  const handleUnlock = () => {
-    localStorage.setItem('udhaar-unlocked', 'true');
-    localStorage.setItem('udhaar-last-active', Date.now().toString());
-    setUnlocked(true);
-  };
-
   if (loading) {
-    return null; // Let the main router handle loading
+    return null;
   }
 
   const isLocked = user && user.hasPin && !unlocked;

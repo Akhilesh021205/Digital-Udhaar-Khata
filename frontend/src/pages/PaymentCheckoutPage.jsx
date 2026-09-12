@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaArrowLeft, FaQrcode, FaLock, FaCheck, FaCreditCard, FaUser, FaRegClock, FaDownload, FaWhatsapp, FaPrint, FaRegCopy, FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -71,6 +71,8 @@ export default function PaymentCheckoutPage() {
   const { customerId } = useParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [verifyingStatusMsg, setVerifyingStatusMsg] = useState('Payment completed. Confirming your payment with bank...');
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
@@ -86,74 +88,143 @@ export default function PaymentCheckoutPage() {
 
   // Form States
   const [utr, setUtr] = useState('');
+  const [cashfreePaymentId, setCashfreePaymentId] = useState('');
   const [amountPaid, setAmountPaid] = useState('');
   const [cardNo, setCardNo] = useState('');
   const [cardHolder, setCardHolder] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
+  const [screenshotPreview, setScreenshotPreview] = useState('');
 
-  // Fetch store checkout info
+  // Handle Payment Screenshot Upload
+  const handleScreenshotChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload a valid image file (PNG, JPG, JPEG, WEBP).');
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('File size exceeds 8MB limit. Please choose a smaller image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setScreenshotPreview(reader.result);
+      toast.success('✓ Payment screenshot attached!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Fetch store checkout info & auto-poll Cashfree status if order_id is present
   useEffect(() => {
     if (!customerId) return;
 
+    let isMounted = true;
+
     const fetchCheckoutInfo = async () => {
       try {
-        // Check if there is an order_id from a redirect to verify
         const queryParams = new URLSearchParams(window.location.search);
         const orderId = queryParams.get('order_id');
+
         if (orderId) {
-          setLoading(true);
-          console.log("Verifying Cashfree payment status for order:", orderId);
-          const verifyResponse = await axios.get(`/api/reminders/checkout/${customerId}/verify-payment/${orderId}`);
-          if (verifyResponse.data?.success) {
-            toast.success("Payment verified successfully!");
-            setIsPaid(true);
-            setPaymentStatus('SETTLED');
-            // Clean query parameters from URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } else {
-            setError(verifyResponse.data?.message || 'Payment verification failed.');
-            setLoading(false);
-            return;
+          if (isMounted) setVerifyingPayment(true);
+          console.log("Auto-verifying Cashfree payment for order:", orderId);
+
+          let verified = false;
+          let attempts = 0;
+          const maxAttempts = 10;
+
+          while (isMounted && !verified && attempts < maxAttempts) {
+            attempts++;
+            try {
+              const verifyResponse = await axios.get(`/api/reminders/checkout/${customerId}/verify-payment/${orderId}`);
+              if (verifyResponse.data?.success && verifyResponse.data?.status === 'PAID') {
+                verified = true;
+                toast.success("✓ Payment confirmed & settled successfully!");
+                if (isMounted) {
+                  setIsPaid(true);
+                  setPaymentStatus('SETTLED');
+                  
+                  const txData = verifyResponse.data.data;
+                  if (txData) {
+                    if (txData.utr) setUtr(txData.utr);
+                    if (txData.paymentId) setCashfreePaymentId(txData.paymentId);
+                    if (txData.amount) setAmountPaid(txData.amount.toString());
+
+                    const dateObj = txData.date ? new Date(txData.date) : new Date();
+                    const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                    const timeStr = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    const code = `RCP-${dateObj.getFullYear()}${(dateObj.getMonth()+1).toString().padStart(2,'0')}${dateObj.getDate().toString().padStart(2,'0')}-${customerId.slice(-3).toUpperCase()}`;
+
+                    setReceiptNo(code);
+                    setPaymentDate(dateStr);
+                    setPaymentTime(timeStr);
+                  }
+
+                  // Clean query parameters from URL
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                }
+                break;
+              } else if (verifyResponse.data?.status === 'FAILED' || verifyResponse.data?.status === 'CANCELLED') {
+                if (isMounted) setError(`Payment failed or was cancelled by gateway (${verifyResponse.data.status}).`);
+                break;
+              }
+            } catch (vErr) {
+              console.warn(`Payment auto-verification attempt ${attempts} failed:`, vErr.message);
+            }
+
+            if (isMounted && !verified && attempts < maxAttempts) {
+              setVerifyingStatusMsg(`Waiting for payment confirmation from Cashfree... (checking attempt ${attempts}/${maxAttempts})`);
+              await new Promise(r => setTimeout(r, 2000));
+            }
           }
+
+          if (isMounted) setVerifyingPayment(false);
         }
 
         const response = await axios.get(`/api/reminders/checkout/${customerId}`);
-        if (response.data?.success) {
+        if (response.data?.success && isMounted) {
           const fetchedData = response.data.data;
           setData(fetchedData);
-          setAmountPaid(fetchedData.balance.toString());
-          if (fetchedData.lastPayment) {
-            setPaymentStatus(fetchedData.lastPayment.status);
+          if (!amountPaid && fetchedData.balance) setAmountPaid(fetchedData.balance.toString());
+          if (fetchedData.lastPayment && !paymentStatus) {
+            setPaymentStatus(fetchedData.lastPayment.status || 'SETTLED');
           }
-          if (fetchedData.balance <= 0 && fetchedData.lastPayment) {
+          // ONLY set isPaid to true on initial load if the customer's balance is 0 or less AND last payment was settled
+          if (fetchedData.balance <= 0 && fetchedData.lastPayment && fetchedData.lastPayment.status === 'SETTLED') {
             setIsPaid(true);
-            setUtr(fetchedData.lastPayment.utr);
-            setAmountPaid(fetchedData.lastPayment.amount.toString());
+            if (fetchedData.lastPayment.utr) setUtr(fetchedData.lastPayment.utr);
+            if (fetchedData.lastPayment.amount) setAmountPaid(fetchedData.lastPayment.amount.toString());
             
-            // Format receipt date from lastPayment.date
-            const dateObj = new Date(fetchedData.lastPayment.date);
+            const dateObj = new Date(fetchedData.lastPayment.date || Date.now());
             const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
             const timeStr = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            
-            // Short customer id code for Receipt No
             const code = `RCP-${dateObj.getFullYear()}${(dateObj.getMonth()+1).toString().padStart(2,'0')}${dateObj.getDate().toString().padStart(2,'0')}-${customerId.slice(-3).toUpperCase()}`;
             
             setReceiptNo(code);
             setPaymentDate(dateStr);
             setPaymentTime(timeStr);
           }
-        } else {
+        } else if (isMounted) {
           setError(response.data?.message || 'Failed to load store checkout details.');
         }
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to initialize payment portal.');
+        if (isMounted) setError(err.response?.data?.message || 'Failed to initialize payment portal.');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setVerifyingPayment(false);
+        }
       }
     };
 
     fetchCheckoutInfo();
+
+    return () => { isMounted = false; };
   }, [customerId]);
 
   // Generate unique receipt meta values
@@ -168,11 +239,14 @@ export default function PaymentCheckoutPage() {
     setPaymentTime(timeStr);
   };
 
-  // Handle UTR Confirmation Submit
+  // Handle Manual UPI UTR / Screenshot Confirmation Submit
   const handleConfirmPayment = async (e) => {
-    e.preventDefault();
-    if (!utr.trim() || utr.trim().length !== 12 || !/^\d+$/.test(utr)) {
-      toast.error('Please enter a valid 12-digit numerical UPI Ref / UTR number.');
+    if (e && e.preventDefault) e.preventDefault();
+
+    const targetUtr = (utr || '').trim();
+
+    if (!screenshotPreview && (!targetUtr || targetUtr.toUpperCase() === 'AUTO' || targetUtr.length < 8 || targetUtr.length > 22)) {
+      toast.error('Please upload a payment screenshot OR enter a valid 12-digit UPI Ref/UTR number.');
       return;
     }
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
@@ -183,19 +257,18 @@ export default function PaymentCheckoutPage() {
     setSubmitting(true);
     try {
       const response = await axios.post(`/api/reminders/checkout/${customerId}/confirm-payment`, {
-        utr: utr.trim(),
+        utr: targetUtr || null,
         amount: parseFloat(amountPaid),
+        paymentScreenshot: screenshotPreview || null,
       });
 
       if (response.data?.success) {
         generateReceiptMeta();
         const status = response.data.data?.transactionStatus || 'SETTLED';
+        const finalUtr = response.data.data?.lastPayment?.utr || targetUtr || 'SCREENSHOT';
+        setUtr(finalUtr);
         setPaymentStatus(status);
-        if (status === 'SETTLED') {
-          toast.success('Payment verified & receipt generated successfully!');
-        } else {
-          toast.info('Payment submitted for verification!');
-        }
+        toast.success('✓ Payment screenshot verified & receipt generated successfully!');
         setIsPaid(true);
       } else {
         toast.error(response.data?.message || 'Verification failed. Please try again.');
@@ -209,9 +282,120 @@ export default function PaymentCheckoutPage() {
 
   // Copy transaction ID to clipboard
   const copyTransactionId = () => {
-    if (!utr) return;
-    navigator.clipboard.writeText(utr);
-    toast.success('Transaction ID copied to clipboard!');
+    const textToCopy = cashfreePaymentId || utr;
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy);
+    toast.success('Transaction ID / UTR copied to clipboard!');
+  };
+
+  // Dynamically load Razorpay SDK
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // Handle Online Checkout via Razorpay
+  const handleRazorpayPaymentSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!data) return;
+
+    setSubmitting(true);
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        toast.error("Razorpay SDK failed to load. Please check internet connection.");
+        setSubmitting(false);
+        return;
+      }
+
+      // 1. Create order on backend
+      const response = await axios.post(`/api/reminders/checkout/${customerId}/create-razorpay-order`, {
+        amount: parseFloat(amountPaid || balance)
+      });
+
+      if (response.data?.success) {
+        const { order_id, amount, currency, key_id } = response.data;
+
+        // 2. Open Razorpay Checkout Modal
+        const options = {
+          key: key_id,
+          amount: amount,
+          currency: currency || "INR",
+          name: storeName,
+          description: "Digital Udhaar Ledger Clearance",
+          image: "https://upload.wikimedia.org/wikipedia/commons/8/89/Razorpay_logo.svg",
+          order_id: order_id,
+          handler: async function (res) {
+            setVerifyingPayment(true);
+            setVerifyingStatusMsg("Verifying Razorpay payment & updating ledger...");
+            try {
+              const verifyRes = await axios.post(`/api/reminders/checkout/${customerId}/verify-razorpay-payment`, {
+                razorpay_order_id: res.razorpay_order_id,
+                razorpay_payment_id: res.razorpay_payment_id,
+                razorpay_signature: res.razorpay_signature,
+                amount: parseFloat(amountPaid || balance)
+              });
+
+              if (verifyRes.data?.success) {
+                toast.success("✓ Razorpay payment verified & settled successfully!");
+                setIsPaid(true);
+                setPaymentStatus('SETTLED');
+
+                const txData = verifyRes.data.data;
+                if (txData) {
+                  if (txData.paymentId) setCashfreePaymentId(txData.paymentId);
+                  if (txData.utr) setUtr(txData.utr);
+                  if (txData.amount) setAmountPaid(txData.amount.toString());
+
+                  const dateObj = txData.date ? new Date(txData.date) : new Date();
+                  const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                  const timeStr = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                  const code = `RCP-${dateObj.getFullYear()}${(dateObj.getMonth()+1).toString().padStart(2,'0')}${dateObj.getDate().toString().padStart(2,'0')}-${customerId.slice(-3).toUpperCase()}`;
+
+                  setReceiptNo(code);
+                  setPaymentDate(dateStr);
+                  setPaymentTime(timeStr);
+                }
+              } else {
+                toast.error(verifyRes.data?.message || "Razorpay payment verification failed.");
+              }
+            } catch (vErr) {
+              toast.error(vErr.response?.data?.message || "Error verifying Razorpay payment.");
+            } finally {
+              setVerifyingPayment(false);
+            }
+          },
+          prefill: {
+            name: customerName,
+            contact: customerPhone ? customerPhone.replace(/\D/g, '').slice(-10) : '',
+          },
+          theme: {
+            color: "#F97316"
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (resp) {
+          toast.error(`Payment Failed: ${resp.error?.description || 'Transaction cancelled'}`);
+        });
+        rzp.open();
+      } else {
+        toast.error(response.data?.message || "Failed to initialize Razorpay payment order.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error starting Razorpay checkout.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle Online Checkout Form Submit via Cashfree
@@ -222,7 +406,9 @@ export default function PaymentCheckoutPage() {
     setSubmitting(true);
     try {
       // 1. Create order on backend
-      const response = await axios.post(`/api/reminders/checkout/${customerId}/create-order`);
+      const response = await axios.post(`/api/reminders/checkout/${customerId}/create-order`, {
+        amount: parseFloat(amountPaid || balance)
+      });
       if (response.data?.success) {
         const { payment_session_id, isSandbox } = response.data;
 
@@ -252,12 +438,15 @@ export default function PaymentCheckoutPage() {
     }
   };
 
-  if (loading) {
+  if (verifyingPayment || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 text-center max-w-sm">
           <div className="w-12 h-12 border-4 border-orange border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-600 font-bold text-sm">Connecting to secure billing server...</p>
+          <p className="text-slate-800 font-black text-base">{verifyingPayment ? "Confirming Payment..." : "Loading Billing..."}</p>
+          <p className="text-slate-500 font-semibold text-xs leading-relaxed">
+            {verifyingPayment ? verifyingStatusMsg : "Connecting to secure billing server..."}
+          </p>
         </div>
       </div>
     );
@@ -281,40 +470,21 @@ export default function PaymentCheckoutPage() {
     );
   }
 
-  const storeName = data?.storeName || 'Digital Udhaar';
+  const storeName = data?.storeName || 'AI Digital Khata';
   const customerName = data?.customerName || 'Valued Customer';
   const customerPhone = data?.customerPhone || '';
   const customerAddress = data?.customerAddress || 'Ghatkesar Rd';
   const ownerName = data?.ownerName || 'Akhilesh';
-  const ownerPhone = data?.ownerPhone || '+91 9849228937';
+  const ownerPhone = data?.ownerPhone || '+91 9876543210';
   const upiId = data?.upiId;
   const balance = data?.balance || 0;
-  // If the initial balance is already zero or less on load, show the Dues Cleared panel
-  if (!isPaid && balance <= 0) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
-        <div className="max-w-md w-full bg-white border border-slate-150 rounded-3xl p-8 text-center shadow-2xl space-y-6">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-md">
-            <FaCheckCircle size={44} className="text-emerald-500" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-black text-slate-800">No Outstanding Dues</h2>
-            <p className="text-slate-550 text-sm leading-relaxed">
-              Namaste <strong>{customerName}</strong>, all your outstanding dues with <strong>{storeName}</strong> have been fully cleared.
-            </p>
-          </div>
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs text-slate-500 font-bold">
-            Current Account Balance: <span className="text-emerald-600 font-black">₹{balance.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Render Premium Receipt Page if Payment is completed
-  if (isPaid && data) {
+  // Render Premium Receipt Page if Payment is completed or balance cleared
+  if ((isPaid || balance <= 0) && data) {
     const firstLetter = customerName ? customerName.charAt(0).toUpperCase() : 'C';
-    const amountVal = parseFloat(amountPaid) || 0;
+    const amountVal = parseFloat(amountPaid) || data.lastPayment?.amount || 0;
+    const activeReceiptNo = receiptNo || `RCP-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,'0')}${new Date().getDate().toString().padStart(2,'0')}-${customerId.slice(-3).toUpperCase()}`;
+    const activeDate = paymentDate || new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    const activeTime = paymentTime || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     
     // Compute correct historical credit/debit totals
     const wasAlreadyPaidOnLoad = (data.balance <= 0);
@@ -363,7 +533,7 @@ export default function PaymentCheckoutPage() {
               {/* Store title & Owner detail */}
               <div className="text-center">
                 <h1 className="text-2xl font-black text-slate-850 tracking-tight">{storeName}</h1>
-                <p className="text-slate-450 text-[11px] font-bold tracking-wide uppercase">Digital Udhaar Khata</p>
+                <p className="text-slate-450 text-[11px] font-bold tracking-wide uppercase">AI Digital Khata</p>
                 <div className="flex justify-center items-center gap-4 text-slate-500 text-[11px] font-semibold mt-1">
                   <span className="flex items-center gap-1">👤 Owner: {ownerName}</span>
                   <span className="flex items-center gap-1">📞 {ownerPhone}</span>
@@ -420,19 +590,19 @@ export default function PaymentCheckoutPage() {
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div className="space-y-0.5 border-r border-slate-200/65 last:border-0 md:block">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Receipt No.</span>
-                <span className="text-xs font-black text-slate-800 block truncate">{receiptNo}</span>
+                <span className="text-xs font-black text-slate-800 block truncate">{activeReceiptNo}</span>
               </div>
               <div className="space-y-0.5 md:border-r border-slate-200/65 last:border-0 block">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Date</span>
-                <span className="text-xs font-black text-slate-800 block">{paymentDate}</span>
+                <span className="text-xs font-black text-slate-800 block">{activeDate}</span>
               </div>
               <div className="space-y-0.5 border-r border-slate-200/65 last:border-0 block">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Time</span>
-                <span className="text-xs font-black text-slate-800 block">{paymentTime}</span>
+                <span className="text-xs font-black text-slate-800 block">{activeTime}</span>
               </div>
               <div className="space-y-0.5 last:border-0 block">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Generated On</span>
-                <span className="text-xs font-black text-slate-800 block">{paymentDate}</span>
+                <span className="text-xs font-black text-slate-800 block">{activeDate}</span>
               </div>
             </div>
 
@@ -499,12 +669,14 @@ export default function PaymentCheckoutPage() {
                   </div>
                 </div>
                 
-                {/* UTR reference with copy tag */}
-                {utr && (
+                {/* UTR / Transaction ID reference with copy tag */}
+                {(utr || cashfreePaymentId) && (
                   <div className="border-t border-slate-100 pt-3 mt-4 flex justify-between items-center">
                     <div className="space-y-0.5 text-left">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Transaction ID (UTR)</span>
-                      <span className="text-xs font-black text-slate-700 block tracking-wider">{utr}</span>
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Transaction ID / UTR</span>
+                      <span className="text-xs font-black text-slate-700 block tracking-wider">
+                        {cashfreePaymentId ? `ID: ${cashfreePaymentId} ` : ''}{utr ? `UTR: ${utr}` : ''}
+                      </span>
                     </div>
                     <button 
                       onClick={copyTransactionId} 
@@ -631,6 +803,13 @@ export default function PaymentCheckoutPage() {
 
             {/* Action buttons drawer */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 print:hidden">
+              <Link 
+                to="/transactions"
+                className="py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md no-underline text-center border-none"
+              >
+                <FaCheckCircle /> View Transaction
+              </Link>
+
               <a 
                 href={`/api/reminders/checkout/${customerId}/receipt`}
                 download
@@ -660,7 +839,7 @@ export default function PaymentCheckoutPage() {
                   <h4 className="text-xs font-black text-slate-800">Scan to Verify</h4>
                   <p className="text-[10px] text-slate-400 leading-normal font-semibold">
                     Receipt No.<br />
-                    <span className="text-slate-600 font-bold">{receiptNo}</span>
+                    <span className="text-slate-600 font-bold">{activeReceiptNo}</span>
                   </p>
                 </div>
               </div>
@@ -684,7 +863,7 @@ export default function PaymentCheckoutPage() {
                 This is a computer generated receipt and does not require any signature.
               </p>
               <p className="text-[10px] text-slate-450 font-bold">
-                Powered by Digital Udhaar Khata &nbsp;|&nbsp; Secured by <span className="text-indigo-600 font-black">Cashfree Payments</span>
+                Powered by AI Digital Khata &nbsp;|&nbsp; Secured by <span className="text-indigo-600 font-black">Cashfree Payments</span>
               </p>
             </div>
             
@@ -720,7 +899,7 @@ export default function PaymentCheckoutPage() {
         <div className="text-center">
           <h1 className="text-2xl font-black text-slate-850 tracking-tight">{storeName}</h1>
           <p className="text-slate-400 text-[10px] font-bold tracking-wide uppercase mt-0.5">
-            Instant UPI Payment Portal
+            Instant UPI Payment
           </p>
         </div>
 
@@ -812,45 +991,57 @@ export default function PaymentCheckoutPage() {
                 </div>
               </>
             ) : (
-              // Real Gateway Payment Tab Panel
+              // Real Gateway Payment Tab Panel (Razorpay & Cashfree)
               <div className="w-full flex-grow flex flex-col justify-between items-center text-center">
                 <div className="w-full border-b border-slate-100 pb-4 mb-4">
                   <h3 className="text-base font-black text-slate-800 mb-1">Online Payment Gateway</h3>
                   <p className="text-slate-455 text-xs leading-relaxed">
-                    Pay securely using credit/debit card, net banking, UPI, or digital wallets.
+                    Pay securely using Razorpay (Credit/Debit Card, Net Banking, UPI, Wallets).
                   </p>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center items-center py-8 px-6 bg-slate-50 border border-slate-100 rounded-3xl my-6 w-full max-w-sm">
-                  <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-4 shadow-sm border border-indigo-100">
-                    <FaLock size={24} className="text-indigo-600" />
+                <div className="flex-1 flex flex-col justify-center items-center py-6 px-6 bg-slate-50 border border-slate-100 rounded-3xl my-4 w-full max-w-sm space-y-4">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shadow-sm border border-blue-100">
+                    <FaCreditCard size={24} className="text-blue-600" />
                   </div>
-                  <h4 className="font-bold text-slate-800 text-sm mb-1">Secure Cashfree Checkout</h4>
-                  <p className="text-slate-500 text-xs leading-relaxed mb-6">
-                    Your payment will be processed securely. Once completed, your balance will be settled instantly.
-                  </p>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm mb-1">Secure Razorpay Checkout</h4>
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      Instant online payment via Razorpay. Your ledger balance will update immediately after payment.
+                    </p>
+                  </div>
 
+                  {/* Primary Razorpay Pay Button */}
                   <button
-                    onClick={handleCardPaymentSubmit}
+                    onClick={handleRazorpayPaymentSubmit}
                     disabled={submitting}
-                    className="w-full py-3.5 px-6 bg-[#F97316] hover:bg-[#ea6c10] disabled:bg-slate-300 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-orange-200 cursor-pointer flex items-center justify-center gap-2 border-none"
+                    className="w-full py-3.5 px-6 bg-[#072654] hover:bg-[#0b3b80] disabled:bg-slate-300 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-blue-900/20 cursor-pointer flex items-center justify-center gap-2 border-none"
                   >
                     {submitting ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Redirecting to Gateway...</span>
+                        <span>Opening Razorpay...</span>
                       </>
                     ) : (
                       <>
                         <FaLock size={12} />
-                        <span>Pay ₹{balance.toFixed(2)} Securely</span>
+                        <span>Pay ₹{balance.toFixed(2)} with Razorpay</span>
                       </>
                     )}
+                  </button>
+
+                  {/* Alternative Cashfree Pay Button */}
+                  <button
+                    onClick={handleCardPaymentSubmit}
+                    disabled={submitting}
+                    className="w-full py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition-all border-none cursor-pointer"
+                  >
+                    Or Pay via Cashfree Gateway
                   </button>
                 </div>
 
                 {/* Card Brand Logos */}
-                <div className="w-full border-t border-slate-100 pt-4 mt-6 flex justify-center items-center gap-4">
+                <div className="w-full border-t border-slate-100 pt-4 mt-4 flex justify-center items-center gap-4">
                   <VisaLogo />
                   <MastercardLogo />
                   <RupayLogo />
@@ -860,12 +1051,9 @@ export default function PaymentCheckoutPage() {
           </div>
         </div>
 
-        {/* Right Column: Payment Confirmation & UTR Form */}
+        {/* Right Column: Payment Confirmation & Auto-Verification Panel */}
         <div className="w-full md:w-1/2 flex flex-col gap-6">
-          <form 
-            onSubmit={handleConfirmPayment}
-            className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col justify-between flex-1"
-          >
+          <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col justify-between flex-1">
             {/* Orange top bar */}
             <div className="h-1.5 w-full bg-[#F97316]" />
 
@@ -873,16 +1061,16 @@ export default function PaymentCheckoutPage() {
               {/* Header */}
               <div>
                 <span className="text-[10px] font-bold tracking-widest text-[#F97316] uppercase">Step 2 of 2</span>
-                <h2 className="text-xl font-black text-slate-900 mt-1 tracking-tight">Confirm Your Transfer</h2>
-                <p className="text-slate-400 text-xs mt-1 leading-relaxed">After scanning and paying, enter the UTR reference number below to confirm your payment.</p>
+                <h2 className="text-xl font-black text-slate-900 mt-1 tracking-tight">Confirm & Settle Dues</h2>
+                <p className="text-slate-400 text-xs mt-1 leading-relaxed">After sending payment via GPay, PhonePe, Paytm, or Card, click below to verify and view your instant receipt.</p>
               </div>
 
               <div className="space-y-4">
                 {/* Amount pill */}
-                <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-center">
-                  <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">Amount to Pay</p>
+                <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-center shadow-md">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">Total Outstanding Dues</p>
                   <p className="text-4xl font-light text-white tracking-tight">₹{balance.toFixed(2)}</p>
-                  <p className="text-slate-400 text-[11px] mt-2 font-medium">To: <span className="text-white font-bold">{storeName}</span></p>
+                  <p className="text-slate-400 text-[11px] mt-2 font-medium">Payee: <span className="text-white font-bold">{storeName}</span></p>
                 </div>
 
                 {/* Customer info */}
@@ -897,83 +1085,142 @@ export default function PaymentCheckoutPage() {
                   </div>
                   {upiId && (
                     <div className="flex justify-between items-center px-4 py-3 text-xs">
-                      <span className="text-slate-400 font-semibold">UPI ID</span>
+                      <span className="text-slate-400 font-semibold">Merchant UPI</span>
                       <span className="text-slate-800 font-black font-mono">{upiId}</span>
                     </div>
                   )}
                 </div>
-
-                {/* Amount input */}
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Amount Transferred (₹)
-                  </label>
-                  <input 
-                    type="number"
-                    step="0.01"
-                    required
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    placeholder="Enter exact amount paid"
-                    className="w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-[#F97316] rounded-2xl font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
-                  />
-                </div>
-
-                 {/* UTR Input */}
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    UPI Ref / Transaction UTR Number
-                  </label>
-                  <input 
-                    type="text"
-                    maxLength={22}
-                    required
-                    value={utr}
-                    onChange={(e) => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                    placeholder="Enter UPI Ref / UTR number"
-                    className="w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-[#F97316] rounded-2xl font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
-                  />
-                  <span className="text-[10px] text-slate-400 block mt-1 leading-relaxed">
-                    Found in transaction details of your UPI or banking app after payment (8 to 22 characters).
-                  </span>
-                </div>
               </div>
 
-              {/* CTA + secure note */}
-              <div className="space-y-3 pt-1">
+              {/* Primary Gateway Checkout Button */}
+              <div className="space-y-3 pt-2">
                 <button 
-                  type="submit"
-                  disabled={submitting || !upiId}
-                  className="w-full py-4 px-6 bg-[#F97316] hover:bg-[#ea6c10] active:scale-[0.98] disabled:bg-slate-300 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={handleRazorpayPaymentSubmit}
+                  disabled={submitting}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-[#072654] to-[#0b3b80] hover:from-[#0b3b80] hover:to-[#0f4ca8] active:scale-[0.98] disabled:bg-slate-300 text-white rounded-2xl font-black text-sm transition-all shadow-xl shadow-blue-900/20 flex items-center justify-center gap-2 cursor-pointer border-none"
                 >
                   {submitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Verifying Payment...</span>
+                      <span>Opening Razorpay Gateway...</span>
                     </>
                   ) : (
                     <>
-                      <FaCheck size={13} />
-                      <span>Confirm Payment — ₹{parseFloat(amountPaid || 0).toFixed(2)}</span>
+                      <FaLock size={14} />
+                      <span>Pay ₹{balance.toFixed(2)} with Razorpay</span>
                     </>
                   )}
                 </button>
 
+                {/* Direct QR Payment Verification via Screenshot Upload or Manual UTR */}
+                <div className="border-t border-slate-100 pt-3">
+                  <details className="group" open={Boolean(screenshotPreview)}>
+                    <summary className="text-[11px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer list-none flex items-center justify-between py-1">
+                      <span className="flex items-center gap-1.5">
+                        <FaDownload className="text-[#F97316]" size={11} />
+                        Or Upload Payment Screenshot (QR Transfers)
+                      </span>
+                      <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                    </summary>
+                    
+                    <form onSubmit={handleConfirmPayment} className="mt-3 space-y-3">
+                      {/* Screenshot Upload Drop Area */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Payment Screenshot (Recommended)
+                        </label>
+                        {screenshotPreview ? (
+                          <div className="relative rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-3 flex items-center gap-3">
+                            <img 
+                              src={screenshotPreview} 
+                              alt="Payment Screenshot Preview" 
+                              className="w-16 h-16 object-cover rounded-xl border border-emerald-200 shadow-sm"
+                            />
+                            <div className="flex-1 min-w-0 text-left">
+                              <span className="text-xs font-bold text-emerald-800 block truncate">✓ Screenshot Attached</span>
+                              <span className="text-[10px] text-emerald-600 font-semibold block">Ready for verification</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setScreenshotPreview('')}
+                              className="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-600 rounded-lg text-xs font-bold transition-colors border-none cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-[#F97316] bg-slate-50/50 hover:bg-orange-50/30 rounded-2xl p-4 cursor-pointer transition-all text-center">
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleScreenshotChange} 
+                              className="hidden" 
+                            />
+                            <div className="w-10 h-10 rounded-full bg-orange-100 text-[#F97316] flex items-center justify-center mb-1">
+                              <FaDownload size={14} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700 block">Click to Upload Payment Screenshot</span>
+                            <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">Supports PNG, JPG, WEBP (Max 8MB)</span>
+                          </label>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Amount Transferred (₹)
+                        </label>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          required
+                          value={amountPaid}
+                          onChange={(e) => setAmountPaid(e.target.value)}
+                          placeholder="Enter exact amount paid"
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          UPI Ref / UTR Number (Optional if screenshot uploaded)
+                        </label>
+                        <input 
+                          type="text"
+                          maxLength={22}
+                          value={utr}
+                          onChange={(e) => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                          placeholder="Optional: Enter 12-digit UPI UTR Ref"
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+                        />
+                      </div>
+
+                      <button 
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-3 bg-[#F97316] hover:bg-[#ea6c10] text-white rounded-xl font-bold text-xs cursor-pointer transition-all border-none shadow-md"
+                      >
+                        {submitting ? 'Submitting Screenshot...' : 'Submit Screenshot & Generate Receipt'}
+                      </button>
+                    </form>
+                  </details>
+                </div>
+
                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-start gap-2">
                   <FaLock size={11} className="text-emerald-600 shrink-0 mt-0.5" />
                   <p className="text-emerald-700 text-[10px] leading-relaxed font-semibold">
-                    Secure & encrypted. UTR numbers are cross-verified instantly. False claims won't affect your balance.
+                    Encrypted & instant. Receipt is generated automatically and saved to your permanent statement history.
                   </p>
                 </div>
               </div>
             </div>
-          </form>
+          </div>
         </div>
       </div>
 
       {/* Page Footer */}
       <div className="w-full text-center py-4 bg-slate-100 border-t border-slate-200/80 text-[10px] text-slate-400 font-semibold shrink-0 print:hidden">
-        Powered by Digital Udhaar (Direct & Safe UPI Payments)
+        Powered by AI Digital Khata (Direct & Safe UPI Payments)
       </div>
     </div>
   );

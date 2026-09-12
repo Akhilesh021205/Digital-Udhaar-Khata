@@ -453,9 +453,9 @@ const getStats = async (req, res, next) => {
       highRiskCount,
       pendingTransactions
     ] = await Promise.all([
-      Customer.countDocuments({ owner: ownerId }),
+      Customer.countDocuments({ owner: ownerId, isDeleted: { $ne: true } }),
       Customer.aggregate([
-        { $match: { owner: ownerId } },
+        { $match: { owner: ownerId, isDeleted: { $ne: true } } },
         {
           $group: {
             _id: null,
@@ -480,10 +480,12 @@ const getStats = async (req, res, next) => {
       Customer.countDocuments({
         owner: ownerId,
         balance: { $gt: 0 },
+        isDeleted: { $ne: true }
       }),
       Customer.countDocuments({
         owner: ownerId,
         riskLevel: 'high',
+        isDeleted: { $ne: true }
       }),
       Transaction.countDocuments({
         owner: ownerId,

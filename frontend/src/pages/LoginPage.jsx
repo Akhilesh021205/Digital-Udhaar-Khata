@@ -125,22 +125,22 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-light-cream to-soft-white p-5 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center udhaar-page-bg p-5 relative overflow-hidden">
       {/* Decorative background shapes */}
-      <div className="absolute w-[500px] h-[500px] bg-radial from-orange/5 to-transparent -top-[100px] -right-[100px] rounded-full"></div>
-      <div className="absolute w-[400px] h-[400px] bg-radial from-info-analytics/5 to-transparent -bottom-[80px] -left-[80px] rounded-full"></div>
+      <div className="pointer-events-none absolute -top-20 -left-20 w-96 h-96 bg-[#DC2626]/10 rounded-full blur-3xl -z-10" />
+      <div className="pointer-events-none absolute -bottom-20 -right-20 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl -z-10" />
 
       <div className="w-full max-w-md p-10 bg-pure-white border border-soft-gray rounded-2xl shadow-lg relative z-10">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-light-cream border border-soft-gray flex items-center justify-center p-2 shadow-inner">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5]/40 flex items-center justify-center p-2 shadow-xs">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-deep-navy mb-1">Login</h1>
+          <h1 className="text-2xl font-bold text-deep-navy mb-1 font-jakarta">Login</h1>
           <p className="text-sm text-slate-gray">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="bg-red-give/10 border border-red-give/20 rounded-lg p-3.5 mb-4 text-red-give text-sm text-center font-medium animate-pulse">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-4 text-[#DC2626] text-sm text-center font-medium animate-pulse">
             {error}
           </div>
         )}
@@ -151,7 +151,7 @@ const LoginPage = () => {
               Email Address
             </label>
             <input
-              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all"
+              className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-xl text-deep-navy placeholder-slate-gray/40 text-sm focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
               type="email"
               placeholder="you@example.com"
               required
@@ -165,7 +165,7 @@ const LoginPage = () => {
             </label>
             <div className="relative">
               <input
-                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none transition-all pr-12"
+                className="w-full px-4 py-3 bg-light-cream/40 border border-soft-gray rounded-lg text-deep-navy placeholder-slate-gray/40 text-sm focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all pr-12"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 required
@@ -181,13 +181,13 @@ const LoginPage = () => {
               </button>
             </div>
             <div className="flex justify-end mt-2">
-              <Link to="/forgot-password" className="text-xs font-semibold text-orange hover:underline">
+              <Link to="/forgot-password" className="text-xs font-semibold text-[#DC2626] hover:underline">
                 Forgot Password?
               </Link>
             </div>
           </div>
           <button
-            className="w-full py-3.5 px-6 font-semibold text-sm rounded-lg bg-orange text-white hover:bg-orange-hover transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full py-3.5 px-6 font-extrabold text-sm rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2 font-jakarta"
             type="submit"
             disabled={loading}
           >
@@ -219,23 +219,8 @@ const LoginPage = () => {
           Continue with Google
         </button>
 
-        {hasStoredBiometrics && (
-          <div className="flex flex-col items-center justify-center pt-4 border-t border-soft-gray mt-5 animate-in fade-in zoom-in-95 duration-200">
-            <span className="text-[10px] font-bold text-slate-gray uppercase tracking-wider mb-2.5">Or Sign In With Biometrics</span>
-            <button
-              type="button"
-              onClick={handleFingerprintLogin}
-              disabled={loading}
-              className="w-12 h-12 rounded-full bg-orange/10 border border-orange/20 flex items-center justify-center text-orange hover:bg-orange hover:text-white hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50"
-              title="Sign In with Fingerprint"
-            >
-              <HiOutlineFingerPrint size={24} />
-            </button>
-          </div>
-        )}
-
         <div className="text-center mt-5 text-sm text-slate-gray">
-          Don't have an account? <Link to="/register" className="text-orange font-semibold hover:underline">Sign up</Link>
+          Don't have an account? <Link to="/register" className="text-[#DC2626] font-bold hover:underline">Sign up</Link>
         </div>
       </div>
 
@@ -261,7 +246,7 @@ const LoginPage = () => {
                 </svg>
               </div>
               <h2 className="text-lg font-bold text-deep-navy">Sign in with Google</h2>
-              <p className="text-xs text-slate-gray mt-1">Select an account to log into Digital Udhaar</p>
+              <p className="text-xs text-slate-gray mt-1">Select an account to log into AI Digital Khata</p>
             </div>
 
             <div className="space-y-2.5">

@@ -87,7 +87,7 @@ export const BiometricScreen: React.FC<BiometricScreenProps> = ({ navigation }) 
         <View style={styles.appIconContainer}>
           <Shield size={32} color="#DC2626" strokeWidth={2} />
         </View>
-        <Text style={styles.appTitle}>Digital Udhaar</Text>
+        <Text style={styles.appTitle}>AI Digital Khata</Text>
       </View>
 
       <View style={styles.content}>

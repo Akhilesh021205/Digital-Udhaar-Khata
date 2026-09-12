@@ -10,16 +10,19 @@ import ConfirmDialog from '../components/Common/ConfirmDialog';
 import { useLanguage } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import LocationAddressInput, { navigateToAddress } from '../components/Common/LocationAddressInput';
 import {
   HiOutlineArrowLeft, HiOutlineArrowUp, HiOutlineArrowDown,
   HiOutlineDocumentDownload, HiOutlineTrash,
   HiOutlinePhone, HiOutlineLocationMarker, HiOutlineCalendar,
   HiOutlineExclamation, HiOutlineCheckCircle, HiOutlinePencil,
   HiOutlineMicrophone, HiOutlineSparkles, HiOutlineLightBulb,
-  HiOutlineX, HiOutlineClock, HiOutlineMail, HiOutlineCamera, HiOutlineXCircle
+  HiOutlineX, HiOutlineClock, HiOutlineMail, HiOutlineCamera, HiOutlineXCircle,
+  HiOutlineMap, HiOutlineExternalLink
 } from 'react-icons/hi';
 import { FaWhatsapp, FaSms, FaMobileAlt, FaPhone } from 'react-icons/fa';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import AiVoiceCallModal from '../components/AI/AiVoiceCallModal';
 
 const defaultUserSvg = `
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -127,6 +130,7 @@ const CustomerDetailPage = () => {
   const [editingTxn, setEditingTxn] = useState(null);
   const [editForm, setEditForm] = useState({ amount: '', description: '', date: '', paymentStatus: 'PENDING', paymentMode: '' });
   const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [showAiCallModal, setShowAiCallModal] = useState(false);
   const [customerForm, setCustomerForm] = useState({
     name: '',
     phone: '',
@@ -134,7 +138,10 @@ const CustomerDetailPage = () => {
     address: '',
     riskLevel: 'low',
     avatar: '',
-    paymentDueDate: ''
+    paymentDueDate: '',
+    preferredLanguage: 'te-IN',
+    phoneType: 'smartphone',
+    aiReminderEnabled: true
   });
   const customerFileInputRef = useRef(null);
 
@@ -212,7 +219,10 @@ const CustomerDetailPage = () => {
       address: customer.address || '',
       riskLevel: customer.riskLevel || 'low',
       avatar: customer.avatar || '',
-      paymentDueDate: customer.paymentDueDate ? new Date(customer.paymentDueDate).toISOString().split('T')[0] : ''
+      paymentDueDate: customer.paymentDueDate ? new Date(customer.paymentDueDate).toISOString().split('T')[0] : '',
+      preferredLanguage: customer.preferredLanguage || 'te-IN',
+      phoneType: customer.phoneType || 'smartphone',
+      aiReminderEnabled: customer.aiReminderEnabled !== undefined ? customer.aiReminderEnabled : true,
     });
     setShowEditCustomer(true);
   };
@@ -249,12 +259,12 @@ const CustomerDetailPage = () => {
         API.get(`/transactions?customer=${id}&limit=200`),
       ]);
       const custData = custRes.data.data.customer;
-      const prediction = getDeterministicPrediction(custData._id, custData.name);
+      const prediction = getDeterministicPrediction(custData);
       const enrichedCust = {
         ...custData,
-        duePrediction: prediction.duePrediction,
-        creditScore: prediction.creditScore,
-        riskLevel: prediction.riskLevel
+        duePrediction: custData.duePrediction || prediction.duePrediction,
+        creditScore: custData.creditScore || prediction.creditScore,
+        riskLevel: custData.riskLevel || prediction.riskLevel
       };
       setCustomer(enrichedCust);
       setQrAmount(enrichedCust.balance > 0 ? enrichedCust.balance : 0);
@@ -492,9 +502,18 @@ const CustomerDetailPage = () => {
               </div>
             )}
             {customer.address && (
-              <div className="flex justify-between items-start text-sm">
-                <label className="text-slate-gray font-medium inline-flex items-center"><HiOutlineLocationMarker className="mr-1.5 text-slate-gray/60" /> {t('address')}</label>
-                <span className="font-semibold text-deep-navy text-right max-w-[180px] break-words">{customer.address}</span>
+              <div className="space-y-1.5 pt-1 border-t border-soft-gray/30">
+                <div className="flex justify-between items-start text-sm">
+                  <label className="text-slate-gray font-medium inline-flex items-center"><HiOutlineLocationMarker className="mr-1.5 text-slate-gray/60" /> {t('address')}</label>
+                  <span className="font-semibold text-deep-navy text-right max-w-[180px] break-words">{customer.address}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigateToAddress(customer.address)}
+                  className="w-full py-1.5 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <HiOutlineMap size={14} /> Navigate to Location <HiOutlineExternalLink size={12} />
+                </button>
               </div>
             )}
             <div className="flex justify-between items-center text-sm">
@@ -556,6 +575,83 @@ const CustomerDetailPage = () => {
                   <span className="text-slate-gray/50">—</span>
                 )}
               </div>
+            </div>
+
+            {/* AI Voice Assistant Summary Card */}
+            <div className="p-3 bg-gradient-to-br from-orange/10 via-orange/5 to-transparent border border-orange/20 rounded-xl space-y-2 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-deep-navy dark:text-white flex items-center gap-1.5">
+                  <HiOutlineSparkles className="text-orange" size={16} /> AI Voice Assistant
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  customer.lastAiCallStatus === 'completed'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                }`}>
+                  {customer.lastAiCallStatus === 'completed' ? '✓ Completed' : 'Not contacted'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                <div>
+                  <span className="text-slate-gray font-medium block">Language:</span>
+                  <span className="font-bold text-deep-navy dark:text-white">
+                    {customer.preferredLanguage === 'te-IN' ? 'Telugu (తెలుగు)' :
+                     customer.preferredLanguage === 'hi-IN' ? 'Hindi (हिंदी)' :
+                     customer.preferredLanguage === 'ta-IN' ? 'Tamil (தமிழ்)' :
+                     customer.preferredLanguage === 'kn-IN' ? 'Kannada (ಕನ್ನಡ)' : 'English'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-gray font-medium block">Phone Type:</span>
+                  <span className="font-bold text-deep-navy dark:text-white capitalize">
+                    {customer.phoneType === 'basic' ? 'Basic Phone' : 'Smartphone'}
+                  </span>
+                </div>
+              </div>
+
+              {customer.lastAiCall && (
+                <div className="text-[11px] pt-1 border-t border-orange/10 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-gray">Last Call:</span>
+                    <span className="font-semibold text-deep-navy">
+                      {new Date(customer.lastAiCall).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  {customer.lastAiResponse && (
+                    <div className="text-[11px] italic text-slate-600 dark:text-slate-300">
+                      "{customer.lastAiResponse}"
+                    </div>
+                  )}
+                  {customer.lastAiResultStatus && customer.lastAiResultStatus !== 'NOT_CONTACTED' && (
+                    <div className="flex justify-between items-center font-bold">
+                      <span className="text-slate-gray">Result:</span>
+                      <span className="text-orange inline-flex items-center gap-1">
+                        <HiOutlineCheckCircle size={12} className="text-emerald-500" />
+                        {customer.lastAiResultStatus === 'PAID_TODAY_PROMISE' ? 'Will Pay Today' :
+                         customer.lastAiResultStatus === 'PROMISE_TO_PAY' ? 'Promise to Pay' :
+                         customer.lastAiResultStatus === 'NEEDS_MORE_TIME' ? 'Needs More Time' :
+                         customer.lastAiResultStatus === 'DISPUTE' ? 'Dispute' :
+                         customer.lastAiResultStatus === 'TRANSFER_TO_OWNER' ? 'Speak to Owner' : 'Not Contacted'}
+                      </span>
+                    </div>
+                  )}
+                  {customer.promiseToPayDate && (
+                    <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
+                      <span>Follow-up Date:</span>
+                      <span>{new Date(customer.promiseToPayDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowAiCallModal(true)}
+                className="w-full mt-2 py-2.5 bg-gradient-to-r from-orange to-orange-hover hover:scale-[1.01] active:scale-[0.99] text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 border-none cursor-pointer shadow-md"
+              >
+                <HiOutlinePhone size={15} /> Start AI Call
+              </button>
             </div>
           </div>
           <div className="flex flex-col gap-2 pt-3 border-t border-soft-gray/50">
@@ -704,6 +800,9 @@ const CustomerDetailPage = () => {
               const txn = item.data;
               const isCredit = txn.type === 'credit';
               const isSettled = txn.paymentStatus === 'SETTLED';
+              const utrMatch = txn.description ? txn.description.match(/(?:UTR|Order|ID):\s*([a-zA-Z0-9_-]+)/i) : null;
+              const displayUtr = txn.utr || (utrMatch ? utrMatch[1] : null);
+              const displayPayId = txn.cashfreePaymentId || null;
 
               return (
                 <div 
@@ -718,9 +817,21 @@ const CustomerDetailPage = () => {
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-gray/70">
                       {isCredit ? t('youGave') : t('youGot')}
                     </span>
-                    <span className="text-[9px] font-mono text-slate-gray/60 bg-soft-gray/20 px-1.5 py-0.5 rounded font-semibold" title="Transaction ID">
-                      ID: {txn._id}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                      {displayUtr && (
+                        <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md font-bold shadow-xs">
+                          UTR: {displayUtr}
+                        </span>
+                      )}
+                      {displayPayId && (
+                        <span className="text-[9px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md font-semibold">
+                          PayID: {displayPayId}
+                        </span>
+                      )}
+                      <span className="text-[9px] font-mono text-slate-gray/60 bg-soft-gray/20 px-1.5 py-0.5 rounded font-semibold" title="Transaction ID">
+                        ID: {txn._id}
+                      </span>
+                    </div>
                   </div>
                   
                   {/* Amount shows green if settled or debit, red/orange if credit pending */}
@@ -1261,7 +1372,61 @@ const CustomerDetailPage = () => {
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('address')}</label>
-            <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={customerForm.address} onChange={(e) => setCustomerForm({...customerForm, address: e.target.value})} />
+            <LocationAddressInput
+              value={customerForm.address}
+              onChange={(val) => setCustomerForm({ ...customerForm, address: val })}
+              placeholder="Enter address manually or use GPS map location"
+            />
+          </div>
+
+          {/* AI Voice Assistant Settings in Edit Form */}
+          <div className="p-3 bg-orange/5 dark:bg-orange-950/20 border border-orange/20 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-deep-navy dark:text-white flex items-center gap-1.5">
+                🤖 AI Voice Assistant Settings
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={customerForm.aiReminderEnabled}
+                  onChange={(e) => setCustomerForm({ ...customerForm, aiReminderEnabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange"></div>
+                <span className="ml-2 text-xs font-bold text-slate-gray">
+                  {customerForm.aiReminderEnabled ? 'ON' : 'OFF'}
+                </span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">Preferred Language</label>
+                <select
+                  className="w-full px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
+                  value={customerForm.preferredLanguage}
+                  onChange={(e) => setCustomerForm({ ...customerForm, preferredLanguage: e.target.value })}
+                >
+                  <option value="te-IN">Telugu (తెలుగు)</option>
+                  <option value="hi-IN">Hindi (हिंदी)</option>
+                  <option value="en-IN">English</option>
+                  <option value="ta-IN">Tamil (தமிழ்)</option>
+                  <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">Phone Type</label>
+                <select
+                  className="w-full px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
+                  value={customerForm.phoneType}
+                  onChange={(e) => setCustomerForm({ ...customerForm, phoneType: e.target.value })}
+                >
+                  <option value="smartphone">Smartphone</option>
+                  <option value="basic">Basic Phone (Feature)</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-soft-gray">
@@ -1270,6 +1435,14 @@ const CustomerDetailPage = () => {
           </div>
         </form>
       </Modal>
+
+      {/* AI Voice Assistant Call Simulator Modal */}
+      <AiVoiceCallModal
+        isOpen={showAiCallModal}
+        onClose={() => setShowAiCallModal(false)}
+        customer={customer}
+        onCallCompleted={fetchData}
+      />
 
       {/* Lightbox */}
       {lightboxImg && (

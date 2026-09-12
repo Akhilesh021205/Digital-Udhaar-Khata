@@ -1,34 +1,64 @@
 /**
- * Generates deterministic, realistic dummy credit scores and risk predictions
- * based on a customer's ID/name. This ensures user privacy, consistency on reload,
- * and a realistic, premium UI demonstration.
+ * Calculates customer credit score and risk prediction.
+ * If customer has no transactions or balance <= 0, defaults to 'trusted' (clean record).
+ * If customer has overdue balance or bad payment history, flags as 'delay' or 'risky'.
  */
-export const getDeterministicPrediction = (customerId, name = '') => {
-  const seed = customerId || name || 'default';
-  
-  // Simple hash function (djb2) to generate a stable numeric hash
-  let hash = 5381;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) + hash) + seed.charCodeAt(i);
-  }
-  hash = Math.abs(hash);
-
-  // Generate a realistic credit score distribution between 580 and 840 (CIBIL-like range)
-  const creditScore = 580 + (hash % 261);
-  
-  let duePrediction = 'trusted';
-  let riskLevel = 'low';
-  
-  if (creditScore >= 720) {
-    duePrediction = 'trusted';
-    riskLevel = 'low';
-  } else if (creditScore >= 620) {
-    duePrediction = 'delay';
-    riskLevel = 'medium';
+export const getDeterministicPrediction = (customerOrId, name = '') => {
+  let customer = {};
+  if (typeof customerOrId === 'object' && customerOrId !== null) {
+    customer = customerOrId;
   } else {
-    duePrediction = 'risky';
-    riskLevel = 'high';
+    customer = { _id: customerOrId, name };
   }
-  
-  return { creditScore, duePrediction, riskLevel };
+
+  const balance = typeof customer.balance === 'number' ? customer.balance : 0;
+  const totalTxns = typeof customer.totalTransactions === 'number' ? customer.totalTransactions : 0;
+  const paymentDueDate = customer.paymentDueDate;
+
+  // 1. If customer has no transactions or zero/negative balance -> Always Trusted!
+  if (totalTxns === 0 || balance <= 0) {
+    return {
+      creditScore: 800,
+      duePrediction: 'trusted',
+      riskLevel: 'low'
+    };
+  }
+
+  // 2. Check if payment due date has passed
+  let isOverdue = false;
+  if (paymentDueDate) {
+    const due = new Date(paymentDueDate);
+    if (due < new Date()) {
+      isOverdue = true;
+    }
+  }
+
+  if (isOverdue) {
+    return {
+      creditScore: 590,
+      duePrediction: 'risky',
+      riskLevel: 'high'
+    };
+  }
+
+  // 3. Balance tier evaluation
+  if (balance <= 3000) {
+    return {
+      creditScore: 780,
+      duePrediction: 'trusted',
+      riskLevel: 'low'
+    };
+  } else if (balance <= 10000) {
+    return {
+      creditScore: 670,
+      duePrediction: 'delay',
+      riskLevel: 'medium'
+    };
+  } else {
+    return {
+      creditScore: 610,
+      duePrediction: 'risky',
+      riskLevel: 'high'
+    };
+  }
 };

@@ -110,6 +110,42 @@ const customerSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    preferredLanguage: {
+      type: String,
+      enum: ['te-IN', 'hi-IN', 'en-IN', 'ta-IN', 'kn-IN'],
+      default: 'te-IN',
+    },
+    phoneType: {
+      type: String,
+      enum: ['smartphone', 'basic'],
+      default: 'smartphone',
+    },
+    aiReminderEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    lastAiCall: {
+      type: Date,
+      default: null,
+    },
+    lastAiCallStatus: {
+      type: String,
+      enum: ['not_called', 'calling', 'completed', 'failed', 'no_answer'],
+      default: 'not_called',
+    },
+    lastAiResponse: {
+      type: String,
+      default: '',
+    },
+    lastAiResultStatus: {
+      type: String,
+      enum: ['PAID_TODAY_PROMISE', 'PROMISE_TO_PAY', 'NEEDS_MORE_TIME', 'DISPUTE', 'TRANSFER_TO_OWNER', 'NO_RESPONSE', 'NOT_CONTACTED'],
+      default: 'NOT_CONTACTED',
+    },
+    promiseToPayDate: {
+      type: Date,
+      default: null,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

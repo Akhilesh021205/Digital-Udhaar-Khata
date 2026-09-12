@@ -156,7 +156,8 @@ const SecuritySetupPage = () => {
       });
       
       updateUser(data.data);
-      sessionStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-last-active', Date.now().toString());
       setStep('success');
       
       setTimeout(() => {
@@ -353,7 +354,7 @@ const SecuritySetupPage = () => {
         publicKey: {
           challenge,
           rp: {
-            name: "Digital Udhaar Khata",
+            name: "AI Digital Khata",
             id: window.location.hostname
           },
           user: {

@@ -6,7 +6,21 @@ import { toast } from 'react-toastify';
 import { Capacitor } from '@capacitor/core';
 import { BiometricService } from '../../services/biometricService';
 import { HiOutlineBackspace } from 'react-icons/hi';
-import { Shield, Fingerprint as LucideFingerprint, Scan as LucideScan, Lock as LucideLock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { 
+  Shield, 
+  Fingerprint as LucideFingerprint, 
+  Scan as LucideScan, 
+  Lock as LucideLock, 
+  AlertTriangle, 
+  RefreshCw,
+  KeyRound,
+  Mail,
+  X,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  ArrowRight
+} from 'lucide-react';
 import { loadFaceApiModels, detectFaceInVideo, compareDescriptors, FaceLivenessChecker } from '../../utils/biometricScanner';
 
 const successAnimationStyles = `
@@ -98,6 +112,126 @@ const SecurityLockScreen = ({ onUnlock }) => {
   const [unlockSuccess, setUnlockSuccess] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
 
+  // Forgot PIN state
+  const [showForgotPinModal, setShowForgotPinModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState(user?.email || '');
+  const [forgotPassword, setForgotPassword] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [forgotPinStep, setForgotPinStep] = useState('verify'); // 'verify' | 'new-pin' | 'confirm-pin'
+  const [newPin, setNewPin] = useState('');
+  const [confirmNewPin, setConfirmNewPin] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [sendingResetEmail, setSendingResetEmail] = useState(false);
+
+  // Sync forgotEmail if user object updates
+  useEffect(() => {
+    if (user?.email) {
+      setForgotEmail(user.email);
+    }
+  }, [user]);
+
+  // Verify account password to reset PIN
+  const handleVerifyAccountPassword = async (e) => {
+    if (e) e.preventDefault();
+    if (!forgotEmail || !forgotPassword) {
+      toast.error('Please enter your account email and password');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      await API.post('/auth/verify-password', { password: forgotPassword });
+      toast.success('Identity verified! Create your new 4-digit PIN.');
+      setForgotPinStep('new-pin');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Incorrect password. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Submit new PIN setup
+  const handleSaveNewPin = async (finalPin) => {
+    setResetLoading(true);
+    try {
+      await API.post('/auth/setup-security', { pin: finalPin });
+      localStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-last-active', Date.now().toString());
+      toast.success('New Security PIN created & account unlocked!');
+      setShowForgotPinModal(false);
+      onUnlock();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update PIN');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Keypress handler for new PIN creation in modal
+  const handleForgotPinKeyPress = (num) => {
+    if (resetLoading) return;
+    if (forgotPinStep === 'new-pin') {
+      if (newPin.length < 4) {
+        const val = newPin + num;
+        setNewPin(val);
+        if (val.length === 4) {
+          setTimeout(() => setForgotPinStep('confirm-pin'), 250);
+        }
+      }
+    } else if (forgotPinStep === 'confirm-pin') {
+      if (confirmNewPin.length < 4) {
+        const val = confirmNewPin + num;
+        setConfirmNewPin(val);
+        if (val.length === 4) {
+          if (val === newPin) {
+            handleSaveNewPin(val);
+          } else {
+            toast.error("PINs do not match. Please try again.");
+            setTimeout(() => {
+              setConfirmNewPin('');
+              setNewPin('');
+              setForgotPinStep('new-pin');
+            }, 500);
+          }
+        }
+      }
+    }
+  };
+
+  const handleForgotPinBackspace = () => {
+    if (resetLoading) return;
+    if (forgotPinStep === 'new-pin') {
+      setNewPin(prev => prev.slice(0, -1));
+    } else if (forgotPinStep === 'confirm-pin') {
+      setConfirmNewPin(prev => prev.slice(0, -1));
+    }
+  };
+
+  // Send password reset link to email if shopkeeper forgot account password
+  const handleSendForgotPasswordEmail = async () => {
+    if (!forgotEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    setSendingResetEmail(true);
+    try {
+      await API.post('/auth/forgot-password', { email: forgotEmail });
+      toast.success(`Password reset link sent to ${forgotEmail}! Check your inbox.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send password reset email');
+    } finally {
+      setSendingResetEmail(false);
+    }
+  };
+
+  const closeForgotPinModal = () => {
+    setShowForgotPinModal(false);
+    setForgotPinStep('verify');
+    setForgotPassword('');
+    setNewPin('');
+    setConfirmNewPin('');
+  };
+
   const videoRef = useRef(null);
   const animationFrameId = useRef(null);
   const livenessDetector = useRef(new FaceLivenessChecker());
@@ -133,11 +267,23 @@ const SecurityLockScreen = ({ onUnlock }) => {
     checkCameraSupport();
   }, []);
 
+  // Auto-trigger biometric fingerprint prompt immediately when Security PIN screen appears asking for PIN
+  useEffect(() => {
+    const autoPromptTimer = setTimeout(() => {
+      if (user?.isBiometricEnabled) {
+        triggerBiometricSelection();
+      }
+    }, 400);
+
+    return () => clearTimeout(autoPromptTimer);
+  }, [user?.isBiometricEnabled]);
+
   const verifyPin = useCallback(async (enteredPin) => {
     setVerifying(true);
     try {
       await API.post('/auth/verify-pin', { pin: enteredPin });
-      sessionStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-last-active', Date.now().toString());
       toast.success('Unlocked!');
       onUnlock();
     } catch (err) {
@@ -171,7 +317,8 @@ const SecurityLockScreen = ({ onUnlock }) => {
     setVerifying(true);
     try {
       await API.post('/auth/verify-biometric', { credentialId: user.biometricCredentialId });
-      sessionStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-unlocked', 'true');
+      localStorage.setItem('udhaar-last-active', Date.now().toString());
       setUnlockSuccess(true);
       setTimeout(() => {
         onUnlock();
@@ -314,52 +461,73 @@ const SecurityLockScreen = ({ onUnlock }) => {
     setShowBiometricModal(false);
   };
 
-  // Start Fingerprint/Passkey verification using browser WebAuthn API
+  // Start Fingerprint/Passkey verification using browser WebAuthn API or Native Biometrics
   const handleFingerprintAuth = async () => {
-    if (!user?.isBiometricEnabled || !user?.biometricCredentialId) {
+    if (!user?.isBiometricEnabled) {
       toast.error('Fingerprint unlock has not been registered');
       return;
     }
 
     try {
-      setBiometricStatus('Verifying Fingerprint');
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
+      setBiometricStatus('Verifying Fingerprint...');
+      let verified = false;
 
-      let credentialIdBuffer;
-      try {
-        credentialIdBuffer = base64urlToUint8Array(user.biometricCredentialId);
-      } catch {
-        credentialIdBuffer = new TextEncoder().encode(user.biometricCredentialId);
+      // 1. On Native Mobile App (Capacitor)
+      if (Capacitor.isNativePlatform()) {
+        verified = await BiometricService.authenticate('Unlock AI Digital Khata');
+      } 
+      // 2. On Web Browsers (WebAuthn Platform Authenticator)
+      else if (window.PublicKeyCredential && user.biometricCredentialId && !user.biometricCredentialId.startsWith('face-id-')) {
+        try {
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+
+          let credentialIdBuffer;
+          try {
+            credentialIdBuffer = base64urlToUint8Array(user.biometricCredentialId);
+          } catch {
+            credentialIdBuffer = new TextEncoder().encode(user.biometricCredentialId);
+          }
+
+          const getOptions = {
+            publicKey: {
+              challenge,
+              rpId: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname,
+              allowCredentials: [{
+                id: credentialIdBuffer,
+                type: 'public-key'
+              }],
+              userVerification: 'required',
+              timeout: 60000
+            }
+          };
+
+          const credential = await navigator.credentials.get(getOptions);
+          verified = !!credential;
+        } catch (webAuthnErr) {
+          console.warn('WebAuthn fingerprint prompt canceled or failed:', webAuthnErr);
+          verified = false;
+        }
+      } else {
+        verified = await BiometricService.authenticate('Unlock AI Digital Khata');
       }
 
-      const getOptions = {
-        publicKey: {
-          challenge,
-          rpId: window.location.hostname,
-          allowCredentials: [{
-            id: credentialIdBuffer,
-            type: 'public-key'
-          }],
-          userVerification: 'required',
-          timeout: 60000
-        }
-      };
-
-      const credential = await navigator.credentials.get(getOptions);
-      if (credential) {
+      if (verified) {
         setUnlockSuccess(true);
-        verifyBiometricOnServer();
+        setBiometricStatus('Fingerprint Verified');
+        setTimeout(() => {
+          verifyBiometricOnServer();
+        }, 500);
+      } else {
+        setUnlockSuccess(false);
+        setBiometricStatus('Verification Canceled');
+        toast.warning('Biometric authentication canceled or unverified. Enter PIN to unlock.');
       }
     } catch (err) {
-      console.error('Fingerprint auth failed:', err);
-      if (err.name === 'NotAllowedError') {
-        toast.warning('Biometric authentication canceled.');
-        setBiometricStatus('Verification Canceled');
-      } else {
-        toast.error('Fingerprint recognition failed');
-        setBiometricStatus('Fingerprint Not Recognized');
-      }
+      console.error('Fingerprint auth error:', err);
+      setUnlockSuccess(false);
+      setBiometricStatus('Verification Canceled');
+      toast.warning('Fingerprint authentication failed or canceled.');
     }
   };
 
@@ -379,7 +547,8 @@ const SecurityLockScreen = ({ onUnlock }) => {
         }
         const verified = await BiometricService.authenticate();
         if (verified) {
-          sessionStorage.setItem('udhaar-unlocked', 'true');
+          localStorage.setItem('udhaar-unlocked', 'true');
+          localStorage.setItem('udhaar-last-active', Date.now().toString());
           setUnlockSuccess(true);
           toast.success('Unlocked!');
           setTimeout(() => {
@@ -476,7 +645,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
             <Shield className="w-6 h-6 animate-pulse" />
           </div>
           <h2 className="text-3xl font-black text-deep-navy dark:text-white tracking-wide mb-1 font-outfit">
-            Udhaar Khata
+            AI Digital Khata
           </h2>
           
 
@@ -549,10 +718,19 @@ const SecurityLockScreen = ({ onUnlock }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="w-full text-center">
+        <div className="w-full text-center space-y-2.5">
           <button
+            type="button"
+            onClick={() => setShowForgotPinModal(true)}
+            className="text-xs font-bold text-orange hover:text-orange-hover hover:underline bg-transparent border-none cursor-pointer transition-colors block mx-auto py-0.5"
+          >
+            Forgot PIN? Verify Account
+          </button>
+
+          <button
+            type="button"
             onClick={logout}
-            className="text-xs text-slate-gray hover:text-orange hover:underline font-bold bg-transparent border-none cursor-pointer transition-colors block mx-auto py-1"
+            className="text-[11px] text-slate-gray hover:text-orange hover:underline font-semibold bg-transparent border-none cursor-pointer transition-colors block mx-auto"
           >
             Sign Out of Account
           </button>
@@ -602,7 +780,11 @@ const SecurityLockScreen = ({ onUnlock }) => {
                   </div>
                 ) : (
                   /* Fingerprint Scan Panel Simulation */
-                  <div className="relative w-32 h-32 mb-6 flex items-center justify-center bg-slate-50 dark:bg-slate-900/40 rounded-full border-2 border-soft-gray dark:border-slate-800 shadow-inner overflow-hidden">
+                  <div
+                    onClick={handleFingerprintAuth}
+                    className="relative w-32 h-32 mb-6 flex items-center justify-center bg-slate-50 dark:bg-slate-900/40 rounded-full border-2 border-soft-gray hover:border-orange dark:border-slate-800 shadow-inner overflow-hidden cursor-pointer transition-all active:scale-95"
+                    title="Tap to scan fingerprint"
+                  >
                     {/* Active scanning outer ring */}
                     <div className="absolute inset-0 rounded-full border border-orange/20 animate-pulse" />
                     {/* Rotating dashboard lines */}
@@ -663,6 +845,178 @@ const SecurityLockScreen = ({ onUnlock }) => {
                   </button>
                 </div>
               </>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* Forgot PIN / Account Verification Reset Dialog */}
+      {showForgotPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200 p-4">
+          <div className="bg-[#FAF4F0] dark:bg-[#1A1512] border border-[#E6DED1] dark:border-slate-800 p-6 sm:p-8 rounded-[32px] shadow-2xl flex flex-col items-center max-w-sm sm:max-w-md w-full text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            
+            {/* Close Button */}
+            <button
+              onClick={closeForgotPinModal}
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {forgotPinStep === 'verify' ? (
+              /* Step 1: Verify Account Email & Password */
+              <form onSubmit={handleVerifyAccountPassword} className="w-full flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full bg-orange/10 dark:bg-orange/20 flex items-center justify-center text-orange border border-orange/20 mb-4">
+                  <KeyRound className="w-6 h-6" />
+                </div>
+
+                <h2 className="text-xl font-bold text-deep-navy dark:text-white font-outfit mb-1">
+                  Reset Security PIN
+                </h2>
+                <p className="text-xs text-slate-gray dark:text-slate-400 font-medium mb-6 max-w-xs leading-relaxed">
+                  Enter your registered email and account password to verify identity and set a new PIN.
+                </p>
+
+                <div className="w-full space-y-4 text-left mb-6">
+                  {/* Email Field */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Account Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="yourname@gmail.com"
+                        required
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-deep-navy dark:text-white focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Account Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleSendForgotPasswordEmail}
+                        disabled={sendingResetEmail}
+                        className="text-[10px] font-bold text-orange hover:underline bg-transparent border-none cursor-pointer"
+                      >
+                        {sendingResetEmail ? 'Sending Link...' : 'Forgot Password?'}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <LucideLock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPasswordText ? 'text' : 'password'}
+                        value={forgotPassword}
+                        onChange={(e) => setForgotPassword(e.target.value)}
+                        placeholder="Enter your account password"
+                        required
+                        className="w-full pl-10 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-deep-navy dark:text-white focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordText(!showPasswordText)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                      >
+                        {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full py-3.5 bg-orange hover:bg-orange-hover disabled:opacity-50 text-white font-bold text-xs rounded-2xl shadow-lg shadow-orange/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                >
+                  {resetLoading ? 'Verifying Password...' : 'Verify Password & Reset PIN'}
+                  {!resetLoading && <ArrowRight className="w-4 h-4" />}
+                </button>
+              </form>
+            ) : (
+              /* Step 2: Create & Confirm New 4-Digit PIN */
+              <div className="w-full flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/30 flex items-center justify-center text-green-500 border border-green-500/20 mb-3">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+
+                <h2 className="text-xl font-bold text-deep-navy dark:text-white font-outfit mb-1">
+                  {forgotPinStep === 'new-pin' ? 'Enter New 4-Digit PIN' : 'Confirm New PIN'}
+                </h2>
+                <p className="text-xs text-slate-gray dark:text-slate-400 font-medium mb-4">
+                  {forgotPinStep === 'new-pin' ? 'Choose a secure 4-digit PIN for your store' : 'Re-enter your new PIN to confirm'}
+                </p>
+
+                {/* PIN Dots */}
+                <div className="flex gap-4 justify-center my-4">
+                  {[0, 1, 2, 3].map((idx) => {
+                    const activeLen = forgotPinStep === 'new-pin' ? newPin.length : confirmNewPin.length;
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-3.5 h-3.5 rounded-full border transition-all duration-300 ${
+                          idx < activeLen
+                            ? 'bg-orange border-orange scale-110 shadow-md shadow-orange/45'
+                            : 'border-[#d7cab8] dark:border-slate-700 bg-white/70 dark:bg-slate-800/70'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Keypad for modal */}
+                <div className="grid grid-cols-3 gap-3 w-full max-w-[240px] mx-auto my-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handleForgotPinKeyPress(num)}
+                      disabled={resetLoading}
+                      className="w-13 h-13 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-lg text-slate-800 dark:text-slate-200 hover:bg-orange hover:text-white dark:hover:bg-orange transition-all cursor-pointer active:scale-95 mx-auto"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <div className="w-13 h-13" />
+                  <button
+                    type="button"
+                    onClick={() => handleForgotPinKeyPress(0)}
+                    disabled={resetLoading}
+                    className="w-13 h-13 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-lg text-slate-800 dark:text-slate-200 hover:bg-orange hover:text-white dark:hover:bg-orange transition-all cursor-pointer active:scale-95 mx-auto"
+                  >
+                    0
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleForgotPinBackspace}
+                    disabled={resetLoading}
+                    className="w-13 h-13 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-800 dark:text-slate-200 hover:bg-orange hover:text-white transition-all cursor-pointer active:scale-95 mx-auto"
+                  >
+                    <HiOutlineBackspace size={22} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotPinStep('new-pin');
+                    setNewPin('');
+                    setConfirmNewPin('');
+                  }}
+                  className="text-xs font-semibold text-slate-gray hover:text-orange underline bg-transparent border-none cursor-pointer mt-2"
+                >
+                  Start Over
+                </button>
+              </div>
             )}
 
           </div>

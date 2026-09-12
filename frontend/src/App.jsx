@@ -107,12 +107,12 @@ function App() {
                   <AppRoutes />
                 </Suspense>
                 <ToastContainer
-                  position="top-center"
-                  style={{ top: '10vh', left: '50%', transform: 'translateX(-50%)' }}
-                  autoClose={1500}
+                  position="top-right"
+                  autoClose={2500}
                   hideProgressBar
                   pauseOnHover={false}
                   pauseOnFocusLoss={false}
+                  toastClassName="dark:bg-slate-800 dark:text-white font-medium text-xs rounded-xl shadow-lg border border-slate-200 dark:border-slate-700"
                 />
               </SecurityLockProvider>
             </LanguageProvider>

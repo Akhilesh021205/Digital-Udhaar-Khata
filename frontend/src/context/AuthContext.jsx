@@ -104,7 +104,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await API.post('/auth/login', { email, password });
     const userData = { ...data.data, token: data.token };
-    sessionStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-last-active');
     localStorage.setItem('udhaar-user', JSON.stringify(userData));
     setUser(userData);
     if (Capacitor.isNativePlatform() && userData.isBiometricEnabled) {
@@ -124,7 +125,8 @@ export const AuthProvider = ({ children }) => {
   const googleSignIn = async (token) => {
     const { data } = await API.post('/auth/google', { token });
     const userData = { ...data.data, token: data.token };
-    sessionStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-last-active');
     localStorage.setItem('udhaar-user', JSON.stringify(userData));
     setUser(userData);
     return userData;
@@ -133,7 +135,8 @@ export const AuthProvider = ({ children }) => {
   const mockGoogleSignIn = async (email, name, avatar) => {
     const { data } = await API.post('/auth/google-mock', { email, name, avatar });
     const userData = { ...data.data, token: data.token };
-    sessionStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-last-active');
     localStorage.setItem('udhaar-user', JSON.stringify(userData));
     setUser(userData);
     return userData;
@@ -141,7 +144,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('udhaar-user');
-    sessionStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-unlocked');
+    localStorage.removeItem('udhaar-last-active');
     setUser(null);
     if (Capacitor.isNativePlatform()) {
       BiometricService.clearCredentials();

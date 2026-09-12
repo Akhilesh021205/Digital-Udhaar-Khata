@@ -11,12 +11,14 @@ import {
   Platform,
   ScrollView,
   Modal,
+  Alert,
 } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Mail, Lock, Fingerprint, Eye, EyeOff } from 'lucide-react-native';
 
 export const LoginScreen: React.FC = () => {
-  const { login, deviceSupportsBiometrics, biometryType, setBiometricsPreference } = useAuth();
+  const { login, deviceSupportsBiometrics, biometryType, setBiometricsPreference, authenticateBiometrically } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +27,65 @@ export const LoginScreen: React.FC = () => {
   
   // Biometric Enrollment Modal State
   const [showBioModal, setShowBioModal] = useState(false);
+
+  /**
+   * Biometric Fingerprint Authentication Flow via expo-local-authentication
+   */
+  const handleUseFingerprint = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    try {
+      // 1. Check if device supports hardware biometrics and has enrolled fingerprints
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        setIsLoading(false);
+        Alert.alert(
+          'Fingerprint Sensor Unavailable',
+          'Your device does not support fingerprint biometrics or no fingerprints are currently enrolled.'
+        );
+        return;
+      }
+
+      // 2. Call LocalAuthentication.authenticateAsync with promptMessage: "Unlock AI Digital Khata"
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock AI Digital Khata',
+        fallbackLabel: 'Use Password',
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
+      });
+
+      setIsLoading(false);
+
+      if (result.success) {
+        // Success Callback: Alert and route into ledger securely
+        Alert.alert(
+          'Fingerprint Verified ✓',
+          'Successfully authenticated with fingerprint. Logging into your ledger...',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await authenticateBiometrically();
+              },
+            },
+          ]
+        );
+
+        await authenticateBiometrically();
+      } else {
+        if (result.error !== 'user_cancel') {
+          setErrorMsg('Fingerprint verification failed. Please try again or log in with password.');
+        }
+      }
+    } catch (err) {
+      setIsLoading(false);
+      console.error('Expo LocalAuthentication error:', err);
+      setErrorMsg('An unexpected error occurred during fingerprint authentication.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -150,6 +211,16 @@ export const LoginScreen: React.FC = () => {
               ) : (
                 <Text style={styles.loginBtnText}>Log In</Text>
               )}
+            </TouchableOpacity>
+
+            {/* Use Fingerprint Button */}
+            <TouchableOpacity
+              onPress={handleUseFingerprint}
+              disabled={isLoading}
+              style={styles.fingerprintBtn}
+            >
+              <Fingerprint size={22} color="#DC2626" style={{ marginRight: 8 }} />
+              <Text style={styles.fingerprintBtnText}>Use Fingerprint</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -299,6 +370,22 @@ const styles = StyleSheet.create({
   loginBtnText: {
     color: '#FFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  fingerprintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 14,
+    height: 52,
+    marginTop: 12,
+  },
+  fingerprintBtnText: {
+    color: '#DC2626',
+    fontSize: 15,
     fontWeight: 'bold',
   },
   errorContainer: {

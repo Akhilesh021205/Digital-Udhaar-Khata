@@ -47,7 +47,7 @@ const runAutoReminders = async () => {
       }
 
       const owner = customer.owner;
-      const storeName = owner.storeName || 'Digital Udhaar';
+      const storeName = owner.storeName || 'AI Digital Khata';
       const upiId = owner.upiId;
       const dueDate = new Date(customer.paymentDueDate);
       const daysDiff = getDaysDiff(today, dueDate);
@@ -92,21 +92,17 @@ const runAutoReminders = async () => {
 
       if (isWarningPeriod) {
         const daysLeftText = daysDiff === 0 ? 'today' : `in ${daysDiff} days`;
-        textMessage = `Namaste ${customerFirstName}!\n\nThis is an automated payment reminder from Digital Udhaar.\n\nYour outstanding balance of ₹${customer.balance.toFixed(2)} at ${storeName} is due ${daysLeftText} on ${dueDate.toLocaleDateString('en-IN')}.\n\nKindly clear your dues at your earliest convenience to maintain a healthy credit score. Your transaction statement is attached as a PDF. Thank you! 🙏`;
-        
-        if (upiId) {
-          textMessage += `\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
-        }
+        textMessage = `Namaste ${customerFirstName}!\n\nThis is an automated payment reminder from AI Digital Khata.\n\nYour outstanding balance of ₹${customer.balance.toFixed(2)} at ${storeName} is due ${daysLeftText} on ${dueDate.toLocaleDateString('en-IN')}.\n\nKindly clear your dues at your earliest convenience to maintain a healthy credit score. Your transaction statement is attached as a PDF. Thank you! 🙏\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
 
         htmlMessage = `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e4e4e7; border-radius: 16px; background-color: #ffffff; color: #18181b;">
             <div style="text-align: center; margin-bottom: 24px;">
               <h2 style="color: #f97316; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.025em;">${storeName}</h2>
-              <p style="color: #71717a; font-size: 14px; margin: 4px 0 0 0;">Digital Udhaar Automatic Payment Reminder</p>
+              <p style="color: #71717a; font-size: 14px; margin: 4px 0 0 0;">AI Digital Khata Automatic Payment Reminder</p>
             </div>
             
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Namaste <strong>${customerFirstName}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an automated reminder from <strong>Digital Udhaar</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is due <strong>${daysLeftText}</strong> on <strong>${dueDate.toLocaleDateString('en-IN')}</strong>.</p>
+            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an automated reminder from <strong>AI Digital Khata</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is due <strong>${daysLeftText}</strong> on <strong>${dueDate.toLocaleDateString('en-IN')}</strong>.</p>
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Please clear your payment soon to keep your credit profile in excellent standing.</p>
             
             <div style="background-color: #fff7ed; border: 1px solid #ffedd5; padding: 20px; border-radius: 12px; margin: 24px 0; text-align: center;">
@@ -122,27 +118,21 @@ const runAutoReminders = async () => {
               </div>
             </div>
             
-            ${upiId ? `
-              <div style="text-align: center; margin: 32px 0 24px 0;">
-                <a href="${frontendUrl}/pay/${customer._id}" 
-                   style="background-color: #f97316; color: #ffffff; padding: 12px 28px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);">
-                   Pay Now
-                </a>
-                <p style="font-size: 11px; color: #71717a; margin-top: 10px;">UPI ID: <strong>${upiId}</strong></p>
-              </div>
-            ` : ''}
+            <div style="text-align: center; margin: 32px 0 24px 0;">
+              <a href="${frontendUrl}/pay/${customer._id}" 
+                 style="background-color: #f97316; color: #ffffff; padding: 12px 28px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);">
+                 Pay Now
+              </a>
+              ${upiId ? `<p style="font-size: 11px; color: #71717a; margin-top: 10px;">UPI ID: <strong>${upiId}</strong></p>` : ''}
+            </div>
             
             <hr style="border: 0; border-top: 1px solid #e4e4e7; margin: 32px 0 24px 0;" />
-            <p style="font-size: 11px; color: #a1a1aa; text-align: center; margin: 0;">This is a pre-due payment alert sent automatically by Digital Udhaar.</p>
+            <p style="font-size: 11px; color: #a1a1aa; text-align: center; margin: 0;">This is an AI generated message. Please contact admin if you have any questions.</p>
           </div>
         `;
       } else if (isOverduePeriod) {
         const daysOverdue = Math.abs(daysDiff);
-        textMessage = `Namaste ${customerFirstName}!\n\n⚠️ IMPORTANT: Your payment is OVERDUE by ${daysOverdue} day(s) at ${storeName}.\n\nYour outstanding balance of ₹${customer.balance.toFixed(2)} was due on ${dueDate.toLocaleDateString('en-IN')}.\n\nDue to this delay, your credit score has been decreased by ${daysOverdue * 15} points and is now ${customer.creditScore} (Risk Level: ${customer.riskLevel.toUpperCase()}).\n\nKindly pay immediately to prevent further penalty. Your transaction statement is attached as a PDF. Thank you.`;
-        
-        if (upiId) {
-          textMessage += `\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
-        }
+        textMessage = `Namaste ${customerFirstName}!\n\n⚠️ IMPORTANT: Your payment is OVERDUE by ${daysOverdue} day(s) at ${storeName}.\n\nYour outstanding balance of ₹${customer.balance.toFixed(2)} was due on ${dueDate.toLocaleDateString('en-IN')}.\n\nDue to this delay, your credit score has been decreased by ${daysOverdue * 15} points and is now ${customer.creditScore} (Risk Level: ${customer.riskLevel.toUpperCase()}).\n\nKindly pay immediately to prevent further penalty. Your transaction statement is attached as a PDF. Thank you.\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
 
         htmlMessage = `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 16px; background-color: #ffffff; color: #18181b;">
@@ -152,7 +142,7 @@ const runAutoReminders = async () => {
             </div>
             
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Namaste <strong>${customerFirstName}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an urgent notification from <strong>Digital Udhaar</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is now <strong>OVERDUE by ${daysOverdue} day(s)</strong> (Scheduled due date: ${dueDate.toLocaleDateString('en-IN')}).</p>
+            <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an urgent notification from <strong>AI Digital Khata</strong>. Your outstanding balance of <strong>₹${customer.balance.toFixed(2)}</strong> is now <strong>OVERDUE by ${daysOverdue} day(s)</strong> (Scheduled due date: ${dueDate.toLocaleDateString('en-IN')}).</p>
             
             <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 20px; border-radius: 12px; margin: 24px 0; text-align: center;">
               <span style="font-size: 11px; color: #ef4444; display: block; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">Total Overdue Amount</span>
@@ -168,18 +158,16 @@ const runAutoReminders = async () => {
               </div>
             </div>
             
-            ${upiId ? `
-              <div style="text-align: center; margin: 32px 0 24px 0;">
-                <a href="${frontendUrl}/pay/${customer._id}" 
-                   style="background-color: #ef4444; color: #ffffff; padding: 12px 28px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">
-                   Pay Immediately
-                </a>
-                <p style="font-size: 11px; color: #71717a; margin-top: 10px;">UPI ID: <strong>${upiId}</strong></p>
-              </div>
-            ` : ''}
+            <div style="text-align: center; margin: 32px 0 24px 0;">
+              <a href="${frontendUrl}/pay/${customer._id}" 
+                 style="background-color: #ef4444; color: #ffffff; padding: 12px 28px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">
+                 Pay Immediately
+              </a>
+              ${upiId ? `<p style="font-size: 11px; color: #71717a; margin-top: 10px;">UPI ID: <strong>${upiId}</strong></p>` : ''}
+            </div>
             
             <hr style="border: 0; border-top: 1px solid #fca5a5; margin: 32px 0 24px 0;" />
-            <p style="font-size: 11px; color: #f87171; text-align: center; margin: 0;">This is a continuous overdue notification sent daily by Digital Udhaar until the balance is paid.</p>
+            <p style="font-size: 11px; color: #f87171; text-align: center; margin: 0;">This is an AI generated message. Please contact admin if you have any questions.</p>
           </div>
         `;
       }
@@ -206,11 +194,42 @@ const runAutoReminders = async () => {
       try {
         const pdfBuffer = await generateStatementBuffer(store, customer, transactions, dateRange);
 
-        await sendEmail({
+        // 1. PAYMENT BILL EMAIL
+        const paymentSubject = isOverduePeriod 
+          ? `💳 [OVERDUE PAYMENT BILL] Action Required - ${storeName}` 
+          : `💳 Payment Bill & Due Notice - ${storeName}`;
+
+        const paymentEmailPromise = sendEmail({
           to: customer.email,
-          subject: isOverduePeriod ? `[OVERDUE WARNING] Outstanding Dues at ${storeName}` : `[Due Reminder] Pending Payment at ${storeName}`,
+          subject: paymentSubject,
           text: textMessage,
           html: htmlMessage,
+        });
+
+        // 2. STATEMENT BILL EMAIL
+        const statementSubject = `📄 Monthly Account Statement - ${storeName}`;
+        const statementText = `Namaste ${customerFirstName}!\n\nYour monthly statement of account for ${storeName} is attached to this email as a PDF.\n\nCurrent Statement Balance: ₹${customer.balance.toFixed(2)}\nStatement Period: ${dateRange.startDate} - ${dateRange.endDate}\n\nThank you! 🙏`;
+        const statementHtml = `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #cbd5e1; border-radius: 16px; background-color: #ffffff; color: #18181b;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #2563eb; font-weight: 800; margin: 0; font-size: 24px;">${storeName}</h2>
+              <p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Monthly Account Statement Report</p>
+            </div>
+            <p style="font-size: 15px; color: #334155;">Namaste <strong>${customerFirstName}</strong>,</p>
+            <p style="font-size: 14px; color: #475569;">Please find attached your official monthly account statement PDF for period <strong>${dateRange.startDate} - ${dateRange.endDate}</strong>.</p>
+            <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center;">
+              <span style="font-size: 12px; color: #1e40af; font-weight: bold; display: block; uppercase;">Statement Balance Due</span>
+              <span style="font-size: 32px; color: #1e3a8a; font-weight: 900;">₹${customer.balance.toFixed(2)}</span>
+            </div>
+            <p style="font-size: 13px; color: #64748b;">The complete itemized ledger PDF file is attached below for your record.</p>
+          </div>
+        `;
+
+        const statementEmailPromise = sendEmail({
+          to: customer.email,
+          subject: statementSubject,
+          text: statementText,
+          html: statementHtml,
           attachments: [
             {
               filename: `statement_${customer.name.replace(/\s+/g, '_')}.pdf`,
@@ -219,11 +238,13 @@ const runAutoReminders = async () => {
           ]
         });
 
+        await Promise.all([paymentEmailPromise, statementEmailPromise]);
+
         // Set last reminder sent to today
         customer.lastAutoReminderSentDate = today;
         await customer.save();
 
-        console.log(`🤖 KathaGPT Auto-Reminder Bot: Sent successfully. Days diff: ${daysDiff}`);
+        console.log(`🤖 KathaGPT Auto-Reminder Bot: Sent payment bill & statement bill separately. Days diff: ${daysDiff}`);
       } catch (err) {
         console.error(`❌ KathaGPT Auto-Reminder Bot: Error sending email to ${customer.name}:`, err.message);
       }

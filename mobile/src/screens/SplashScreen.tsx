@@ -34,7 +34,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
         <RNView style={styles.logoContainer}>
           <Shield size={64} color="#DC2626" strokeWidth={1.5} />
         </RNView>
-        <RNText style={styles.title}>Digital Udhaar</RNText>
+        <RNText style={styles.title}>AI Digital Khata</RNText>
         <RNText style={styles.subtitle}>Securing Your Ledger Assets</RNText>
       </RNView>
       <RNView style={styles.loaderContainer}>

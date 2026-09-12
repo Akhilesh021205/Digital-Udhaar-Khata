@@ -1,7 +1,7 @@
 import * as Keychain from 'react-native-keychain';
 
-const TOKEN_SERVICE = 'com.digitaludhaarkhata.token';
-const PREFERENCE_SERVICE = 'com.digitaludhaarkhata.preference';
+const TOKEN_SERVICE = 'com.aidigitalkhata.token';
+const PREFERENCE_SERVICE = 'com.aidigitalkhata.preference';
 
 export const secureStorage = {
   /**

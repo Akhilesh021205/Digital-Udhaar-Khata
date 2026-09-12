@@ -1,3 +1,4 @@
+import * as LocalAuthentication from 'expo-local-authentication';
 import ReactNativeBiometrics, { BiometryTypes } from 'react-native-biometrics';
 import { Platform } from 'react-native';
 
@@ -11,17 +12,50 @@ export interface BiometricSupportInfo {
 
 export const biometricService = {
   /**
+   * Check if hardware and fingerprints are enrolled via Expo LocalAuthentication
+   */
+  checkExpoSupport: async (): Promise<boolean> => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      return hasHardware && isEnrolled;
+    } catch (error) {
+      console.error('Error checking Expo LocalAuthentication support:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Perform biometric fingerprint authentication using Expo LocalAuthentication
+   */
+  authenticateWithExpo: async (promptMessage: string = 'Unlock AI Digital Khata'): Promise<boolean> => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage,
+        fallbackLabel: 'Use Passcode',
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
+      });
+      return result.success;
+    } catch (error) {
+      console.error('Expo LocalAuthentication error:', error);
+      return false;
+    }
+  },
+
+  /**
    * Check if biometrics are supported and enrolled on the device
    */
   checkSupport: async (): Promise<BiometricSupportInfo> => {
     try {
+      const expoSupported = await biometricService.checkExpoSupport();
       const { available, biometryType } = await rnBiometrics.isSensorAvailable();
 
-      if (!available) {
+      if (!available && !expoSupported) {
         return { supported: false, biometryType: null };
       }
 
-      let type: 'TouchID' | 'FaceID' | 'Fingerprint' | 'Biometrics' = 'Biometrics';
+      let type: 'TouchID' | 'FaceID' | 'Fingerprint' | 'Biometrics' = 'Fingerprint';
       
       if (Platform.OS === 'ios') {
         if (biometryType === BiometryTypes.TouchID) {
@@ -30,8 +64,7 @@ export const biometricService = {
           type = 'FaceID';
         }
       } else {
-        // Android supports generic Biometrics or Fingerprint depending on OS integration
-        type = biometryType === BiometryTypes.Biometrics ? 'Biometrics' : 'Fingerprint';
+        type = 'Fingerprint';
       }
 
       return {
@@ -48,23 +81,21 @@ export const biometricService = {
   },
 
   /**
-   * Trigger the native biometric authentication dialog
+   * Trigger native biometric authentication with Expo LocalAuthentication fallback
    */
-  authenticate: async (promptMessage: string = 'Scan to unlock your ledger'): Promise<boolean> => {
+  authenticate: async (promptMessage: string = 'Unlock AI Digital Khata'): Promise<boolean> => {
     try {
-      const { success, error } = await rnBiometrics.simplePrompt({
+      // 1. Try Expo LocalAuthentication prompt first
+      const expoSuccess = await biometricService.authenticateWithExpo(promptMessage);
+      if (expoSuccess) return true;
+
+      // 2. Fallback to react-native-biometrics prompt if needed
+      const { success } = await rnBiometrics.simplePrompt({
         promptMessage,
         cancelButtonText: 'Cancel'
       });
 
-      if (success) {
-        return true;
-      }
-      
-      if (error) {
-        console.warn('Biometric verification error:', error);
-      }
-      return false;
+      return success;
     } catch (error) {
       console.error('Biometric authentication crash:', error);
       return false;

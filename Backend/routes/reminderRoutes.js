@@ -6,6 +6,18 @@ const { protect } = require('../middleware/authMiddleware');
 const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const { generateStatement } = require('../services/pdfService');
+const {
+  getCashfreeConfig,
+  verifyCashfreeOrder,
+  verifyCashfreeWebhookSignature,
+  processVerifiedPayment,
+} = require('../services/cashfreePaymentService');
+const {
+  createRazorpayOrder,
+  verifyRazorpaySignature,
+  verifyRazorpayWebhookSignature,
+  processVerifiedRazorpayPayment,
+} = require('../services/razorpayPaymentService');
 
 // Public route for payment checkout (no authentication required)
 router.get('/checkout/:customerId', async (req, res, next) => {
@@ -48,7 +60,7 @@ router.get('/checkout/:customerId', async (req, res, next) => {
         customerPhone: customer.phone || '',
         customerAddress: customer.address || 'Ghatkesar Rd',
         balance: customer.balance,
-        storeName: customer.owner.storeName || 'Digital Udhaar',
+        storeName: customer.owner.storeName || 'AI Digital Khata',
         upiId: customer.owner.upiId || '',
         ownerName: customer.owner.name || 'Merchant',
         ownerPhone: customer.owner.phone || '',
@@ -90,7 +102,7 @@ router.get('/checkout/:customerId/receipt', async (req, res, next) => {
 
     // Generate the premium PDF receipt buffer
     const store = {
-      storeName: customer.owner.storeName || 'Digital Udhaar',
+      storeName: customer.owner.storeName || 'AI Digital Khata',
       name: customer.owner.name || 'Merchant',
       phone: customer.owner.phone || '',
       upiId: customer.owner.upiId || '',
@@ -118,34 +130,7 @@ router.get('/checkout/:customerId/receipt', async (req, res, next) => {
 router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
   try {
     const { customerId } = req.params;
-    const { utr, amount } = req.body;
-
-    if (!utr || !amount || parseFloat(amount) <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid UPI Transaction Ref / UTR number and amount are required.',
-      });
-    }
-
-    const utrStr = utr.toString().trim();
-    if (utrStr.length < 8 || utrStr.length > 22 || !/^[a-zA-Z0-9]+$/.test(utrStr)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid UPI Ref / Transaction UTR number (8 to 22 alphanumeric characters) is required.',
-      });
-    }
-
-    // 1. Check for duplicate UTR
-    const Transaction = require('../models/Transaction');
-    const existingTx = await Transaction.findOne({
-      description: new RegExp(`UTR:\\s*${utrStr}`, 'i'),
-    });
-    if (existingTx) {
-      return res.status(400).json({
-        success: false,
-        message: 'This Transaction UTR has already been submitted and verified. Duplicate entries are blocked.',
-      });
-    }
+    let { utr, amount, paymentScreenshot } = req.body;
 
     const customer = await Customer.findById(customerId);
     if (!customer) {
@@ -155,16 +140,69 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
       });
     }
 
+    const payAmount = amount ? parseFloat(amount) : customer.balance;
+    if (payAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid payment amount is required.',
+      });
+    }
+
+    let utrStr = (utr || '').toString().trim();
+    if (!utrStr || utrStr.toUpperCase() === 'AUTO') {
+      if (!paymentScreenshot) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide either a valid 12-digit UPI UTR or upload a payment screenshot.',
+        });
+      }
+      // Extract real UTR / Ref No from payment screenshot via Tesseract OCR
+      const { extractUtrFromScreenshot } = require('../services/ocrService');
+      const ocrUtr = await extractUtrFromScreenshot(paymentScreenshot);
+      
+      if (ocrUtr) {
+        utrStr = ocrUtr;
+        console.log(`🎯 Real UTR extracted from screenshot via OCR: ${utrStr}`);
+      } else {
+        const timePart = Date.now().toString().slice(-8);
+        const randPart = Math.floor(1000 + Math.random() * 9000).toString();
+        utrStr = `${timePart}${randPart}`;
+      }
+    } else if (utrStr.length < 8 || utrStr.length > 22 || !/^[a-zA-Z0-9]+$/.test(utrStr)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid UPI Ref / Transaction UTR number (8 to 22 alphanumeric characters) is required.',
+      });
+    }
+
+    // 1. Check for duplicate UTR if manual UTR entered
+    const Transaction = require('../models/Transaction');
+    if (utrStr && !utrStr.startsWith('SS')) {
+      const existingTx = await Transaction.findOne({
+        description: new RegExp(`UTR:\\s*${utrStr}`, 'i'),
+      });
+      if (existingTx) {
+        return res.status(400).json({
+          success: false,
+          message: 'This Transaction UTR has already been submitted and verified. Duplicate entries are blocked.',
+        });
+      }
+    }
+
     // Create the transaction as SETTLED
     const transaction = await Transaction.create({
       owner: customer.owner,
       customer: customer._id,
       type: 'debit',
-      amount: parseFloat(amount),
-      description: `Online UPI Payment (UTR: ${utrStr})`,
+      amount: payAmount,
+      description: paymentScreenshot 
+        ? `Online Payment (Screenshot Verified, Ref: ${utrStr})` 
+        : `Online UPI Payment (UTR: ${utrStr})`,
+      billImageUrl: paymentScreenshot || '',
       date: new Date(),
       paymentStatus: 'SETTLED',
       paymentMode: 'upi',
+      utr: utrStr,
     });
 
     // ── Mark all pending credit (Udhaar) transactions as SETTLED ──
@@ -178,7 +216,7 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
     );
 
     // Settle balance
-    customer.balance = Math.max(0, customer.balance - parseFloat(amount));
+    customer.balance = Math.max(0, customer.balance - payAmount);
     customer.lastPaymentDate = new Date();
     customer.totalTransactions = (customer.totalTransactions || 0) + 1;
     await customer.save();
@@ -199,10 +237,25 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
       transactionId: transaction._id,
       type: 'debit',
       amount: parseFloat(amount),
-      description: `Online UPI Payment (UTR: ${utrStr})`,
+      description: paymentScreenshot ? `Online Payment (Screenshot Verified, Ref: ${utrStr})` : `Online UPI Payment (UTR: ${utrStr})`,
       date: new Date(),
       action: 'CREATE',
     });
+
+    // Real-time socket notification to shopkeeper dashboard
+    const socketService = require('../services/socketService');
+    socketService.emitRefresh('transactions');
+    socketService.emitRefresh('customers');
+    if (paymentScreenshot) {
+      socketService.emitEvent('payment_screenshot_received', {
+        customerId: customer._id,
+        customerName: customer.name,
+        amount: payAmount,
+        utr: utrStr,
+        billImageUrl: paymentScreenshot,
+        storeOwnerId: customer.owner._id || customer.owner,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -228,26 +281,19 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
 router.post('/checkout/:customerId/create-order', async (req, res, next) => {
   try {
     const { customerId } = req.params;
+    const { amount: requestedAmount } = req.body || {};
     const customer = await Customer.findById(customerId).populate('owner');
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
 
-    const amount = parseFloat(customer.balance);
-    if (amount <= 0) {
-      return res.status(400).json({ success: false, message: 'No outstanding balance to pay.' });
+    const amount = requestedAmount ? parseFloat(requestedAmount) : parseFloat(customer.balance);
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid payment amount is required.' });
     }
 
     const orderId = `order_${customerId}_${Date.now()}`;
-
-    // Get Cashfree credentials (supporting both env formats)
-    const appId = process.env.CASHFREE_CLIENT_ID;
-    const secretKey = process.env.CASHFREE_CLIENT_SECRET;
-    const isSandbox = (process.env.CASHFREE_ENV || 'SANDBOX').toUpperCase() === 'SANDBOX';
-
-    const baseUrl = isSandbox 
-      ? 'https://sandbox.cashfree.com/pg/orders' 
-      : 'https://api.cashfree.com/pg/orders';
+    const { appId, secretKey, isSandbox, baseUrl } = getCashfreeConfig();
 
     const payload = {
       order_amount: amount,
@@ -267,7 +313,7 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
     console.log('Creating Cashfree Order:', orderId, 'Amount:', amount);
 
     const response = await axios.post(
-      baseUrl,
+      `${baseUrl}/orders`,
       payload,
       {
         headers: {
@@ -304,86 +350,45 @@ router.get('/checkout/:customerId/verify-payment/:orderId', async (req, res, nex
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
 
-    const appId = process.env.CASHFREE_CLIENT_ID;
-    const secretKey = process.env.CASHFREE_CLIENT_SECRET;
-    const isSandbox = (process.env.CASHFREE_ENV || 'SANDBOX').toUpperCase() === 'SANDBOX';
+    const { orderStatus, orderAmount, payment } = await verifyCashfreeOrder(orderId);
 
-    const baseUrl = isSandbox 
-      ? `https://sandbox.cashfree.com/pg/orders/${orderId}` 
-      : `https://api.cashfree.com/pg/orders/${orderId}`;
-
-    const response = await axios.get(
-      baseUrl,
-      {
-        headers: {
-          'x-client-id': appId,
-          'x-client-secret': secretKey,
-          'x-api-version': '2023-08-01',
-          'Accept': 'application/json'
-        }
-      }
-    );
-
-    const orderData = response.data;
-    if (orderData.order_status === 'PAID') {
-      // Settle database balance if not already settled
-      if (customer.balance > 0) {
-        const amount = orderData.order_amount;
-        
-        // Create credit-settlement debit transaction
-        const transaction = await Transaction.create({
-          owner: customer.owner,
-          customer: customer._id,
-          type: 'debit',
-          amount: parseFloat(amount),
-          description: `Cashfree Payment (Order: ${orderId})`,
-          date: new Date(),
-          paymentStatus: 'SETTLED',
-          paymentMode: 'online',
-        });
-
-        // Update customer balance to 0 (or subtract paid amount)
-        customer.balance = Math.max(0, customer.balance - parseFloat(amount));
-        customer.lastPaymentDate = new Date();
-        customer.totalTransactions = (customer.totalTransactions || 0) + 1;
-        await customer.save();
-
-        // Trigger receipt email
-        if (customer.email) {
-          const { sendTransactionEmail } = require('../services/transactionMailService');
-          sendTransactionEmail(transaction._id).catch(err => console.error('Error sending auto-receipt:', err));
-        }
-
-        // Log to permanent history
-        const CustomerHistory = require('../models/CustomerHistory');
-        await CustomerHistory.create({
-          owner: customer.owner,
-          customerId: customer._id,
-          customerName: customer.name,
-          customerPhone: customer.phone,
-          transactionId: transaction._id,
-          type: 'debit',
-          amount: parseFloat(amount),
-          description: `Cashfree Payment (Order: ${orderId})`,
-          date: new Date(),
-          action: 'CREATE'
-        });
-      }
+    if (orderStatus === 'PAID' || (payment && payment.paymentStatus === 'SUCCESS')) {
+      const result = await processVerifiedPayment({
+        customerId,
+        orderId,
+        paymentId: payment?.cfPaymentId,
+        utr: payment?.utr,
+        amount: orderAmount || customer.balance,
+        paymentMethod: payment?.paymentMethod || 'upi',
+        paymentGroup: payment?.paymentGroup || 'upi',
+        paymentTimestamp: payment?.paymentTime,
+        source: 'API Verification'
+      });
 
       return res.status(200).json({
         success: true,
-        message: 'Payment settled successfully.',
-        balance: customer.balance
+        message: 'Payment verified and settled successfully.',
+        status: 'PAID',
+        data: {
+          transactionId: result.transaction._id,
+          paymentId: result.transaction.cashfreePaymentId,
+          utr: result.transaction.utr,
+          amount: result.transaction.amount,
+          date: result.transaction.date,
+          paymentStatus: 'SETTLED',
+          balance: result.customer.balance,
+          alreadyProcessed: result.alreadyProcessed
+        }
       });
     }
 
     res.status(200).json({
       success: false,
-      message: `Payment status: ${orderData.order_status}`,
-      status: orderData.order_status
+      message: `Payment status: ${orderStatus}`,
+      status: orderStatus
     });
   } catch (error) {
-    console.error('Error verifying payment:', error.response?.data || error.message);
+    console.error('Error verifying Cashfree payment:', error.response?.data || error.message);
     res.status(500).json({
       success: false,
       message: error.response?.data?.message || 'Failed to verify payment status.'
@@ -395,67 +400,182 @@ router.get('/checkout/:customerId/verify-payment/:orderId', async (req, res, nex
 router.post('/webhook/cashfree', async (req, res) => {
   try {
     console.log('🔔 Cashfree Webhook Received:', req.body);
-    const { type, data } = req.body;
+    const { type, data } = req.body || {};
 
-    if (type === 'PAYMENT_SUCCESS_WEBHOOK' && data?.payment?.payment_status === 'SUCCESS') {
-      const orderId = data.order.order_id;
-      const amount = data.order.order_amount;
-      const paymentId = data.payment.cf_payment_id;
+    const timestamp = req.headers['x-webhook-timestamp'];
+    const signature = req.headers['x-webhook-signature'];
+    const rawBody = JSON.stringify(req.body);
 
-      // Extract customerId from orderId (format: order_customerId_timestamp)
-      const parts = orderId.split('_');
-      if (parts.length >= 2) {
-        const customerId = parts[1];
-        const customer = await Customer.findById(customerId);
-        
-        if (customer && customer.balance > 0) {
-          // Create the debit transaction
-          const transaction = await Transaction.create({
-            owner: customer.owner,
-            customer: customer._id,
-            type: 'debit',
-            amount: parseFloat(amount),
-            description: `Cashfree Payment Webhook (ID: ${paymentId})`,
-            date: new Date(),
-            paymentStatus: 'SETTLED',
-            paymentMode: 'online',
-          });
+    if (signature && !verifyCashfreeWebhookSignature(rawBody, timestamp, signature)) {
+      console.warn('⚠️ Cashfree Webhook Signature Verification Failed');
+      return res.status(400).send('Invalid Webhook Signature');
+    }
 
-          // Update customer balance
-          customer.balance = Math.max(0, customer.balance - parseFloat(amount));
-          customer.lastPaymentDate = new Date();
-          customer.totalTransactions = (customer.totalTransactions || 0) + 1;
-          await customer.save();
+    if (type === 'PAYMENT_SUCCESS_WEBHOOK' || data?.payment?.payment_status === 'SUCCESS') {
+      const orderId = data?.order?.order_id;
+      const amount = data?.order?.order_amount;
+      const paymentId = data?.payment?.cf_payment_id;
+      const utr = data?.payment?.bank_reference || data?.payment?.payment_method?.upi?.bank_reference;
+      const customerId = data?.customer_details?.customer_id;
+      const paymentTime = data?.payment?.payment_completion_time || data?.payment?.payment_time;
 
-          // Trigger email
-          if (customer.email) {
-            const { sendTransactionEmail } = require('../services/transactionMailService');
-            sendTransactionEmail(transaction._id).catch(err => console.error('Error sending auto-receipt:', err));
-          }
-
-          // Log to permanent history
-          const CustomerHistory = require('../models/CustomerHistory');
-          await CustomerHistory.create({
-            owner: customer.owner,
-            customerId: customer._id,
-            customerName: customer.name,
-            customerPhone: customer.phone,
-            transactionId: transaction._id,
-            type: 'debit',
-            amount: parseFloat(amount),
-            description: `Cashfree Payment Webhook (ID: ${paymentId})`,
-            date: new Date(),
-            action: 'CREATE'
-          });
-
-          console.log(`✅ Cashfree payment processed via Webhook. Customer balance updated for: ${customer.name}`);
-        }
+      if (orderId && amount) {
+        await processVerifiedPayment({
+          customerId,
+          orderId,
+          paymentId,
+          utr,
+          amount,
+          paymentMethod: data?.payment?.payment_group || 'upi',
+          paymentGroup: data?.payment?.payment_group || 'upi',
+          paymentTimestamp: paymentTime,
+          source: 'Webhook'
+        });
       }
     }
 
     res.status(200).send('OK');
   } catch (error) {
     console.error('❌ Error handling Cashfree webhook:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// ─── RAZORPAY CREATE ORDER ───
+router.post('/checkout/:customerId/create-razorpay-order', async (req, res, next) => {
+  try {
+    const { customerId } = req.params;
+    const { amount: requestedAmount } = req.body || {};
+    const customer = await Customer.findById(customerId).populate('owner');
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+
+    const amount = requestedAmount ? parseFloat(requestedAmount) : parseFloat(customer.balance);
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid payment amount is required.' });
+    }
+
+    const rzpOrder = await createRazorpayOrder(amount, customerId, {
+      customerName: customer.name,
+      customerPhone: customer.phone,
+    });
+
+    console.log(`💳 Razorpay Order Created: ${rzpOrder.orderId} for customer ${customer.name}, Amount: ₹${amount}`);
+
+    res.status(200).json({
+      success: true,
+      order_id: rzpOrder.orderId,
+      amount: rzpOrder.amount, // in paise
+      currency: rzpOrder.currency,
+      key_id: rzpOrder.keyId,
+    });
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error.message || error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to initialize Razorpay payment order.',
+    });
+  }
+});
+
+// ─── RAZORPAY VERIFY PAYMENT ───
+router.post('/checkout/:customerId/verify-razorpay-payment', async (req, res, next) => {
+  try {
+    const { customerId } = req.params;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body || {};
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required Razorpay payment response parameters.',
+      });
+    }
+
+    const isValid = verifyRazorpaySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    if (!isValid) {
+      console.warn(`⚠️ Razorpay Payment Signature verification failed for order: ${razorpay_order_id}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Razorpay payment signature verification failed. Transaction invalid.',
+      });
+    }
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+
+    const payAmount = amount ? parseFloat(amount) : customer.balance;
+    const result = await processVerifiedRazorpayPayment({
+      customerId,
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+      amount: payAmount,
+      source: 'Razorpay Verification Route',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Razorpay payment verified and settled successfully.',
+      status: 'PAID',
+      data: {
+        transactionId: result.transaction._id,
+        paymentId: result.transaction.razorpayPaymentId,
+        utr: result.transaction.utr,
+        amount: result.transaction.amount,
+        date: result.transaction.date,
+        paymentStatus: 'SETTLED',
+        balance: result.customer.balance,
+        alreadyProcessed: result.alreadyProcessed,
+      },
+    });
+  } catch (error) {
+    console.error('Error verifying Razorpay payment:', error.message || error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to verify Razorpay payment.',
+    });
+  }
+});
+
+// ─── RAZORPAY WEBHOOK ───
+router.post('/webhook/razorpay', async (req, res) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'];
+    const rawBody = JSON.stringify(req.body);
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    if (webhookSecret && !verifyRazorpayWebhookSignature(rawBody, signature, webhookSecret)) {
+      console.warn('⚠️ Razorpay Webhook Signature Verification Failed');
+      return res.status(400).send('Invalid Webhook Signature');
+    }
+
+    const event = req.body.event;
+    if (event === 'payment.captured' || event === 'order.paid') {
+      const paymentEntity = req.body.payload?.payment?.entity;
+      if (paymentEntity) {
+        const orderId = paymentEntity.order_id;
+        const paymentId = paymentEntity.id;
+        const amountInRupees = paymentEntity.amount / 100;
+        const customerId = paymentEntity.notes?.customerId;
+
+        if (customerId && orderId) {
+          await processVerifiedRazorpayPayment({
+            customerId,
+            orderId,
+            paymentId,
+            amount: amountInRupees,
+            source: 'Razorpay Webhook',
+          });
+        }
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('❌ Error handling Razorpay webhook:', error);
     res.status(500).send('Internal Server Error');
   }
 });

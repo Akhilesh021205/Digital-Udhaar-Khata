@@ -240,8 +240,24 @@ const TransactionsPage = () => {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm align-middle text-deep-navy max-w-[200px] truncate">
-                    {txn.description || '—'}
+                  <td className="px-6 py-4 text-sm align-middle text-deep-navy max-w-[240px]">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="truncate" title={txn.description}>{txn.description || '—'}</span>
+                      {(txn.utr || txn.cashfreePaymentId) && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {txn.utr && (
+                            <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded font-bold shadow-xs">
+                              UTR: {txn.utr}
+                            </span>
+                          )}
+                          {txn.cashfreePaymentId && (
+                            <span className="text-[9px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded font-semibold">
+                              PayID: {txn.cashfreePaymentId}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className={`px-6 py-4 text-sm align-middle font-bold ${
                     (txn.paymentStatus === 'SETTLED' || txn.type === 'debit') ? 'text-green-get' : 'text-red-give'

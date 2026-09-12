@@ -43,6 +43,40 @@ const transactionSchema = new mongoose.Schema(
       enum: ['cash', 'upi', 'online', 'none'],
       default: 'none',
     },
+    cashfreeOrderId: {
+      type: String,
+      trim: true,
+    },
+    cashfreePaymentId: {
+      type: String,
+      trim: true,
+    },
+    razorpayOrderId: {
+      type: String,
+      trim: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      trim: true,
+    },
+    utr: {
+      type: String,
+      trim: true,
+    },
+    paymentMethod: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    paymentGroup: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    paymentTimestamp: {
+      type: Date,
+      default: null,
+    },
     date: {
       type: Date,
       default: Date.now,
@@ -77,5 +111,10 @@ const transactionSchema = new mongoose.Schema(
 // Index for queries
 transactionSchema.index({ customer: 1, date: -1 });
 transactionSchema.index({ owner: 1, date: -1 });
+transactionSchema.index({ cashfreeOrderId: 1 }, { unique: true, partialFilterExpression: { cashfreeOrderId: { $type: 'string' } } });
+transactionSchema.index({ cashfreePaymentId: 1 }, { unique: true, partialFilterExpression: { cashfreePaymentId: { $type: 'string' } } });
+transactionSchema.index({ razorpayOrderId: 1 }, { unique: true, partialFilterExpression: { razorpayOrderId: { $type: 'string' } } });
+transactionSchema.index({ razorpayPaymentId: 1 }, { unique: true, partialFilterExpression: { razorpayPaymentId: { $type: 'string' } } });
+transactionSchema.index({ utr: 1 }, { unique: true, partialFilterExpression: { utr: { $type: 'string' } } });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

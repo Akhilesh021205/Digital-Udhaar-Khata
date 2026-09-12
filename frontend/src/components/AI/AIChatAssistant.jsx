@@ -33,7 +33,7 @@ const AIChatAssistant = () => {
       {
         id: 'welcome',
         sender: 'ai',
-        text: 'Hello! I am KathaGPT. 🤖\n\nYou can ask me questions about your ledger, like:',
+        text: 'Hello! I am KathaAI. \n\nYou can ask me questions about your ledger, like:',
         suggestions: [
           `How much udhar does customer have?`,
           'Show this month collection',

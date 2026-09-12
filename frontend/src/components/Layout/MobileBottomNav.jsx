@@ -14,7 +14,7 @@ const MobileBottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] safe-area-bottom">
       <div className="flex items-stretch h-16">
         {tabs.map(({ to, icon: Icon, label, end }) => (
           <NavLink

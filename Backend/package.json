@@ -1,7 +1,7 @@
 {
   "name": "udhaar-khata-backend",
   "version": "1.0.0",
-  "description": "Backend for Digital Udhaar Khata - Kirana store credit ledger",
+  "description": "Backend for AI Digital Khata - Kirana store credit ledger",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -21,7 +21,10 @@
     "nodemailer": "^8.0.9",
     "pdfkit": "^0.15.0",
     "qrcode": "^1.5.4",
-    "socket.io": "^4.8.3"
+    "razorpay": "^2.9.8",
+    "socket.io": "^4.8.3",
+    "tesseract.js": "^7.0.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

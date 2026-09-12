@@ -40,6 +40,28 @@ const drawFallbackQR = (doc, qrX, qrY) => {
   doc.rect(qrX + 34, qrY + 34, 6, 6).fillColor('#111827').fill();
 };
 
+function cleanTransactionDescription(desc, type) {
+  if (!desc || typeof desc !== 'string') {
+    return type === 'credit' ? 'Goods / Udhaar Purchase' : 'Payment Clearance';
+  }
+  let cleaned = desc.trim();
+  // Strip "Voice Entry:" prefix or quotes
+  cleaned = cleaned.replace(/^Voice Entry:\s*"?/i, '').replace(/"?$/g, '').trim();
+
+  // Check if it's a raw spoken transcript like "I gave to Shiva Rs 500", "took 500 rupees", etc.
+  if (
+    !cleaned ||
+    /^i gave to\b/i.test(cleaned) ||
+    /^gave to\b/i.test(cleaned) ||
+    /^took\b/i.test(cleaned) ||
+    /^\d+\s*rupees?/i.test(cleaned) ||
+    /^voice entry/i.test(cleaned)
+  ) {
+    return type === 'credit' ? 'Goods / Udhaar Purchase' : 'Payment Clearance';
+  }
+  return cleaned;
+}
+
 /**
  * Generate a monthly statement PDF and stream it to the HTTP response
  * @param {Object} store - Store owner info { storeName, name, phone }
@@ -51,12 +73,12 @@ const drawFallbackQR = (doc, qrX, qrY) => {
 const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffer) => {
   // ─── TOP HEADER ───
   // Left: Store/Company Info
-  doc.fontSize(18).font('Helvetica-Bold').fillColor('#111827').text(store.storeName, 40, 40);
-  doc.fontSize(9).font('Helvetica').fillColor('#475569').text(`Owner: ${store.name}`, 40, 60);
+  doc.fontSize(18).font('Helvetica-Bold').fillColor('#111827').text(store.storeName, 40, 40, { width: 250 });
+  doc.fontSize(9).font('Helvetica').fillColor('#475569').text(`Owner: ${store.name}`, 40, 60, { width: 250 });
   if (store.phone) {
-    doc.text(`Phone: ${store.phone}`, 40, 72);
+    doc.text(`Phone: ${store.phone}`, 40, 72, { width: 250 });
   }
-  doc.text(`Email: support@digitaludhar.com`, 40, 84);
+  doc.text(`Email: support@aidigitalkhata.com`, 40, 84, { width: 250 });
 
   // Right: Title & Metadata
   doc.fontSize(16).font('Helvetica-Bold').fillColor('#111827').text('STATEMENT OF ACCOUNT', 300, 40, { align: 'right', width: 255 });
@@ -78,9 +100,9 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
   doc.rect(40, cardY, 3, cardHeight).fillColor('#111827').fill();
 
   doc.fontSize(8).font('Helvetica-Bold').fillColor('#6B7280').text('CUSTOMER DETAILS', 52, cardY + 10);
-  doc.fontSize(11).font('Helvetica-Bold').fillColor('#111827').text(customer.name, 52, cardY + 24);
-  doc.fontSize(9).font('Helvetica').fillColor('#374151').text(`Phone: ${customer.phone}`, 52, cardY + 40);
-  doc.fontSize(9).font('Helvetica').fillColor('#374151').text(`Address: ${customer.address || 'Not specified'}`, 52, cardY + 54);
+  doc.fontSize(11).font('Helvetica-Bold').fillColor('#111827').text(customer.name, 52, cardY + 24, { width: 228, height: 14, ellipsis: true });
+  doc.fontSize(9).font('Helvetica').fillColor('#374151').text(`Phone: ${customer.phone}`, 52, cardY + 40, { width: 228 });
+  doc.fontSize(8.5).font('Helvetica').fillColor('#374151').text(`Address: ${customer.address || 'Not specified'}`, 52, cardY + 53, { width: 228, height: 32, ellipsis: true });
 
   // Right Card: Account Summary
   doc.roundedRect(307, cardY, colWidth, cardHeight, 8).fillColor('#F9FAFB').fill();
@@ -98,17 +120,16 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
   const netBalance = customer.balance;
 
   doc.fontSize(9).font('Helvetica').fillColor('#374151').text('Total You Gave (Udhar):', 319, cardY + 24);
-  doc.font('Helvetica-Bold').fillColor('#111827').text(`Rs. ${totalCredit.toLocaleString('en-IN')}`, 450, cardY + 24, { align: 'right', width: 95 });
+  doc.font('Helvetica-Bold').fillColor('#111827').text(`Rs. ${totalCredit.toLocaleString('en-IN')}`, 435, cardY + 24, { align: 'right', width: 110 });
 
   doc.fontSize(9).font('Helvetica').fillColor('#374151').text('Total You Got (Jama):', 319, cardY + 38);
-  doc.font('Helvetica-Bold').text(`Rs. ${totalDebit.toLocaleString('en-IN')}`, 450, cardY + 38, { align: 'right', width: 95 });
+  doc.font('Helvetica-Bold').text(`Rs. ${totalDebit.toLocaleString('en-IN')}`, 435, cardY + 38, { align: 'right', width: 110 });
 
   const balanceColor = netBalance > 0 ? '#EF4444' : '#10B981';
-  const balanceLabel = netBalance > 0 ? 'Due (You will get)' : 'Advance (You will give)';
 
   doc.roundedRect(314, cardY + 54, 234, 28, 4).fillColor(netBalance > 0 ? '#FEF2F2' : '#F0FDF4').fill();
   doc.fontSize(9).font('Helvetica-Bold').fillColor(balanceColor).text('Net Outstanding:', 320, cardY + 62);
-  doc.fontSize(11).font('Helvetica-Bold').fillColor(balanceColor).text(`Rs. ${Math.abs(netBalance).toLocaleString('en-IN')}`, 420, cardY + 61, { align: 'right', width: 120 });
+  doc.fontSize(11).font('Helvetica-Bold').fillColor(balanceColor).text(`Rs. ${Math.abs(netBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 420, cardY + 61, { align: 'right', width: 120 });
 
   // ─── TRANSACTIONS TABLE ───
   let currentY = 230;
@@ -117,7 +138,7 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
   const tableTop = currentY + 15;
   const col1 = 40;  // Date
   const col2 = 130; // Type
-  const col3 = 210; // Description
+  const col3 = 200; // Description
   const col4 = 380; // Amount
   const col5 = 470; // Balance
 
@@ -126,10 +147,10 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
 
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#FFFFFF');
   doc.text('Date', col1 + 8, tableTop + 6, { width: 80 });
-  doc.text('Type', col2 + 8, tableTop + 6, { width: 70 });
-  doc.text('Description', col3 + 8, tableTop + 6, { width: 160 });
-  doc.text('Amount (Rs.)', col4, tableTop + 6, { width: 80, align: 'right' });
-  doc.text('Balance (Rs.)', col5, tableTop + 6, { width: 75, align: 'right' });
+  doc.text('Type', col2 + 8, tableTop + 6, { width: 60 });
+  doc.text('Description', col3 + 8, tableTop + 6, { width: 170 });
+  doc.text('Amount (Rs.)', col4, tableTop + 6, { width: 85, align: 'right' });
+  doc.text('Balance (Rs.)', col5, tableTop + 6, { width: 80, align: 'right' });
 
   let yPos = tableTop + 20;
   let runningBalance = 0;
@@ -163,20 +184,21 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
     const isCredit = txn.type === 'credit';
     const typeLabel = isCredit ? 'UDHAR' : 'JAMA';
     const typeColor = isCredit ? '#EF4444' : '#10B981';
+    const displayDesc = cleanTransactionDescription(txn.description, txn.type);
 
     doc.fontSize(8.5).font('Helvetica').fillColor('#374151');
     doc.text(dateStr, col1 + 8, yPos + 6, { width: 80 });
 
     doc.fillColor(typeColor).font('Helvetica-Bold');
-    doc.text(typeLabel, col2 + 8, yPos + 6, { width: 70 });
+    doc.text(typeLabel, col2 + 8, yPos + 6, { width: 60 });
 
     doc.fillColor('#374151').font('Helvetica');
-    doc.text(txn.description || '-', col3 + 8, yPos + 6, { width: 160, height: 12, ellipsis: true });
-    doc.text(txn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }), col4, yPos + 6, { width: 80, align: 'right' });
+    doc.text(displayDesc, col3 + 8, yPos + 6, { width: 170, height: 12, ellipsis: true });
+    doc.text(txn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }), col4, yPos + 6, { width: 85, align: 'right' });
     
     const balColor = runningBalance > 0 ? '#EF4444' : (runningBalance < 0 ? '#10B981' : '#374151');
     doc.fillColor(balColor).font('Helvetica-Bold');
-    doc.text(Math.abs(runningBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + (runningBalance > 0 ? ' Dr' : (runningBalance < 0 ? ' Cr' : '')), col5, yPos + 6, { width: 75, align: 'right' });
+    doc.text(Math.abs(runningBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + (runningBalance > 0 ? ' Dr' : (runningBalance < 0 ? ' Cr' : '')), col5, yPos + 6, { width: 80, align: 'right' });
 
     yPos += 20;
   });
@@ -192,15 +214,15 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
   const infoBlockY = bottomY + 15;
 
   // Left Side: QR Code Card
-  doc.roundedRect(40, infoBlockY, 230, 70, 8).fillColor('#FFFFFF').fill();
-  doc.roundedRect(40, infoBlockY, 230, 70, 8).strokeColor('#E5E7EB').lineWidth(1).stroke();
+  doc.roundedRect(40, infoBlockY, 250, 75, 8).fillColor('#FFFFFF').fill();
+  doc.roundedRect(40, infoBlockY, 250, 75, 8).strokeColor('#E5E7EB').lineWidth(1).stroke();
 
   const qrX = 50;
   const qrY = infoBlockY + 10;
   let hasRealQr = false;
   if (qrBuffer) {
     try {
-      doc.image(qrBuffer, qrX, qrY, { width: 50, height: 50 });
+      doc.image(qrBuffer, qrX, qrY, { width: 55, height: 55 });
       hasRealQr = true;
     } catch (err) {
       console.error('Error drawing real QR code to PDF:', err);
@@ -215,25 +237,25 @@ const buildPDFDocument = (store, customer, transactions, dateRange, doc, qrBuffe
     ? 'Scan using any UPI app to make a direct payment to the store owner.'
     : 'Scan using your phone to open the online payment portal and clear dues.';
 
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#111827').text(qrLabel, 112, infoBlockY + 18);
-  doc.fontSize(7.5).font('Helvetica').fillColor('#6B7280').text(qrDesc, 112, infoBlockY + 30, { width: 145 });
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#111827').text(qrLabel, 115, infoBlockY + 16);
+  doc.fontSize(7.5).font('Helvetica').fillColor('#6B7280').text(qrDesc, 115, infoBlockY + 28, { width: 165 });
 
   // Right Side: Summary Card
-  doc.roundedRect(285, infoBlockY, 270, 70, 8).fillColor('#FFFFFF').fill();
-  doc.roundedRect(285, infoBlockY, 270, 70, 8).strokeColor('#E5E7EB').lineWidth(1).stroke();
+  doc.roundedRect(305, infoBlockY, 250, 75, 8).fillColor('#FFFFFF').fill();
+  doc.roundedRect(305, infoBlockY, 250, 75, 8).strokeColor('#E5E7EB').lineWidth(1).stroke();
 
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#6B7280').text('FINAL STATEMENT BALANCE', 297, infoBlockY + 10);
-  doc.fontSize(18).font('Helvetica-Bold').fillColor(balanceColor).text(`Rs. ${Math.abs(netBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 297, infoBlockY + 24);
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#6B7280').text('FINAL STATEMENT BALANCE', 317, infoBlockY + 12);
+  doc.fontSize(18).font('Helvetica-Bold').fillColor(balanceColor).text(`Rs. ${Math.abs(netBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 317, infoBlockY + 26);
   
   const badgeLabelText = netBalance > 0 ? 'OVERDUE / PENDING' : 'PAID / IN ADVANCE';
-  doc.roundedRect(297, infoBlockY + 46, 120, 14, 4).fillColor(netBalance > 0 ? '#FEF2F2' : '#F0FDF4').fill();
-  doc.fontSize(7.5).font('Helvetica-Bold').fillColor(balanceColor).text(badgeLabelText, 297, infoBlockY + 50, { width: 120, align: 'center' });
+  doc.roundedRect(317, infoBlockY + 48, 125, 16, 8).fillColor(netBalance > 0 ? '#FEF2F2' : '#F0FDF4').fill();
+  doc.fontSize(7.5).font('Helvetica-Bold').fillColor(balanceColor).text(badgeLabelText, 317, infoBlockY + 52, { width: 125, align: 'center' });
 
   const pageHeight = doc.page.height;
   const footerY = pageHeight - 50;
   
   doc.strokeColor('#E5E7EB').lineWidth(0.5).moveTo(40, footerY - 5).lineTo(555, footerY - 5).stroke();
-  doc.fontSize(8).font('Helvetica').fillColor('#6B7280').text('Generated by Digital Udhar Katha', 40, footerY, { align: 'left', width: 250 });
+  doc.fontSize(8).font('Helvetica').fillColor('#6B7280').text('Generated by AI Digital Khata', 40, footerY, { align: 'left', width: 250 });
   doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 300, footerY, { align: 'right', width: 255 });
 
   doc.end();
@@ -299,7 +321,7 @@ const generateCashbookStatement = (store, entries, dateRange, res) => {
   if (store.phone) {
     doc.text(`Phone: ${store.phone}`, 40, 72);
   }
-  doc.text(`Email: support@digitaludhar.com`, 40, 84);
+  doc.text(`Email: support@aidigitalkhata.com`, 40, 84);
 
   doc.fontSize(16).font('Helvetica-Bold').fillColor('#111827').text('CASHBOOK LEDGER', 300, 40, { align: 'right', width: 255 });
   doc.fontSize(9).font('Helvetica').fillColor('#6B7280').text(`Statement Period`, 300, 60, { align: 'right', width: 255 });
@@ -410,7 +432,7 @@ const generateCashbookStatement = (store, entries, dateRange, res) => {
   const footerY = pageHeight - 50;
 
   doc.strokeColor('#E5E7EB').lineWidth(0.5).moveTo(40, footerY - 5).lineTo(555, footerY - 5).stroke();
-  doc.fontSize(8).font('Helvetica').fillColor('#6B7280').text('Generated by Digital Udhar Katha Cashbook', 40, footerY, { align: 'left', width: 250 });
+  doc.fontSize(8).font('Helvetica').fillColor('#6B7280').text('Generated by AI Digital Khata Cashbook', 40, footerY, { align: 'left', width: 250 });
   doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 300, footerY, { align: 'right', width: 255 });
 
   doc.end();
@@ -446,7 +468,7 @@ const generateReceiptPDFBuffer = async (store, customer, transaction, customerTr
 
       // ─── STORE INFO (Center) ───
       doc.fontSize(18).font('Helvetica-Bold').fillColor('#111827').text(store.storeName, 180, 24, { align: 'center', width: 235 });
-      doc.fontSize(8).font('Helvetica').fillColor('#6B7280').text('DIGITAL UDHAAR KHATA', 180, 42, { align: 'center', width: 235 });
+      doc.fontSize(8).font('Helvetica').fillColor('#6B7280').text('AI DIGITAL KHATA', 180, 42, { align: 'center', width: 235 });
       doc.fontSize(8).font('Helvetica').fillColor('#475569').text(`Owner: ${store.name}  |  Phone: ${store.phone}`, 180, 52, { align: 'center', width: 235 });
 
       // ─── SECURED BADGE (Right) ───
@@ -672,13 +694,13 @@ const generateReceiptPDFBuffer = async (store, customer, transaction, customerTr
       doc.fontSize(7).font('Helvetica').fillColor('#475569');
       doc.text(`Owner: ${store.name}`, 420, footerY + 25, { align: 'right', width: 135 });
       doc.text(`Phone: ${store.phone}`, 420, footerY + 35, { align: 'right', width: 135 });
-      doc.text('Email: support@udhaarkhata.com', 420, footerY + 45, { align: 'right', width: 135 });
+      doc.text('Email: support@aidigitalkhata.com', 420, footerY + 45, { align: 'right', width: 135 });
 
       const discY = footerY + 70;
       doc.lineWidth(1).strokeColor('#F3F4F6').moveTo(40, discY).lineTo(555, discY).stroke();
       
       doc.fontSize(7).font('Helvetica').fillColor('#94a3b8').text('This is a computer generated receipt and does not require any signature.', 40, discY + 8, { align: 'center', width: 515 });
-      doc.fontSize(6).font('Helvetica').fillColor('#94a3b8').text('Powered by Digital Udhaar Khata  |  Secured by Cashfree Payments', 40, discY + 18, { align: 'center', width: 515 });
+      doc.fontSize(6).font('Helvetica').fillColor('#94a3b8').text('Powered by AI Digital Khata  |  Secured by Cashfree Payments', 40, discY + 18, { align: 'center', width: 515 });
 
       doc.end();
     } catch (err) {

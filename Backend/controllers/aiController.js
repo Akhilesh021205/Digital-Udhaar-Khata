@@ -2,6 +2,7 @@ const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const CashbookEntry = require('../models/CashbookEntry');
 const { updateRiskLevel } = require('../services/riskService');
+const { executeReminderSend } = require('./reminderController');
 const axios = require('axios');
 
 // Indian Phonetic Key (IPK) mapping for English, Hindi, and Telugu consonants
@@ -128,35 +129,50 @@ function getIndianPhoneticKey(str) {
 // Find a matching customer in the query text
 const findMatchedCustomer = (text, customers) => {
   const normalizedText = text.toLowerCase();
-  
-  // 1. Direct substring match (very fast for English)
+  const candidateMatches = [];
+
+  // 1. Substring matching for name or first name
   for (const customer of customers) {
-    if (normalizedText.includes(customer.name.toLowerCase())) {
-      return customer;
+    const customerNameLower = customer.name.toLowerCase();
+    const firstName = customerNameLower.split(/\s+/)[0];
+
+    if (normalizedText.includes(customerNameLower) || (firstName.length >= 3 && normalizedText.includes(firstName))) {
+      candidateMatches.push(customer);
     }
   }
 
-  // 2. Word-by-word phonetic key matching (handles multi-script: English, Hindi, Telugu)
-  const textWords = text.split(/\s+/);
-  const textWordKeys = textWords.map(w => getIndianPhoneticKey(w)).filter(Boolean);
+  // 2. Word-by-word Indian Phonetic Key matching (handles multi-script: English, Hindi, Telugu)
+  if (candidateMatches.length === 0) {
+    const textWords = text.split(/\s+/);
+    const textWordKeys = textWords.map(w => getIndianPhoneticKey(w)).filter(Boolean);
 
-  for (const customer of customers) {
-    const nameWords = customer.name.split(/\s+/);
-    const nameWordKeys = nameWords.map(w => getIndianPhoneticKey(w)).filter(Boolean);
+    for (const customer of customers) {
+      const nameWords = customer.name.split(/\s+/);
+      const nameWordKeys = nameWords.map(w => getIndianPhoneticKey(w)).filter(Boolean);
 
-    if (nameWordKeys.length === 0) continue;
+      if (nameWordKeys.length === 0) continue;
 
-    // Check if the customer's first name matches any word in the query phonetically
-    const firstNameKey = nameWordKeys[0];
-    if (textWordKeys.includes(firstNameKey)) {
-      return customer;
+      const firstNameKey = nameWordKeys[0];
+      if (textWordKeys.includes(firstNameKey)) {
+        candidateMatches.push(customer);
+      }
     }
   }
 
-  return null;
+  if (candidateMatches.length === 0) return null;
+  if (candidateMatches.length === 1) return candidateMatches[0];
+
+  // Prioritize candidates with positive balance (active dues) and configured email
+  candidateMatches.sort((a, b) => {
+    const scoreA = (a.balance > 0 ? 10 : 0) + (a.email ? 5 : 0);
+    const scoreB = (b.balance > 0 ? 10 : 0) + (b.email ? 5 : 0);
+    return scoreB - scoreA;
+  });
+
+  return candidateMatches[0];
 };
 
-// @desc    Parse voice entry and automatically add transaction
+// @desc    Parse voice entry and automatically add transaction or send reminder
 const voiceEntry = async (req, res, next) => {
   try {
     const { text, customerId } = req.body;
@@ -167,39 +183,65 @@ const voiceEntry = async (req, res, next) => {
     let matchedCustomer = null;
     let amount = null;
     let type = 'credit';
+    let isReminder = false;
 
     const customers = await Customer.find({ owner: req.user._id });
+    const normalizedText = text.toLowerCase();
+
+    // Local check for reminder intent keywords across EN, HI, TE
+    const reminderKeywords = [
+      'reminder', 'remind', 'statement', 'mail', 'email', 'notice',
+      'रिमाइंडर', 'याद', 'भेजो', 'मेल',
+      'రిమైండర్', 'గుర్తు', 'పంపు', 'మేయిల్', 'మెయిల్'
+    ];
+    if (reminderKeywords.some(k => normalizedText.includes(k))) {
+      isReminder = true;
+    }
 
     // Try using Groq if key is present
     if (process.env.GROQ_API_KEY) {
       try {
-        const voicePrompt = `You are a helper that parses spoken transaction transcripts for a shopkeeper.
-The user might speak a customer credit transaction (e.g., "Ravi took 300 rupees today") OR a business cashbook expense/income entry (e.g., "Added electricity bill 1500" or "Got cash 200").
+        const voicePrompt = `You are a helper that parses spoken commands for a shopkeeper.
+The user might speak:
+1. A payment reminder request (e.g., "Send reminder to Shiva", "remind Shiva", "Shiva ko reminder bhejo", "శివకి రిమైండర్ పంపు")
+2. A customer credit transaction (e.g., "Ravi took 300 rupees today")
+3. A business cashbook expense/income entry (e.g., "Added electricity bill 1500")
 
 Here is the list of existing customers:
 ${customers.map(c => `- Name: ${c.name}`).join('\n')}
 
 Analyze the transcribed text and output a JSON object.
 Rules:
-1. If the text is about adding a customer credit transaction (e.g. "Ravi took 300 rupees"):
+1. If the text is a request to send a reminder/statement/email notice to a customer:
+   - "isReminder": true
+   - "isCashbook": false
+   - "customerName": the exact matching name from the customer list (or null if none)
+   - "amount": null
+   - "type": null
+   - "category": null
+   - "description": "Voice Reminder: " + text
+
+2. If the text is about adding a customer transaction (e.g. "Ravi took 300 rupees"):
+   - "isReminder": false
    - "isCashbook": false
    - "customerName": the exact matching name from the customer list (or null if none)
    - "amount": the numerical amount (e.g. 300)
    - "type": "credit" if they took goods/borrowed money, "debit" if they paid back
    - "category": null
-   - "description": "Voice Entry: " + text
+   - "description": Extract clean goods/item description if mentioned (e.g. "Rice 5kg", "Mobile Recharge"). If no specific item is mentioned, output "Goods / Udhaar Purchase" for credit or "Payment Received" for debit. Do NOT include "Voice Entry:" prefix.
 
-2. If the text is about a general business expense or income for the cashbook (e.g. "Added electricity bill 1500" or "Added rent 1000" or "Got cash 500"):
+3. If the text is about a general business expense/income for the cashbook (e.g. "Added electricity bill 1500"):
+   - "isReminder": false
    - "isCashbook": true
    - "customerName": null
    - "amount": the numerical amount (e.g. 1500)
-   - "type": "out" if it is an expense/bill/rent/salary/food/stock purchase, "in" if it is an income/sales/got cash
-   - "category": Choose one of: "Stock", "Rent", "Salary", "Electricity", "Food", "Other" (for out/expense), or "Sales", "Other" (for in/income). Matches the context (e.g. "electricity bill" matches "Electricity")
-   - "description": The description of the item (e.g. "Electricity bill")
+   - "type": "out" if expense, "in" if income
+   - "category": Choose one of "Stock", "Rent", "Salary", "Electricity", "Food", "Sales", "Other"
+   - "description": The description of the item
 
 Spoken text: "${text}"
 
-You MUST respond ONLY with a JSON object in this format: { "isCashbook": boolean, "customerName": string | null, "amount": number | null, "type": "credit" | "debit" | "in" | "out" | null, "category": string | null, "description": string }`;
+You MUST respond ONLY with a JSON object in this format: { "isReminder": boolean, "isCashbook": boolean, "customerName": string | null, "amount": number | null, "type": "credit" | "debit" | "in" | "out" | null, "category": string | null, "description": string }`;
 
         const groqResponse = await axios.post(
           'https://api.groq.com/openai/v1/chat/completions',
@@ -222,6 +264,11 @@ You MUST respond ONLY with a JSON object in this format: { "isCashbook": boolean
         );
 
         const parsed = JSON.parse(groqResponse.data.choices[0].message.content);
+
+        if (parsed.isReminder) {
+          isReminder = true;
+        }
+
         if (parsed.isCashbook) {
           const entry = await CashbookEntry.create({
             owner: req.user._id,
@@ -255,11 +302,48 @@ You MUST respond ONLY with a JSON object in this format: { "isCashbook": boolean
       }
     }
 
+    // Handle Reminder intent
+    if (isReminder) {
+      if (customerId) {
+        matchedCustomer = customers.find(c => c._id.toString() === customerId);
+      }
+      if (!matchedCustomer) {
+        matchedCustomer = findMatchedCustomer(text, customers);
+      }
+
+      if (!matchedCustomer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Matched reminder intent, but could not identify the customer. Please say the customer name clearly, e.g., "send reminder to Shiva".',
+          parsed: { text }
+        });
+      }
+
+      try {
+        const result = await executeReminderSend(matchedCustomer, req.user);
+        return res.status(200).json({
+          success: true,
+          isReminder: true,
+          message: `Successfully sent Email Reminder & PDF Statement to ${matchedCustomer.name}!`,
+          data: {
+            customerName: matchedCustomer.name,
+            email: matchedCustomer.email,
+            result
+          }
+        });
+      } catch (remErr) {
+        return res.status(400).json({
+          success: false,
+          message: remErr.message,
+          parsed: { customer: matchedCustomer.name }
+        });
+      }
+    }
+
     // Fallback: local keyword detection for Cashbook
     let isLocalCashbook = false;
     let localCategory = 'Other';
     let localType = 'out';
-    const normalizedText = text.toLowerCase();
 
     if (normalizedText.includes('added') || normalizedText.includes('bill') || normalizedText.includes('expense') || normalizedText.includes('rent') || normalizedText.includes('salary') || normalizedText.includes('electricity') || normalizedText.includes('food') || normalizedText.includes('stock')) {
       isLocalCashbook = true;
@@ -346,13 +430,18 @@ You MUST respond ONLY with a JSON object in this format: { "isCashbook": boolean
       type = (debitScoreCount > creditScoreCount) ? 'debit' : 'credit';
     }
 
+    let finalDescription = (type === 'credit') ? 'Goods / Udhaar Purchase' : 'Payment Received';
+    if (typeof parsed !== 'undefined' && parsed && parsed.description && !parsed.description.startsWith('Voice Entry')) {
+      finalDescription = parsed.description;
+    }
+
     // Create the transaction
     const transaction = await Transaction.create({
       customer: matchedCustomer._id,
       owner: req.user._id,
       type,
       amount,
-      description: `Voice Entry: "${text}"`,
+      description: finalDescription,
       paymentStatus: type === 'debit' ? 'SETTLED' : 'PENDING',
       date: new Date()
     });
@@ -699,7 +788,173 @@ You MUST respond ONLY with a JSON object in this format:
   }
 };
 
+// @desc    Initiate AI Voice Call Simulation (Greeting + Sarvam TTS)
+// @route   POST /api/ai/voice-call/initiate
+const initiateAiVoiceCall = async (req, res, next) => {
+  try {
+    const { customerId, amount } = req.body;
+    if (!customerId) {
+      return res.status(400).json({ success: false, message: 'customerId is required' });
+    }
+
+    const customer = await Customer.findOne({ _id: customerId, owner: req.user._id, isDeleted: { $ne: true } });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    const { initiateVoiceCall } = require('../services/aiVoiceAssistantService');
+    const result = await initiateVoiceCall(customer, amount || customer.balance);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Process customer speech / IVR selection in AI Voice Call
+// @route   POST /api/ai/voice-call/respond
+const respondAiVoiceCall = async (req, res, next) => {
+  try {
+    const { customerId, customerInput, amount } = req.body;
+    if (!customerId) {
+      return res.status(400).json({ success: false, message: 'customerId is required' });
+    }
+
+    const { processCustomerResponse } = require('../services/aiVoiceAssistantService');
+    const result = await processCustomerResponse({
+      customerId,
+      userId: req.user._id,
+      customerInput: customerInput || '1',
+      amount,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get AI Voice Call logs for customer
+// @route   GET /api/ai/voice-call/history/:customerId
+const getAiCallHistory = async (req, res, next) => {
+  try {
+    const { customerId } = req.params;
+    const AiCallHistory = require('../models/AiCallHistory');
+
+    const history = await AiCallHistory.find({
+      customerId,
+      owner: req.user._id,
+    }).sort({ callDate: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: history.length,
+      data: history,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Initiate a real telephonic PSTN phone call to customer's mobile number
+// @route   POST /api/ai/voice-call/make-real-call
+const makeRealPhoneCall = async (req, res, next) => {
+  try {
+    const { customerId, amount } = req.body;
+    if (!customerId) {
+      return res.status(400).json({ success: false, message: 'customerId is required' });
+    }
+
+    const customer = await Customer.findOne({ _id: customerId, owner: req.user._id, isDeleted: { $ne: true } });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const { initiateRealPhoneCall } = require('../services/telephonyService');
+    const result = await initiateRealPhoneCall(customer, amount || customer.balance, baseUrl);
+
+    // Update customer last AI call status
+    customer.lastAiCall = new Date();
+    customer.lastAiCallStatus = result.realCallInitiated ? 'completed' : 'initiated';
+    await customer.save();
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Twilio Voice XML Callback when customer answers live call
+// @route   ALL /api/ai/voice-call/twilio-twiml
+const handleTwilioTwiml = async (req, res, next) => {
+  try {
+    const { customerId, amount, lang } = req.query;
+    const { generateTwimlResponse } = require('../services/telephonyService');
+    const xml = await generateTwimlResponse(customerId, amount, lang, null);
+    res.type('text/xml');
+    res.send(xml);
+  } catch (error) {
+    res.type('text/xml');
+    res.send('<Response><Say>Error processing call.</Say><Hangup/></Response>');
+  }
+};
+
+// @desc    Twilio Gather Callback when customer speaks or presses DTMF key
+// @route   ALL /api/ai/voice-call/twilio-gather
+const handleTwilioGather = async (req, res, next) => {
+  try {
+    const { customerId, amount, lang } = req.query;
+    const userSpeech = req.body.SpeechResult || req.body.Digits;
+    const { generateTwimlResponse } = require('../services/telephonyService');
+    const xml = await generateTwimlResponse(customerId, amount, lang, userSpeech);
+    res.type('text/xml');
+    res.send(xml);
+  } catch (error) {
+    res.type('text/xml');
+    res.send('<Response><Say>Thank you. Goodbye.</Say><Hangup/></Response>');
+  }
+};
+
+// @desc    Twilio Call Status Webhook
+// @route   POST /api/ai/voice-call/twilio-status
+const handleTwilioStatus = async (req, res, next) => {
+  try {
+    const { customerId } = req.query;
+    const { CallStatus, CallSid } = req.body;
+    const AiCallHistory = require('../models/AiCallHistory');
+
+    if (customerId && CallSid) {
+      await AiCallHistory.findOneAndUpdate(
+        { telephonySid: CallSid },
+        { callStatus: CallStatus, summary: `Twilio call status: ${CallStatus}` }
+      );
+    }
+    res.status(200).send('OK');
+  } catch (error) {
+    res.status(200).send('OK');
+  }
+};
+
 module.exports = {
   voiceEntry,
-  chatAssistant
+  chatAssistant,
+  initiateAiVoiceCall,
+  respondAiVoiceCall,
+  getAiCallHistory,
+  makeRealPhoneCall,
+  handleTwilioTwiml,
+  handleTwilioGather,
+  handleTwilioStatus,
 };
+
+

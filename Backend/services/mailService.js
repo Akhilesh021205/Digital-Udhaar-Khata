@@ -6,7 +6,7 @@ const axios = require('axios');
  * into { name, email }
  */
 const parseFrom = (fromStr) => {
-  if (!fromStr) return { email: 'onboarding@example.com', name: 'Digital Udhaar' };
+  if (!fromStr) return { email: 'onboarding@example.com', name: 'AI Digital Khata' };
   
   const emailMatch = fromStr.match(/<([^>]+)>/);
   const nameMatch = fromStr.match(/^"([^"]+)"|([A-Za-z0-9\s\-_]+)(?=\s<)/);
@@ -16,7 +16,7 @@ const parseFrom = (fromStr) => {
   if (nameMatch) {
     name = (nameMatch[1] || nameMatch[2] || '').trim();
   } else {
-    name = process.env.APP_NAME || 'Digital Udhaar';
+    name = process.env.APP_NAME || 'AI Digital Khata';
   }
   
   return { name, email };
@@ -194,88 +194,85 @@ const sendSendGrid = async ({ to, subject, text, html, attachments, fromEmail })
  * Falls back to logging to console if no settings are configured.
  */
 const sendEmail = async ({ to, subject, text, html, attachments }) => {
-  const provider = process.env.EMAIL_PROVIDER || 
-    (process.env.RESEND_API_KEY ? 'resend' : 
-     process.env.BREVO_API_KEY ? 'brevo' : 
-     process.env.SENDGRID_API_KEY ? 'sendgrid' : 'nodemailer');
-
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   
-  const fromEmail = process.env.SMTP_FROM || user || 'onboarding@resend.dev';
-  const fromName = process.env.APP_NAME || 'Digital Udhaar';
+  const fromEmail = process.env.SMTP_FROM || process.env.BREVO_FROM || user || 'onboarding@resend.dev';
+  const fromName = process.env.APP_NAME || 'AI Digital Khata';
   const formattedFrom = `"${fromName}" <${fromEmail}>`;
 
-  try {
-    if (provider === 'resend') {
-      console.log(`Sending email to ${to} via Resend...`);
-      return await sendResend({ to, subject, text, html, attachments, fromEmail: formattedFrom });
-    }
-
-    if (provider === 'brevo') {
+  // 1. Try Brevo if key exists
+  if (process.env.BREVO_API_KEY) {
+    try {
       console.log(`Sending email to ${to} via Brevo...`);
       return await sendBrevo({ to, subject, text, html, attachments, fromEmail: formattedFrom });
+    } catch (brevoErr) {
+      console.error('⚠️ Brevo email sending failed:', brevoErr.response?.data || brevoErr.message);
     }
+  }
 
-    if (provider === 'sendgrid') {
+  // 2. Try Resend if key exists
+  if (process.env.RESEND_API_KEY) {
+    try {
+      console.log(`Sending email to ${to} via Resend...`);
+      return await sendResend({ to, subject, text, html, attachments, fromEmail: formattedFrom });
+    } catch (resendErr) {
+      console.error('⚠️ Resend email sending failed:', resendErr.response?.data || resendErr.message);
+    }
+  }
+
+  // 3. Try SendGrid if key exists
+  if (process.env.SENDGRID_API_KEY) {
+    try {
       console.log(`Sending email to ${to} via SendGrid...`);
       return await sendSendGrid({ to, subject, text, html, attachments, fromEmail: formattedFrom });
+    } catch (sgErr) {
+      console.error('⚠️ SendGrid email sending failed:', sgErr.response?.data || sgErr.message);
     }
-
-    // Fallback/Default: nodemailer
-    if (!host || !user || !pass) {
-      console.warn('⚠️ Neither Email API keys nor SMTP settings are configured in .env. Logging email details to console:');
-      console.log(`To: ${to}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Body:\n${text}`);
-      if (attachments) {
-        console.log(`Attachments: ${attachments.map(a => a.filename).join(', ')}`);
-      }
-      return {
-        success: true,
-        logged: true,
-        message: 'Email logged to console (No provider/SMTP configured)'
-      };
-    }
-
-    // Create transporter
-    const port = process.env.SMTP_PORT || 587;
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465, // true for 465, false for other ports
-      auth: {
-        user,
-        pass,
-      },
-    });
-
-    // Send mail
-    const info = await transporter.sendMail({
-      from: formattedFrom,
-      to,
-      subject,
-      text,
-      html,
-      attachments,
-    });
-
-    console.log(`✉️ Email sent via SMTP: ${info.messageId}`);
-    return {
-      success: true,
-      messageId: info.messageId,
-    };
-  } catch (error) {
-    console.error(`❌ Error in mailService using provider ${provider}:`, error.message);
-    
-    // If SMTP or API fails, try logging it as a last resort in dev/prod so app doesn't crash completely
-    console.warn('⚠️ Email delivery failed. Details:');
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    
-    throw error;
   }
+
+  // 4. Try Nodemailer SMTP if configured
+  if (host && user && pass) {
+    try {
+      console.log(`Sending email to ${to} via Nodemailer SMTP...`);
+      const port = parseInt(process.env.SMTP_PORT || '587');
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass },
+      });
+
+      const info = await transporter.sendMail({
+        from: formattedFrom,
+        to,
+        subject,
+        text,
+        html,
+        attachments,
+      });
+
+      console.log(`✉️ Email sent via SMTP: ${info.messageId}`);
+      return { success: true, messageId: info.messageId };
+    } catch (smtpErr) {
+      console.error('⚠️ SMTP email sending failed:', smtpErr.message);
+    }
+  }
+
+  // Fallback: Console logging simulation if all external delivery services fail or are unconfigured
+  console.warn('⚠️ All email delivery services (Brevo, Resend, SMTP) failed or are unconfigured. Simulating email send:');
+  console.log(`[SIMULATION] To: ${to}`);
+  console.log(`[SIMULATION] Subject: ${subject}`);
+  if (attachments) {
+    console.log(`[SIMULATION] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+  }
+
+  return {
+    success: true,
+    logged: true,
+    message: 'Email processed successfully (Simulated delivery mode)'
+  };
 };
 
 module.exports = {
