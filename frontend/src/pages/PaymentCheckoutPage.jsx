@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api/axios';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaArrowLeft, FaQrcode, FaLock, FaCheck, FaCreditCard, FaUser, FaRegClock, FaDownload, FaWhatsapp, FaPrint, FaRegCopy, FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -141,7 +141,7 @@ export default function PaymentCheckoutPage() {
           while (isMounted && !verified && attempts < maxAttempts) {
             attempts++;
             try {
-              const verifyResponse = await axios.get(`/api/reminders/checkout/${customerId}/verify-payment/${orderId}`);
+              const verifyResponse = await API.get(`/reminders/checkout/${customerId}/verify-payment/${orderId}`);
               if (verifyResponse.data?.success && verifyResponse.data?.status === 'PAID') {
                 verified = true;
                 toast.success("✓ Payment confirmed & settled successfully!");
@@ -186,7 +186,7 @@ export default function PaymentCheckoutPage() {
           if (isMounted) setVerifyingPayment(false);
         }
 
-        const response = await axios.get(`/api/reminders/checkout/${customerId}`);
+        const response = await API.get(`/reminders/checkout/${customerId}`);
         if (response.data?.success && isMounted) {
           const fetchedData = response.data.data;
           setData(fetchedData);
@@ -256,7 +256,7 @@ export default function PaymentCheckoutPage() {
 
     setSubmitting(true);
     try {
-      const response = await axios.post(`/api/reminders/checkout/${customerId}/confirm-payment`, {
+      const response = await API.post(`/reminders/checkout/${customerId}/confirm-payment`, {
         utr: targetUtr || null,
         amount: parseFloat(amountPaid),
         paymentScreenshot: screenshotPreview || null,
@@ -318,7 +318,7 @@ export default function PaymentCheckoutPage() {
       }
 
       // 1. Create order on backend
-      const response = await axios.post(`/api/reminders/checkout/${customerId}/create-razorpay-order`, {
+      const response = await API.post(`/reminders/checkout/${customerId}/create-razorpay-order`, {
         amount: parseFloat(amountPaid || balance)
       });
 
@@ -338,7 +338,7 @@ export default function PaymentCheckoutPage() {
             setVerifyingPayment(true);
             setVerifyingStatusMsg("Verifying Razorpay payment & updating ledger...");
             try {
-              const verifyRes = await axios.post(`/api/reminders/checkout/${customerId}/verify-razorpay-payment`, {
+              const verifyRes = await API.post(`/reminders/checkout/${customerId}/verify-razorpay-payment`, {
                 razorpay_order_id: res.razorpay_order_id,
                 razorpay_payment_id: res.razorpay_payment_id,
                 razorpay_signature: res.razorpay_signature,
@@ -406,7 +406,7 @@ export default function PaymentCheckoutPage() {
     setSubmitting(true);
     try {
       // 1. Create order on backend
-      const response = await axios.post(`/api/reminders/checkout/${customerId}/create-order`, {
+      const response = await API.post(`/reminders/checkout/${customerId}/create-order`, {
         amount: parseFloat(amountPaid || balance)
       });
       if (response.data?.success) {
@@ -811,7 +811,7 @@ export default function PaymentCheckoutPage() {
               </Link>
 
               <a 
-                href={`/api/reminders/checkout/${customerId}/receipt`}
+                href={`${import.meta.env.VITE_API_URL || 'https://digital-udhaar-khata.onrender.com'}/api/reminders/checkout/${customerId}/receipt`}
                 download
                 className="py-3 px-4 border border-rose-200 text-rose-600 hover:bg-rose-50/50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs bg-transparent no-underline text-center"
               >
