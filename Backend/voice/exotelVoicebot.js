@@ -6,6 +6,7 @@ const AiCallHistory = require('../models/AiCallHistory');
 
 /**
  * Exotel Voicebot Bidirectional WebSocket Server Stream Handler (/exotel/voicebot)
+ * Supports G.711 mulaw (PCMU) and 16-bit Linear PCM (s16le) Telephony Audio Encodings
  */
 
 // Helper to strip 44-byte WAV header if present and return raw 16-bit Linear PCM (s16le) at 8kHz mono
@@ -23,44 +24,101 @@ const extractRawPcmS16le = (buffer) => {
   return buffer;
 };
 
-// Helper to chunk raw PCM buffer into 100ms frames (3200 bytes per frame at 8kHz 16-bit mono) and send to Exotel
-const sendPcmAudioInChunks = async (ws, streamSid, pcmBuffer) => {
-  const rawPcm = extractRawPcmS16le(pcmBuffer);
-  if (rawPcm.length === 0) return;
+// G.711 mulaw (PCMU) Encoder
+const pcmSampleToMulaw = (pcmSample) => {
+  const BIAS = 0x84;
+  const CLIP = 32635;
 
-  const chunkSize = 3200; // 100ms frame at 8kHz 16-bit mono
-  const totalChunks = Math.ceil(rawPcm.length / chunkSize);
-  console.log(`[VOICEBOT] Sending audio to Exotel (${rawPcm.length} raw PCM bytes, ${totalChunks} chunks)`);
+  let sign = (pcmSample >> 8) & 0x80;
+  if (sign !== 0) pcmSample = -pcmSample;
+  if (pcmSample > CLIP) pcmSample = CLIP;
+  pcmSample = pcmSample + BIAS;
 
-  for (let i = 0; i < rawPcm.length; i += chunkSize) {
-    if (ws.readyState !== WebSocket.OPEN) break;
-    const chunk = rawPcm.subarray(i, i + chunkSize);
-    const base64Chunk = chunk.toString('base64');
-
-    ws.send(JSON.stringify({
-      event: 'media',
-      stream_sid: streamSid,
-      media: { payload: base64Chunk }
-    }));
-
-    // Pace chunks with ~95ms delay for smooth 8kHz playback
-    await new Promise((resolve) => setTimeout(resolve, 95));
+  let exponent = 7;
+  for (let mask = 0x4000; (pcmSample & mask) === 0 && exponent > 0; mask >>= 1) {
+    exponent--;
   }
+  let mantissa = (pcmSample >> (exponent + 3)) & 0x0F;
+  let mulawByte = ~(sign | (exponent << 4) | mantissa) & 0xFF;
+  return mulawByte;
 };
 
-// Fallback audio PCM generator for test greeting if TTS latency occurs
-const generateTestGreetingPcm = () => {
-  const sampleRate = 8000;
-  const durationSec = 1.0;
-  const numSamples = sampleRate * durationSec;
-  const buffer = Buffer.alloc(numSamples * 2);
-
-  for (let i = 0; i < numSamples; i++) {
-    const t = i / sampleRate;
-    const sample = Math.sin(2 * Math.PI * 440 * t) * Math.exp(-t * 2) * 16000;
-    buffer.writeInt16LE(Math.floor(sample), i * 2);
+const pcmToMulawBuffer = (pcmBuffer) => {
+  const rawPcm = extractRawPcmS16le(pcmBuffer);
+  const mulawBuffer = Buffer.alloc(Math.floor(rawPcm.length / 2));
+  for (let i = 0; i < mulawBuffer.length; i++) {
+    const sample = rawPcm.readInt16LE(i * 2);
+    mulawBuffer[i] = pcmSampleToMulaw(sample);
   }
-  return buffer;
+  return mulawBuffer;
+};
+
+// G.711 mulaw (PCMU) Decoder
+const mulawToPcmSample = (mulawByte) => {
+  mulawByte = ~mulawByte & 0xFF;
+  let sign = mulawByte & 0x80;
+  let exponent = (mulawByte & 0x70) >> 4;
+  let mantissa = mulawByte & 0x0F;
+  let sample = ((mantissa << 3) + 0x84) << exponent;
+  sample -= 0x84;
+  return sign ? -sample : sample;
+};
+
+const mulawToPcmBuffer = (mulawBuffer) => {
+  const pcmBuffer = Buffer.alloc(mulawBuffer.length * 2);
+  for (let i = 0; i < mulawBuffer.length; i++) {
+    const sample = mulawToPcmSample(mulawBuffer[i]);
+    pcmBuffer.writeInt16LE(sample, i * 2);
+  }
+  return pcmBuffer;
+};
+
+// Helper to chunk audio and send over WebSocket in the requested telephony encoding (mulaw or PCM)
+const sendAudioInChunks = async (ws, streamSid, pcmBuffer, encoding = 'mulaw') => {
+  const rawPcm = extractRawPcmS16le(pcmBuffer);
+  if (!rawPcm || rawPcm.length === 0) return;
+
+  const encLower = (encoding || 'mulaw').toLowerCase();
+  const isMulaw = encLower.includes('mulaw') || encLower.includes('ulaw') || encLower.includes('pcmu');
+
+  if (isMulaw) {
+    const mulawBuf = pcmToMulawBuffer(rawPcm);
+    const chunkSize = 800; // 100ms at 8kHz 8-bit mulaw
+    const totalChunks = Math.ceil(mulawBuf.length / chunkSize);
+    console.log(`[VOICEBOT] Sending audio to Exotel (mulaw format, ${mulawBuf.length} bytes, ${totalChunks} chunks)`);
+
+    for (let i = 0; i < mulawBuf.length; i += chunkSize) {
+      if (ws.readyState !== WebSocket.OPEN) break;
+      const chunk = mulawBuf.subarray(i, i + chunkSize);
+      const base64Chunk = chunk.toString('base64');
+
+      ws.send(JSON.stringify({
+        event: 'media',
+        stream_sid: streamSid,
+        media: { payload: base64Chunk }
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 95));
+    }
+  } else {
+    const chunkSize = 3200; // 100ms at 8kHz 16-bit PCM
+    const totalChunks = Math.ceil(rawPcm.length / chunkSize);
+    console.log(`[VOICEBOT] Sending audio to Exotel (PCM format, ${rawPcm.length} bytes, ${totalChunks} chunks)`);
+
+    for (let i = 0; i < rawPcm.length; i += chunkSize) {
+      if (ws.readyState !== WebSocket.OPEN) break;
+      const chunk = rawPcm.subarray(i, i + chunkSize);
+      const base64Chunk = chunk.toString('base64');
+
+      ws.send(JSON.stringify({
+        event: 'media',
+        stream_sid: streamSid,
+        media: { payload: base64Chunk }
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 95));
+    }
+  }
 };
 
 // Helper to classify customer intent from speech transcription
@@ -112,6 +170,7 @@ const createExotelVoicebotServer = (server) => {
 
     let session = null;
     let streamSid = null;
+    let streamEncoding = 'mulaw';
     let audioBuffers = [];
     let initialGreetingSent = false;
     let mediaLogCounter = 0;
@@ -129,7 +188,8 @@ const createExotelVoicebotServer = (server) => {
 
           case 'start': {
             streamSid = data.stream_sid || data.streamSid || data.start?.streamSid || data.sid || data.call_sid;
-            console.log(`[VOICEBOT] Start event received (streamSid: ${streamSid || 'active'})`);
+            streamEncoding = data.start?.mediaFormat?.encoding || data.mediaFormat?.encoding || data.encoding || 'mulaw';
+            console.log(`[VOICEBOT] Start event received (streamSid: ${streamSid || 'active'}, encoding: ${streamEncoding})`);
 
             const phone = data.from || data.caller || data.phone || data.start?.from;
             const customField = data.custom_field || data.start?.customField ? 
@@ -156,18 +216,11 @@ const createExotelVoicebotServer = (server) => {
                 greeting = `Hello ${name}, this is an automated payment reminder from ${shop}. Your outstanding amount is ${due} rupees. When would you be able to make the payment?`;
               }
 
-              // Send immediate test PCM audio frames to keep Exotel stream active instantly
-              const testPcm = generateTestGreetingPcm();
-              await sendPcmAudioInChunks(ws, streamSid, testPcm);
-
-              // Generate and send Sarvam AI speech greeting asynchronously
-              generateSpeech(greeting, lang, 8000).then(async ({ audioBuffer }) => {
-                if (audioBuffer && audioBuffer.length > 0 && ws.readyState === WebSocket.OPEN) {
-                  await sendPcmAudioInChunks(ws, streamSid, audioBuffer);
-                }
-              }).catch((err) => {
-                console.error('[VOICEBOT] Initial greeting TTS error:', err.message);
-              });
+              console.log(`[VOICEBOT] Generating initial greeting TTS: "${greeting}"`);
+              const { audioBuffer } = await generateSpeech(greeting, lang, 8000);
+              if (audioBuffer && audioBuffer.length > 0 && ws.readyState === WebSocket.OPEN) {
+                await sendAudioInChunks(ws, streamSid, audioBuffer, streamEncoding);
+              }
             }
             break;
           }
@@ -179,7 +232,10 @@ const createExotelVoicebotServer = (server) => {
             }
 
             if (data.media && data.media.payload) {
-              const pcmChunk = Buffer.from(data.media.payload, 'base64');
+              const rawPayload = Buffer.from(data.media.payload, 'base64');
+              const isMulaw = (streamEncoding || 'mulaw').toLowerCase().includes('mulaw') || (streamEncoding || 'mulaw').toLowerCase().includes('ulaw') || (streamEncoding || 'mulaw').toLowerCase().includes('pcmu');
+
+              const pcmChunk = isMulaw ? mulawToPcmBuffer(rawPayload) : rawPayload;
               audioBuffers.push(pcmChunk);
 
               // Accumulate ~3s of audio (48000 bytes at 8kHz 16bit)
@@ -206,7 +262,7 @@ const createExotelVoicebotServer = (server) => {
 
                   const { audioBuffer } = await generateSpeech(replyMsg, lang, 8000);
                   if (audioBuffer && audioBuffer.length > 0) {
-                    await sendPcmAudioInChunks(ws, streamSid, audioBuffer);
+                    await sendAudioInChunks(ws, streamSid, audioBuffer, streamEncoding);
                   }
                 }
               }
