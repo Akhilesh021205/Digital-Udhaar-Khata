@@ -22,7 +22,17 @@ const {
 // Public route for payment checkout (no authentication required)
 router.get('/checkout/:customerId', async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.customerId).populate('owner');
+    const mongoose = require('mongoose');
+    const cleanId = req.params.customerId ? req.params.customerId.toString().trim() : '';
+
+    if (!cleanId || !mongoose.Types.ObjectId.isValid(cleanId)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid payment checkout link or customer not found',
+      });
+    }
+
+    const customer = await Customer.findById(cleanId).populate('owner');
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -35,8 +45,8 @@ router.get('/checkout/:customerId', async (req, res, next) => {
     const credits = await Transaction.find({ customer: customer._id, type: 'credit' });
     const debits = await Transaction.find({ customer: customer._id, type: 'debit' });
 
-    const totalUdhaar = credits.reduce((sum, tx) => sum + tx.amount, 0);
-    const totalJama = debits.reduce((sum, tx) => sum + tx.amount, 0);
+    const totalUdhaar = credits.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+    const totalJama = debits.reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
     // Fetch last successfully SETTLED payment only
     const lastPayment = await Transaction.findOne({
@@ -53,23 +63,25 @@ router.get('/checkout/:customerId', async (req, res, next) => {
       }
     }
 
+    const ownerObj = customer.owner || {};
+
     res.status(200).json({
       success: true,
       data: {
         customerName: customer.name,
         customerPhone: customer.phone || '',
         customerAddress: customer.address || 'Ghatkesar Rd',
-        balance: customer.balance,
-        storeName: customer.owner.storeName || 'AI Digital Khata',
-        upiId: customer.owner.upiId || '',
-        ownerName: customer.owner.name || 'Merchant',
-        ownerPhone: customer.owner.phone || '',
+        balance: customer.balance || 0,
+        storeName: ownerObj.storeName || ownerObj.name || 'AI Digital Khata',
+        upiId: ownerObj.upiId || '',
+        ownerName: ownerObj.name || 'Merchant',
+        ownerPhone: ownerObj.phone || '',
         totalUdhaar,
         totalJama,
         lastPayment: lastPayment ? {
           amount: lastPayment.amount,
           date: lastPayment.date,
-          utr: lastPaymentUtr,
+          utr: lastPaymentUtr || lastPayment.utr || '',
           status: lastPayment.paymentStatus || 'SUCCESS',
         } : null,
       }

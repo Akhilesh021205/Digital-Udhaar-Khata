@@ -4,7 +4,7 @@ const { sendEmail } = require('../services/mailService');
 const { generateStatementBuffer } = require('../services/pdfService');
 
 const buildPaymentReminderHTML = ({ storeName, customerFirstName, customerName, balance, upiId, customerId }) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = (process.env.FRONTEND_URL || 'https://digital-udhaar-khata.vercel.app').replace(/\/$/, '');
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -283,7 +283,7 @@ const executeReminderSend = async (customer, user) => {
 
   const storeName = user.storeName || 'AI Digital Khata';
   const upiId = user.upiId;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = (process.env.FRONTEND_URL || 'https://digital-udhaar-khata.vercel.app').replace(/\/$/, '');
   const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
 
   // 1. PAYMENT BILL EMAIL (Dedicated Payment Link & Dues Notice)
