@@ -6,119 +6,36 @@ const AiCallHistory = require('../models/AiCallHistory');
 
 /**
  * Exotel Voicebot Bidirectional WebSocket Server Stream Handler (/exotel/voicebot)
- * Supports G.711 mulaw (PCMU) and 16-bit Linear PCM (s16le) Telephony Audio Encodings
+ * Streams Linear16 8000 Hz Raw PCM Audio directly to Exotel
  */
 
-// Helper to strip 44-byte WAV header if present and return raw 16-bit Linear PCM (s16le) at 8kHz mono
-const extractRawPcmS16le = (buffer) => {
-  if (!buffer || buffer.length === 0) return Buffer.alloc(0);
+// Send Linear16 8000 Hz PCM audio buffer to Exotel in 3200-byte (100ms) chunks
+const sendLinear16PcmInChunks = async (ws, streamSid, pcmBuffer) => {
+  if (!pcmBuffer || pcmBuffer.length === 0) return;
 
-  // Check for RIFF header
-  if (buffer.length > 44 && buffer.toString('ascii', 0, 4) === 'RIFF') {
-    const dataSubchunkIndex = buffer.indexOf('data');
-    if (dataSubchunkIndex !== -1 && buffer.length > dataSubchunkIndex + 8) {
-      return buffer.subarray(dataSubchunkIndex + 8);
-    }
-    return buffer.subarray(44);
+  const chunkSize = 3200; // 100ms at 8kHz 16-bit mono PCM (multiples of 320 bytes)
+  const totalChunks = Math.ceil(pcmBuffer.length / chunkSize);
+
+  for (let i = 0; i < pcmBuffer.length; i += chunkSize) {
+    if (ws.readyState !== WebSocket.OPEN) break;
+    const chunkNum = Math.floor(i / chunkSize) + 1;
+    const chunk = pcmBuffer.subarray(i, i + chunkSize);
+    const base64Chunk = chunk.toString('base64');
+
+    console.log(`[VOICEBOT] Sending audio chunk ${chunkNum}`);
+
+    ws.send(JSON.stringify({
+      event: 'media',
+      stream_sid: streamSid,
+      media: {
+        payload: base64Chunk
+      }
+    }));
+
+    // Pace chunks with ~95ms delay for smooth 8kHz playback
+    await new Promise((resolve) => setTimeout(resolve, 95));
   }
-  return buffer;
-};
-
-// G.711 mulaw (PCMU) Encoder
-const pcmSampleToMulaw = (pcmSample) => {
-  const BIAS = 0x84;
-  const CLIP = 32635;
-
-  let sign = (pcmSample >> 8) & 0x80;
-  if (sign !== 0) pcmSample = -pcmSample;
-  if (pcmSample > CLIP) pcmSample = CLIP;
-  pcmSample = pcmSample + BIAS;
-
-  let exponent = 7;
-  for (let mask = 0x4000; (pcmSample & mask) === 0 && exponent > 0; mask >>= 1) {
-    exponent--;
-  }
-  let mantissa = (pcmSample >> (exponent + 3)) & 0x0F;
-  let mulawByte = ~(sign | (exponent << 4) | mantissa) & 0xFF;
-  return mulawByte;
-};
-
-const pcmToMulawBuffer = (pcmBuffer) => {
-  const rawPcm = extractRawPcmS16le(pcmBuffer);
-  const mulawBuffer = Buffer.alloc(Math.floor(rawPcm.length / 2));
-  for (let i = 0; i < mulawBuffer.length; i++) {
-    const sample = rawPcm.readInt16LE(i * 2);
-    mulawBuffer[i] = pcmSampleToMulaw(sample);
-  }
-  return mulawBuffer;
-};
-
-// G.711 mulaw (PCMU) Decoder
-const mulawToPcmSample = (mulawByte) => {
-  mulawByte = ~mulawByte & 0xFF;
-  let sign = mulawByte & 0x80;
-  let exponent = (mulawByte & 0x70) >> 4;
-  let mantissa = mulawByte & 0x0F;
-  let sample = ((mantissa << 3) + 0x84) << exponent;
-  sample -= 0x84;
-  return sign ? -sample : sample;
-};
-
-const mulawToPcmBuffer = (mulawBuffer) => {
-  const pcmBuffer = Buffer.alloc(mulawBuffer.length * 2);
-  for (let i = 0; i < mulawBuffer.length; i++) {
-    const sample = mulawToPcmSample(mulawBuffer[i]);
-    pcmBuffer.writeInt16LE(sample, i * 2);
-  }
-  return pcmBuffer;
-};
-
-// Helper to chunk audio and send over WebSocket in the requested telephony encoding (mulaw or PCM)
-const sendAudioInChunks = async (ws, streamSid, pcmBuffer, encoding = 'mulaw') => {
-  const rawPcm = extractRawPcmS16le(pcmBuffer);
-  if (!rawPcm || rawPcm.length === 0) return;
-
-  const encLower = (encoding || 'mulaw').toLowerCase();
-  const isMulaw = encLower.includes('mulaw') || encLower.includes('ulaw') || encLower.includes('pcmu');
-
-  if (isMulaw) {
-    const mulawBuf = pcmToMulawBuffer(rawPcm);
-    const chunkSize = 800; // 100ms at 8kHz 8-bit mulaw
-    const totalChunks = Math.ceil(mulawBuf.length / chunkSize);
-    console.log(`[VOICEBOT] Sending audio to Exotel (mulaw format, ${mulawBuf.length} bytes, ${totalChunks} chunks)`);
-
-    for (let i = 0; i < mulawBuf.length; i += chunkSize) {
-      if (ws.readyState !== WebSocket.OPEN) break;
-      const chunk = mulawBuf.subarray(i, i + chunkSize);
-      const base64Chunk = chunk.toString('base64');
-
-      ws.send(JSON.stringify({
-        event: 'media',
-        stream_sid: streamSid,
-        media: { payload: base64Chunk }
-      }));
-
-      await new Promise((resolve) => setTimeout(resolve, 95));
-    }
-  } else {
-    const chunkSize = 3200; // 100ms at 8kHz 16-bit PCM
-    const totalChunks = Math.ceil(rawPcm.length / chunkSize);
-    console.log(`[VOICEBOT] Sending audio to Exotel (PCM format, ${rawPcm.length} bytes, ${totalChunks} chunks)`);
-
-    for (let i = 0; i < rawPcm.length; i += chunkSize) {
-      if (ws.readyState !== WebSocket.OPEN) break;
-      const chunk = rawPcm.subarray(i, i + chunkSize);
-      const base64Chunk = chunk.toString('base64');
-
-      ws.send(JSON.stringify({
-        event: 'media',
-        stream_sid: streamSid,
-        media: { payload: base64Chunk }
-      }));
-
-      await new Promise((resolve) => setTimeout(resolve, 95));
-    }
-  }
+  console.log('[VOICEBOT] Finished sending audio');
 };
 
 // Helper to classify customer intent from speech transcription
@@ -170,7 +87,6 @@ const createExotelVoicebotServer = (server) => {
 
     let session = null;
     let streamSid = null;
-    let streamEncoding = 'mulaw';
     let audioBuffers = [];
     let initialGreetingSent = false;
     let mediaLogCounter = 0;
@@ -182,14 +98,14 @@ const createExotelVoicebotServer = (server) => {
 
         switch (event) {
           case 'connected': {
-            console.log('[VOICEBOT] Connected event received');
+            console.log('[VOICEBOT] Connected event');
             break;
           }
 
           case 'start': {
+            console.log('[VOICEBOT] Start event');
             streamSid = data.stream_sid || data.streamSid || data.start?.streamSid || data.sid || data.call_sid;
-            streamEncoding = data.start?.mediaFormat?.encoding || data.mediaFormat?.encoding || data.encoding || 'mulaw';
-            console.log(`[VOICEBOT] Start event received (streamSid: ${streamSid || 'active'}, encoding: ${streamEncoding})`);
+            console.log(`[VOICEBOT] Stream SID received: ${streamSid || 'active'}`);
 
             const phone = data.from || data.caller || data.phone || data.start?.from;
             const customField = data.custom_field || data.start?.customField ? 
@@ -205,21 +121,20 @@ const createExotelVoicebotServer = (server) => {
             if (!initialGreetingSent) {
               initialGreetingSent = true;
               const lang = session ? session.language : 'te-IN';
-              const name = session ? session.customerName : 'Customer';
-              const due = session ? Math.abs(session.amount) : 0;
-              const shop = session ? session.shopName : 'Digital Udhaar Khata';
+              const name = session ? session.customerName : 'Ravi';
+              const due = session ? Math.abs(session.amount) : 500;
 
-              let greeting = `నమస్కారం ${name} గారు, ఇది ${shop} నుండి ఆటోమేటిక్ పేమెంట్ రిమైండర్ కాల్. మీకు ప్రస్తుతం ₹${due} బకాయి ఉంది. మీరు ఎప్పుడు చెల్లించగలరు?`;
+              let greeting = `నమస్కారం ${name} గారు. ఇది AI Digital Khata నుండి కాల్. మీ ఖాతాలో ${due} రూపాయలు చెల్లించాల్సి ఉంది. మీరు ఈరోజు చెల్లించగలరా?`;
               if (lang === 'hi-IN' || lang === 'hi') {
-                greeting = `नमस्ते ${name} जी, यह ${shop} की ओर से भुगतान अनुस्मारक कॉल है। आपका ₹${due} बकाया है। आप भुगतान कब कर पाएंगे?`;
+                greeting = `नमस्ते ${name} जी। यह AI Digital Khata से कॉल है। आपके खाते में ${due} रुपये का भुगतान बाकी है। क्या आप आज भुगतान कर सकते हैं?`;
               } else if (lang === 'en-IN' || lang === 'en') {
-                greeting = `Hello ${name}, this is an automated payment reminder from ${shop}. Your outstanding amount is ${due} rupees. When would you be able to make the payment?`;
+                greeting = `Hello ${name}. This is AI Digital Khata. You have an outstanding payment of ${due} rupees. Would you be able to pay today?`;
               }
 
-              console.log(`[VOICEBOT] Generating initial greeting TTS: "${greeting}"`);
-              const { audioBuffer } = await generateSpeech(greeting, lang, 8000);
-              if (audioBuffer && audioBuffer.length > 0 && ws.readyState === WebSocket.OPEN) {
-                await sendAudioInChunks(ws, streamSid, audioBuffer, streamEncoding);
+              // Call Sarvam AI TTS (linear16, 8000 Hz)
+              const { pcmBuffer } = await generateSpeech(greeting, lang, 8000);
+              if (pcmBuffer && pcmBuffer.length > 0 && ws.readyState === WebSocket.OPEN) {
+                await sendLinear16PcmInChunks(ws, streamSid, pcmBuffer);
               }
             }
             break;
@@ -232,10 +147,7 @@ const createExotelVoicebotServer = (server) => {
             }
 
             if (data.media && data.media.payload) {
-              const rawPayload = Buffer.from(data.media.payload, 'base64');
-              const isMulaw = (streamEncoding || 'mulaw').toLowerCase().includes('mulaw') || (streamEncoding || 'mulaw').toLowerCase().includes('ulaw') || (streamEncoding || 'mulaw').toLowerCase().includes('pcmu');
-
-              const pcmChunk = isMulaw ? mulawToPcmBuffer(rawPayload) : rawPayload;
+              const pcmChunk = Buffer.from(data.media.payload, 'base64');
               audioBuffers.push(pcmChunk);
 
               // Accumulate ~3s of audio (48000 bytes at 8kHz 16bit)
@@ -260,9 +172,9 @@ const createExotelVoicebotServer = (server) => {
                     await updateCustomerAiRecord(session.customerId, classified, transcribedText);
                   }
 
-                  const { audioBuffer } = await generateSpeech(replyMsg, lang, 8000);
-                  if (audioBuffer && audioBuffer.length > 0) {
-                    await sendAudioInChunks(ws, streamSid, audioBuffer, streamEncoding);
+                  const { pcmBuffer } = await generateSpeech(replyMsg, lang, 8000);
+                  if (pcmBuffer && pcmBuffer.length > 0 && ws.readyState === WebSocket.OPEN) {
+                    await sendLinear16PcmInChunks(ws, streamSid, pcmBuffer);
                   }
                 }
               }

@@ -71,7 +71,7 @@ const transcribeAudio = async (audioInput, languageCode = 'te-IN') => {
 const generateSpeech = async (text, languageCode = 'te-IN', sampleRate = 8000) => {
   const apiKey = process.env.SARVAM_API_KEY;
   if (!apiKey || !text || text.trim().length === 0) {
-    return { base64Audio: null, audioBuffer: null };
+    return { base64Audio: null, audioBuffer: null, pcmBuffer: null };
   }
 
   try {
@@ -81,14 +81,17 @@ const generateSpeech = async (text, languageCode = 'te-IN', sampleRate = 8000) =
     const payload = {
       inputs: [text.trim()],
       target_language_code: targetLang,
-      speaker: 'kavya',
+      speaker: 'shubh',
       pitch: 0,
       pace: 1.05,
       loudness: 1.5,
       speech_sample_rate: sampleRate || 8000,
+      output_audio_codec: 'linear16',
       enable_preprocessing: true,
       model: 'bulbul:v3',
     };
+
+    console.log(`[VOICEBOT] Calling Sarvam TTS`);
 
     const response = await axios.post('https://api.sarvam.ai/text-to-speech', payload, {
       headers: {
@@ -103,18 +106,19 @@ const generateSpeech = async (text, languageCode = 'te-IN', sampleRate = 8000) =
       if (rawBase64.startsWith('data:audio')) {
         rawBase64 = rawBase64.split(',')[1];
       }
-      const audioBuffer = Buffer.from(rawBase64, 'base64');
-      const base64Audio = `data:audio/wav;base64,${rawBase64}`;
+      const pcmBuffer = Buffer.from(rawBase64, 'base64');
+      console.log(`[VOICEBOT] Sarvam response received`);
+      console.log(`[VOICEBOT] Audio base64 length: ${rawBase64.length}`);
+      console.log(`[VOICEBOT] PCM buffer length: ${pcmBuffer.length}`);
 
-      console.log(`[SARVAM] TTS completed (${targetLang}, ${audioBuffer.length} bytes)`);
-      return { base64Audio, rawBase64, audioBuffer };
+      return { base64Audio: rawBase64, audioBuffer: pcmBuffer, pcmBuffer };
     }
 
-    return { base64Audio: null, audioBuffer: null };
+    return { base64Audio: null, audioBuffer: null, pcmBuffer: null };
   } catch (err) {
     const safeError = err.response?.data?.message || err.message || 'Sarvam TTS Failed';
-    console.error('[SARVAM] TTS error:', safeError);
-    return { base64Audio: null, audioBuffer: null };
+    console.error('[VOICEBOT] Sarvam TTS error:', safeError);
+    return { base64Audio: null, audioBuffer: null, pcmBuffer: null };
   }
 };
 

@@ -455,8 +455,21 @@ const forgotPassword = async (req, res, next) => {
 
     await user.save();
 
-    // Create reset url
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Determine frontend URL dynamically from request origin header so emails always contain the active working domain
+    let frontendUrl = req.headers.origin;
+    if (!frontendUrl && req.headers.referer) {
+      try {
+        const urlObj = new URL(req.headers.referer);
+        frontendUrl = `${urlObj.protocol}//${urlObj.host}`;
+      } catch (e) {
+        // Ignore invalid referer URL
+      }
+    }
+    if (!frontendUrl || frontendUrl.includes('o4isb0524')) {
+      frontendUrl = process.env.FRONTEND_URL || 'https://digital-udhaar-khata.vercel.app';
+    }
+    frontendUrl = frontendUrl.replace(/\/$/, '');
+
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     // HTML Message
