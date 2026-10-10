@@ -5,6 +5,8 @@ const {
   getCustomer,
   createCustomer,
   updateCustomer,
+  verifyAddress,
+  checkGpsDistance,
   deleteCustomer,
   getTrash,
   restoreCustomer,
@@ -18,6 +20,8 @@ router.use(verifyBlockchain);
 router.route('/trash').get(getTrash);
 router.route('/').get(getCustomers).post(createCustomer);
 router.route('/:id').get(getCustomer).put(updateCustomer).delete(deleteCustomer);
+router.route('/:id/verify-address').put(verifyAddress);
+router.route('/:id/check-gps').post(checkGpsDistance);
 router.route('/:id/restore').post(restoreCustomer);
 
 module.exports = router;

@@ -202,123 +202,232 @@ const TransactionsPage = () => {
           </button>
         </div>
       ) : (
-        <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-soft-white border-b border-soft-gray">
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('date')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('customers')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('type')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('description')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('amount')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('status')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((txn) => (
-                <tr key={txn._id} className="border-b border-soft-gray/50 hover:bg-light-cream/10 transition-colors">
-                  <td className="px-6 py-4 text-sm align-middle text-deep-navy">
-                    {new Date(txn.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <Link to={`/customers/${txn.customer?._id}`} className="text-deep-navy font-bold hover:text-orange transition-colors decoration-none">
+        <div className="space-y-4">
+          {/* Mobile Transactions Feed (md:hidden) */}
+          <div className="md:hidden divide-y divide-soft-gray/30 rounded-2xl border border-soft-gray bg-pure-white overflow-hidden shadow-xs">
+            {transactions.map((txn) => (
+              <div key={txn._id} className="p-3.5 space-y-2 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <Link to={`/customers/${txn.customer?._id}`} className="text-xs font-bold text-deep-navy hover:text-orange transition-colors decoration-none block truncate">
                       {txn.customer?.name || 'Unknown'}
                     </Link>
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <div className="flex flex-col gap-1">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold w-fit ${
-                        txn.type === 'credit' ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                      }`}>
-                        {txn.type === 'credit' ? t('udhaar') : t('jama')}
-                      </span>
-                      {txn.type === 'debit' && txn.paymentMode && txn.paymentMode !== 'none' && (
-                        <span className="text-[10px] text-slate-gray font-extrabold uppercase tracking-wider pl-1">
-                          via {txn.paymentMode}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle text-deep-navy max-w-[240px]">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="truncate" title={txn.description}>{txn.description || '—'}</span>
-                      {(txn.utr || txn.cashfreePaymentId) && (
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {txn.utr && (
-                            <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded font-bold shadow-xs">
-                              UTR: {txn.utr}
-                            </span>
-                          )}
-                          {txn.cashfreePaymentId && (
-                            <span className="text-[9px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded font-semibold">
-                              PayID: {txn.cashfreePaymentId}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className={`px-6 py-4 text-sm align-middle font-bold ${
-                    (txn.paymentStatus === 'SETTLED' || txn.type === 'debit') ? 'text-green-get' : 'text-red-give'
-                  }`}>
-                    {txn.type === 'credit' ? '+' : '-'}₹{txn.amount.toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    <span className="text-[11px] text-slate-gray block">
+                      {new Date(txn.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}
+                    </span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={`text-sm font-extrabold block ${
+                      (txn.paymentStatus === 'SETTLED' || txn.type === 'debit') ? 'text-green-get' : 'text-red-give'
+                    }`}>
+                      {txn.type === 'credit' ? '+' : '-'}₹{txn.amount.toLocaleString('en-IN')}
+                    </span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold inline-block ${
                       txn.paymentStatus === 'SETTLED' ? 'bg-green-get/10 text-green-get' : 'bg-warning-pending/10 text-warning-pending'
                     }`}>
                       {txn.paymentStatus === 'SETTLED' ? t('settled') : t('pending')}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <div className="flex items-center gap-1.5">
-                      {txn.type === 'credit' && txn.paymentStatus === 'PENDING' && (
-                        <button 
-                          className="p-1.5 text-orange hover:text-orange-hover hover:bg-orange/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
-                          title={t('markAsSettled')} 
-                          onClick={() => handleSettle(txn._id)}
-                        >
-                          <HiOutlineCheckCircle size={16} />
-                        </button>
-                      )}
-                      {txn.type === 'debit' && txn.paymentStatus === 'PENDING' && (
-                        <>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    txn.type === 'credit' ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
+                  }`}>
+                    {txn.type === 'credit' ? t('udhaar') : t('jama')}
+                  </span>
+                  {txn.type === 'debit' && txn.paymentMode && txn.paymentMode !== 'none' && (
+                    <span className="text-[10px] text-slate-gray font-extrabold uppercase tracking-wider">
+                      via {txn.paymentMode}
+                    </span>
+                  )}
+                </div>
+
+                {txn.description && (
+                  <p className="text-xs text-deep-navy font-medium m-0 leading-relaxed break-words bg-slate-50 border border-soft-gray/40 rounded-lg p-2">
+                    {txn.description}
+                  </p>
+                )}
+
+                {(txn.utr || txn.cashfreePaymentId) && (
+                  <div className="flex flex-wrap gap-1 text-[9px] font-mono">
+                    {txn.utr && (
+                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded font-bold">
+                        UTR: {txn.utr}
+                      </span>
+                    )}
+                    {txn.cashfreePaymentId && (
+                      <span className="text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded font-semibold">
+                        PayID: {txn.cashfreePaymentId}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex items-center justify-end gap-1 pt-1 border-t border-soft-gray/30">
+                  {txn.type === 'credit' && txn.paymentStatus === 'PENDING' && (
+                    <button 
+                      className="p-1.5 text-orange hover:bg-orange/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                      title={t('markAsSettled')} 
+                      onClick={() => handleSettle(txn._id)}
+                    >
+                      <HiOutlineCheckCircle size={16} />
+                    </button>
+                  )}
+                  {txn.type === 'debit' && txn.paymentStatus === 'PENDING' && (
+                    <button 
+                      className="p-1.5 text-orange hover:bg-orange/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                      title={t('markAsSettled')} 
+                      onClick={() => handleSettle(txn._id)}
+                    >
+                      <HiOutlineCheckCircle size={16} />
+                    </button>
+                  )}
+                  <button 
+                    className="p-1.5 text-slate-gray hover:text-deep-navy hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                    title="Print Receipt" 
+                    onClick={() => handlePrint(txn)}
+                  >
+                    <HiOutlinePrinter size={16} />
+                  </button>
+                  <button 
+                    className="p-1.5 text-slate-gray hover:text-deep-navy hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                    title={t('edit')} 
+                    onClick={() => handleOpenEdit(txn)}
+                  >
+                    <HiOutlinePencilAlt size={16} />
+                  </button>
+                  <button 
+                    className="p-1.5 text-red-give hover:text-red-hover hover:bg-red-give/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                    title={t('delete')} 
+                    onClick={() => handleOpenDelete(txn)}
+                  >
+                    <HiOutlineTrash size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block bg-pure-white border border-soft-gray rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-soft-white border-b border-soft-gray">
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('date')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('customers')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('type')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('description')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('amount')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('status')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-soft-gray/30">
+                {transactions.map((txn) => (
+                  <tr key={txn._id} className="border-b border-soft-gray/50 hover:bg-light-cream/10 transition-colors">
+                    <td className="px-6 py-4 text-sm align-middle text-deep-navy">
+                      {new Date(txn.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}
+                    </td>
+                    <td className="px-6 py-4 text-sm align-middle">
+                      <Link to={`/customers/${txn.customer?._id}`} className="text-deep-navy font-bold hover:text-orange transition-colors decoration-none">
+                        {txn.customer?.name || 'Unknown'}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 text-sm align-middle">
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold w-fit ${
+                          txn.type === 'credit' ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
+                        }`}>
+                          {txn.type === 'credit' ? t('udhaar') : t('jama')}
+                        </span>
+                        {txn.type === 'debit' && txn.paymentMode && txn.paymentMode !== 'none' && (
+                          <span className="text-[10px] text-slate-gray font-extrabold uppercase tracking-wider pl-1">
+                            via {txn.paymentMode}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm align-middle text-deep-navy max-w-[240px]">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="truncate" title={txn.description}>{txn.description || '—'}</span>
+                        {(txn.utr || txn.cashfreePaymentId) && (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {txn.utr && (
+                              <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded font-bold shadow-xs">
+                                UTR: {txn.utr}
+                              </span>
+                            )}
+                            {txn.cashfreePaymentId && (
+                              <span className="text-[9px] font-mono text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.5 rounded font-semibold">
+                                PayID: {txn.cashfreePaymentId}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className={`px-6 py-4 text-sm align-middle font-bold ${
+                      (txn.paymentStatus === 'SETTLED' || txn.type === 'debit') ? 'text-green-get' : 'text-red-give'
+                    }`}>
+                      {txn.type === 'credit' ? '+' : '-'}₹{txn.amount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-6 py-4 text-sm align-middle">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                        txn.paymentStatus === 'SETTLED' ? 'bg-green-get/10 text-green-get' : 'bg-warning-pending/10 text-warning-pending'
+                      }`}>
+                        {txn.paymentStatus === 'SETTLED' ? t('settled') : t('pending')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm align-middle">
+                      <div className="flex items-center gap-1.5">
+                        {txn.type === 'credit' && txn.paymentStatus === 'PENDING' && (
                           <button 
-                            className="p-1.5 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
-                            title="Approve Payment" 
-                            onClick={() => handleApprovePayment(txn._id)}
+                            className="p-1.5 text-orange hover:text-orange-hover hover:bg-orange/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                            title={t('markAsSettled')} 
+                            onClick={() => handleSettle(txn._id)}
                           >
                             <HiOutlineCheckCircle size={16} />
                           </button>
+                        )}
+                        {txn.type === 'debit' && txn.paymentStatus === 'PENDING' && (
                           <button 
-                            className="p-1.5 text-red-500 hover:text-red-650 hover:bg-red-500/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
-                            title="Decline Payment" 
-                            onClick={() => handleDeclinePayment(txn._id)}
+                            className="p-1.5 text-orange hover:text-orange-hover hover:bg-orange/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                            title={t('markAsSettled')} 
+                            onClick={() => handleSettle(txn._id)}
                           >
-                            <HiOutlineXCircle size={16} />
+                            <HiOutlineCheckCircle size={16} />
                           </button>
-                        </>
-                      )}
-                      <button 
-                        className="p-1.5 text-slate-gray hover:text-deep-navy hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
-                        title="Edit Transaction" 
-                        onClick={() => openEditModal(txn)}
-                      >
-                        <HiOutlinePencil size={16} />
-                      </button>
-                      <button 
-                        className="p-1.5 text-red-give hover:text-red-hover hover:bg-red-give/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
-                        onClick={() => setDeleteTxnId(txn._id)}
-                      >
-                        <HiOutlineTrash size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        )}
+                        <button 
+                          className="p-1.5 text-slate-gray hover:text-deep-navy hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                          title="Print Receipt" 
+                          onClick={() => handlePrint(txn)}
+                        >
+                          <HiOutlinePrinter size={16} />
+                        </button>
+                        <button 
+                          className="p-1.5 text-slate-gray hover:text-deep-navy hover:bg-slate-gray/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                          title={t('edit')} 
+                          onClick={() => handleOpenEdit(txn)}
+                        >
+                          <HiOutlinePencilAlt size={16} />
+                        </button>
+                        <button 
+                          className="p-1.5 text-red-give hover:text-red-hover hover:bg-red-give/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
+                          title={t('delete')} 
+                          onClick={() => handleOpenDelete(txn)}
+                        >
+                          <HiOutlineTrash size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

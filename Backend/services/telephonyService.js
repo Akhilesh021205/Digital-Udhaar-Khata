@@ -215,11 +215,12 @@ const generateTwimlResponse = async (customerId, amount, lang, userSpeech) => {
     'ta-IN': 'ta-IN',
     'kn-IN': 'kn-IN'
   };
-  const twLang = twilioLangMap[lang] || 'en-IN';
+  const ttsAudioUrl = `/api/ai-calls/tts-audio?text=${encodeURIComponent(textToSay)}&amp;lang=${encodeURIComponent(lang || 'te-IN')}`;
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/ai/voice-call/twilio-gather?customerId=${customerId}&amp;amount=${amount}&amp;lang=${lang}">
+    <Play>${ttsAudioUrl}</Play>
     <Say language="${twLang}">${textToSay.replace(/[*#]/g, '')}</Say>
   </Gather>
   <Say language="${twLang}">Thank you. Have a good day.</Say>

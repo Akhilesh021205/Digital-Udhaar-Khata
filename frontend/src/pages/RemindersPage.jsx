@@ -92,49 +92,93 @@ const RemindersPage = () => {
           <p className="text-sm text-slate-gray mt-0">{t('noPendingDuesMsg')}</p>
         </div>
       ) : (
-        <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[650px]">
-            <thead>
-              <tr className="bg-soft-white border-b border-soft-gray">
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('customerName')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">Email Address</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('phone')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('pendingAmount')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => (
-                <tr key={c._id} className="border-b border-soft-gray/50 hover:bg-light-cream/10 transition-colors">
-                  <td className="px-6 py-4 text-sm font-bold text-deep-navy align-middle">{c.name}</td>
-                  <td className="px-6 py-4 text-sm align-middle text-deep-navy">
+        <div className="space-y-4">
+          {/* Mobile Reminders Feed (md:hidden) */}
+          <div className="md:hidden divide-y divide-soft-gray/30 rounded-2xl border border-soft-gray bg-pure-white overflow-hidden shadow-xs">
+            {customers.map((c) => (
+              <div key={c._id} className="p-3.5 space-y-2.5 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-deep-navy block truncate">{c.name}</span>
+                    <span className="text-xs text-slate-gray font-medium block truncate">{c.phone}</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs text-slate-gray font-bold uppercase block text-[10px]">Pending Due</span>
+                    <span className="text-sm font-black text-red-give">₹{c.balance.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-soft-gray/30">
+                  <div className="min-w-0 flex-1">
                     {c.email ? (
-                      <span className="font-semibold text-deep-navy">{c.email}</span>
+                      <span className="text-xs font-semibold text-deep-navy block truncate">{c.email}</span>
                     ) : (
-                      <span className="text-xs text-slate-gray/50 italic">No Email Added</span>
+                      <span className="text-[11px] text-slate-gray/50 italic">No Email Added</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle text-deep-navy">{c.phone}</td>
-                  <td className="px-6 py-4 text-sm align-middle font-bold text-red-give">₹{c.balance.toLocaleString('en-IN')}</td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <button 
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50" 
-                      title="Send Email Reminder" 
-                      onClick={() => sendEmailRemind(c)}
-                      disabled={sending[c._id] || !c.email}
-                    >
-                      {sending[c._id] ? (
-                        <span className="w-3.5 h-3.5 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <HiOutlineMail size={14} />
-                      )}
-                      Email Reminder
-                    </button>
-                  </td>
+                  </div>
+                  <button 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-2xs disabled:opacity-50 shrink-0" 
+                    title="Send Email Reminder" 
+                    onClick={() => sendEmailRemind(c)}
+                    disabled={sending[c._id] || !c.email}
+                  >
+                    {sending[c._id] ? (
+                      <span className="w-3.5 h-3.5 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <HiOutlineMail size={14} />
+                    )}
+                    Email Reminder
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block bg-pure-white border border-soft-gray rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[650px]">
+              <thead>
+                <tr className="bg-soft-white border-b border-soft-gray">
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('customerName')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">Email Address</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('phone')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('pendingAmount')}</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('actions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-soft-gray/30">
+                {customers.map((c) => (
+                  <tr key={c._id} className="border-b border-soft-gray/50 hover:bg-light-cream/10 transition-colors">
+                    <td className="px-6 py-4 text-sm font-bold text-deep-navy align-middle">{c.name}</td>
+                    <td className="px-6 py-4 text-sm align-middle text-deep-navy">
+                      {c.email ? (
+                        <span className="font-semibold text-deep-navy">{c.email}</span>
+                      ) : (
+                        <span className="text-xs text-slate-gray/50 italic">No Email Added</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm align-middle text-deep-navy">{c.phone}</td>
+                    <td className="px-6 py-4 text-sm align-middle font-bold text-red-give">₹{c.balance.toLocaleString('en-IN')}</td>
+                    <td className="px-6 py-4 text-sm align-middle">
+                      <button 
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50" 
+                        title="Send Email Reminder" 
+                        onClick={() => sendEmailRemind(c)}
+                        disabled={sending[c._id] || !c.email}
+                      >
+                        {sending[c._id] ? (
+                          <span className="w-3.5 h-3.5 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <HiOutlineMail size={14} />
+                        )}
+                        Email Reminder
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </>

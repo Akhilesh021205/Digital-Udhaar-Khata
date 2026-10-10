@@ -3,9 +3,10 @@ const Transaction = require('../models/Transaction');
 const { sendEmail } = require('../services/mailService');
 const { generateStatementBuffer } = require('../services/pdfService');
 const { getFrontendUrl } = require('../utils/urlHelper');
+const { generatePaymentLink } = require('../services/paymentTokenService');
 
-const buildPaymentReminderHTML = ({ storeName, customerFirstName, customerName, balance, upiId, customerId }) => {
-  const frontendUrl = getFrontendUrl();
+const buildPaymentReminderHTML = ({ storeName, customerFirstName, customerName, balance, upiId, paymentUrl, customerId }) => {
+  const targetPaymentUrl = paymentUrl || `${getFrontendUrl()}/pay/${customerId}`;
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -43,13 +44,13 @@ const buildPaymentReminderHTML = ({ storeName, customerFirstName, customerName, 
 
           <!-- GREETING -->
           <p style="font-size:15px;line-height:1.7;color:#334155;margin:0 0 6px 0;">Namaste <strong style="color:#0f172a;">${customerFirstName}</strong>,</p>
-          <p style="font-size:14px;line-height:1.7;color:#64748b;margin:0 0 24px 0;">You have an outstanding balance at <strong style="color:#0f172a;">${storeName}</strong>. Please review the details below and make a payment at your earliest convenience.</p>
+          <p style="font-size:14px;line-height:1.7;color:#64748b;margin:0 0 24px 0;">This is a reminder that you have an outstanding balance at <strong style="color:#0f172a;">${storeName}</strong>. Please use the link below to make your payment securely.</p>
 
           <!-- AMOUNT CARD -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr>
               <td style="background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-radius:16px;padding:32px 24px;text-align:center;box-shadow:0 10px 25px -5px rgba(15,23,42,0.15);">
-                <p style="margin:0 0 8px 0;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#94a3b8;">TOTAL OUTSTANDING DUE</p>
+                <p style="margin:0 0 8px 0;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#94a3b8;">TOTAL OUTSTANDING BALANCE</p>
                 <p style="margin:0 0 14px 0;font-size:48px;font-weight:700;color:#ffffff;letter-spacing:-0.03em;">&#8377;${balance.toFixed(2)}</p>
                 <span style="display:inline-block;background-color:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;font-size:11px;font-weight:800;padding:5px 16px;border-radius:999px;letter-spacing:0.04em;">OVERDUE &bull; ACTION REQUIRED</span>
               </td>
@@ -85,11 +86,11 @@ const buildPaymentReminderHTML = ({ storeName, customerFirstName, customerName, 
             </tr>` : ''}
           </table>
 
-          <!-- CTA BUTTON (ALWAYS SHOWN) -->
+          <!-- CTA BUTTON (PROMINENT PAY NOW BUTTON) -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr>
               <td align="center">
-                <a href="${frontendUrl}/pay/${customerId}" style="display:inline-block;background:linear-gradient(135deg, #f97316 0%, #ea580c 100%);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 44px;border-radius:12px;letter-spacing:0.01em;box-shadow:0 6px 20px rgba(249,115,22,0.35);">Pay &#8377;${balance.toFixed(2)} Now &rarr;</a>
+                <a href="${targetPaymentUrl}" style="display:inline-block;background:linear-gradient(135deg, #f97316 0%, #ea580c 100%);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 44px;border-radius:12px;letter-spacing:0.01em;box-shadow:0 6px 20px rgba(249,115,22,0.35);">Pay Now (&#8377;${balance.toFixed(2)}) &rarr;</a>
               </td>
             </tr>
           </table>
@@ -284,23 +285,26 @@ const executeReminderSend = async (customer, user) => {
 
   const storeName = user.storeName || 'AI Digital Khata';
   const upiId = user.upiId;
-  const frontendUrl = getFrontendUrl();
   const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
 
+  // Generate cryptographically secure, customer-specific payment link
+  const { paymentUrl } = await generatePaymentLink(customer._id, user._id);
+
   // 1. PAYMENT BILL EMAIL (Dedicated Payment Link & Dues Notice)
-  const paymentTextMessage = `Namaste ${customerFirstName}!\n\nThis is your payment bill and due notice from ${storeName}.\n\nTotal Outstanding Due: ₹${customer.balance.toFixed(2)}.\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}\n\nThank you! 🙏`;
+  const paymentTextMessage = `Subject: Payment Reminder – ${storeName}\n\nHello ${customer.name},\n\nThis is a reminder that your outstanding balance is ₹${customer.balance.toFixed(2)}.\n\nPlease use this link below to make your payment:\n\n${paymentUrl}\n\nThank you,\n${user.name || storeName}\nAI Digital Khata`;
   const paymentHtmlMessage = buildPaymentReminderHTML({
     storeName,
     customerFirstName,
     customerName: customer.name,
     balance: customer.balance,
     upiId,
+    paymentUrl,
     customerId: customer._id
   });
 
   const paymentEmailPromise = sendEmail({
     to: customer.email,
-    subject: `💳 Payment Bill & Due Notice - ${storeName}`,
+    subject: `Payment Reminder – ${storeName}`,
     text: paymentTextMessage,
     html: paymentHtmlMessage,
   });
@@ -412,20 +416,24 @@ const sendBulkReminders = async (req, res, next) => {
       try {
         const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
 
+        // Generate customer-specific secure payment link
+        const { paymentUrl } = await generatePaymentLink(customer._id, req.user._id);
+
         // 1. PAYMENT BILL EMAIL
-        const paymentTextMessage = `Namaste ${customerFirstName}!\n\nThis is your payment bill and due notice from ${storeName}.\n\nTotal Outstanding Due: ₹${customer.balance.toFixed(2)}.\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}\n\nThank you! 🙏`;
+        const paymentTextMessage = `Subject: Payment Reminder – ${storeName}\n\nHello ${customer.name},\n\nThis is a reminder that your outstanding balance is ₹${customer.balance.toFixed(2)}.\n\nPlease use this link below to make your payment:\n\n${paymentUrl}\n\nThank you,\n${req.user.name || storeName}\nAI Digital Khata`;
         const paymentHtmlMessage = buildPaymentReminderHTML({
           storeName,
           customerFirstName,
           customerName: customer.name,
           balance: customer.balance,
           upiId,
+          paymentUrl,
           customerId: customer._id
         });
 
         const paymentPromise = sendEmail({
           to: customer.email,
-          subject: `💳 Payment Bill & Due Notice - ${storeName}`,
+          subject: `Payment Reminder – ${storeName}`,
           text: paymentTextMessage,
           html: paymentHtmlMessage,
         });

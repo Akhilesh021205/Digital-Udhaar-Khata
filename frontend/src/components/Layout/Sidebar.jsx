@@ -95,7 +95,8 @@ const Sidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto flex flex-col gap-1.5 mt-2 pr-1">
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex flex-1 overflow-y-auto flex-col gap-1.5 mt-2 pr-1">
           <span className="text-[10px] font-bold text-slate-gray/70 dark:text-slate-400 uppercase tracking-widest px-3.5 mb-1 shrink-0">Navigation Menu</span>
           {links.map((link) => (
             <NavLink
@@ -116,8 +117,36 @@ const Sidebar = ({ isOpen, onClose }) => {
           ))}
         </nav>
 
-        {/* Sidebar Footer badge */}
-        <div className="pt-4 border-t border-soft-gray/60 dark:border-slate-800/80 px-1">
+        {/* Mobile View: Only show AI Digital Khata v2.0 info card */}
+        <div className="flex-1 md:hidden flex flex-col justify-between py-2">
+          <div className="space-y-4">
+            <div 
+              onClick={() => setShowVersionModal(true)}
+              className="p-3.5 bg-light-cream/40 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 rounded-xl border border-soft-gray/40 dark:border-slate-700/60 flex items-center justify-between gap-2 transition-all cursor-pointer group shadow-xs"
+              title="Click to view app version & features"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-pure-white dark:bg-slate-800 border border-soft-gray dark:border-slate-700 flex items-center justify-center p-1 shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                  <Logo />
+                </div>
+                <div className="text-left min-w-0">
+                  <span className="text-[11px] font-bold text-deep-navy dark:text-white block leading-tight truncate">AI Digital Khata v2.0</span>
+                  <span className="text-[9px] text-slate-gray block mt-0.5 font-medium">Secure & Reliable</span>
+                </div>
+              </div>
+              <span className="text-[9px] bg-rose-600/10 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 font-bold px-2 py-0.5 rounded-full border border-rose-600/20 shrink-0">
+                v2.0
+              </span>
+            </div>
+          </div>
+
+          <div className="text-center text-[10px] text-slate-gray/70 dark:text-slate-500 font-medium pb-2">
+            AI Digital Khata • v2.0.4
+          </div>
+        </div>
+
+        {/* Desktop Sidebar Footer badge */}
+        <div className="hidden md:block pt-4 border-t border-soft-gray/60 dark:border-slate-800/80 px-1">
           <div 
             onClick={() => setShowVersionModal(true)}
             className="p-3 bg-light-cream/40 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 rounded-xl border border-soft-gray/40 dark:border-slate-700/60 flex items-center justify-between gap-2 transition-all cursor-pointer group"

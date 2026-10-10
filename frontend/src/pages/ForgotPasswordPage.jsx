@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import Logo from '../components/Common/Logo';
 import { toast } from 'react-toastify';
+import { HiOutlineInformationCircle } from 'react-icons/hi';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -60,7 +61,7 @@ const ForgotPasswordPage = () => {
 
         {devResetUrl && (
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3.5 mb-4 text-amber-600 text-xs text-center font-medium">
-            <p className="mb-1 font-bold">🛠️ Local Dev Notice (No SMTP Configured):</p>
+            <p className="mb-1 font-bold inline-flex items-center gap-1.5 justify-center"><HiOutlineInformationCircle size={14} className="shrink-0 text-amber-500" /> Local Dev Notice (No SMTP Configured):</p>
             <p className="mb-2">The reset link was logged to the server console. You can click below to test directly:</p>
             <a href={devResetUrl} className="text-orange underline font-semibold break-all hover:text-orange-hover">
               Click here to Reset Password

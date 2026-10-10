@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import API from '../api/axios';
-import { getDeterministicPrediction } from '../utils/prediction';
+import { getDeterministicPrediction, getCustomerBadges } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
 import Modal from '../components/Common/Modal';
@@ -19,7 +19,7 @@ import {
   HiOutlineDotsVertical, HiOutlineDocumentText, HiOutlineDatabase,
   HiOutlineCog, HiOutlineBell, HiOutlineUserAdd,
   HiOutlineTrendingUp, HiOutlineSparkles, HiOutlineCheckCircle, HiOutlineShieldCheck,
-  HiOutlineBookOpen, HiOutlinePhone
+  HiOutlineBookOpen, HiOutlinePhone, HiOutlineChevronRight
 } from 'react-icons/hi';
 import { FaWhatsapp, FaSms, FaMobileAlt, FaPhone } from 'react-icons/fa';
 import AiVoiceCallModal from '../components/AI/AiVoiceCallModal';
@@ -113,6 +113,8 @@ const DashboardPage = () => {
   const [custFilter, setCustFilter] = useState('all');
   const [custSearch, setCustSearch] = useState('');
   const [activeDropdownId, setActiveDropdownId] = useState(null);
+  const [showMobileCustModal, setShowMobileCustModal] = useState(false);
+  const [mobileWidgetTab, setMobileWidgetTab] = useState('transactions');
   const [activeCustomerTxns, setActiveCustomerTxns] = useState([]);
   const [loadingTxns, setLoadingTxns] = useState(false);
 
@@ -122,7 +124,7 @@ const DashboardPage = () => {
       const prediction = getDeterministicPrediction(c);
       return {
         ...c,
-        duePrediction: c.duePrediction || prediction.duePrediction,
+        duePrediction: (c.balance === 0 || (c.totalTransactions || 0) === 0) ? prediction.duePrediction : (c.duePrediction || prediction.duePrediction),
         creditScore: c.creditScore || prediction.creditScore,
         riskLevel: c.riskLevel || prediction.riskLevel
       };
@@ -436,24 +438,24 @@ const DashboardPage = () => {
       />
 
       {/* Top 4 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {/* Card 1: Total Balance */}
-        <div className="p-5 bg-slate-900 text-white rounded-2xl shadow-sm border border-slate-800 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-md">
+        <div className="p-3 sm:p-5 bg-slate-900 text-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-800 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-md">
           <div>
-            <span className="text-xs font-semibold text-slate-400 block tracking-wide">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 block tracking-wide">
               {t('totalBalance') || 'Total Balance'}
             </span>
-            <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight truncate">
+            <div className="mt-1.5 sm:mt-2.5 flex items-baseline justify-between">
+              <span className="text-xl sm:text-3xl font-black text-white font-outfit tracking-tight truncate">
                 ₹{(youWillGet - youWillGive).toLocaleString('en-IN')}
               </span>
-              <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 flex items-center justify-center font-bold text-base shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-800 text-slate-200 border border-slate-700 flex items-center justify-center font-bold text-xs sm:text-base shrink-0">
                 ₹
               </div>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>{t('totalUdhar') || 'Total Ledger Balance'}</span>
+          <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-slate-800 flex items-center justify-between text-[10px] sm:text-xs text-slate-400 font-medium">
+            <span>{t('totalUdhar') || 'Total Balance'}</span>
             <span className="text-emerald-400 font-bold flex items-center gap-1">
               <HiOutlineTrendingUp className="w-3.5 h-3.5" /> Live
             </span>
@@ -461,64 +463,64 @@ const DashboardPage = () => {
         </div>
 
         {/* Card 2: You'll Receive */}
-        <div className="p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
+        <div className="p-3 sm:p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-xl sm:rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
           <div>
-            <span className="text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
               You'll Receive
             </span>
-            <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-outfit tracking-tight truncate">
+            <div className="mt-1.5 sm:mt-2.5 flex items-baseline justify-between">
+              <span className="text-xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-outfit tracking-tight truncate">
                 ₹{youWillGet.toLocaleString('en-IN')}
               </span>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 flex items-center justify-center text-lg shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 flex items-center justify-center text-sm sm:text-lg shrink-0">
                 <HiOutlineArrowDown />
               </div>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-gray dark:text-slate-400 font-medium">
-            <span>{customersWithDues} customers</span>
+          <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-[10px] sm:text-xs text-slate-gray dark:text-slate-400 font-medium">
+            <span>{customersWithDues} cust</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">Pending</span>
           </div>
         </div>
 
         {/* Card 3: You'll Pay */}
-        <div className="p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
+        <div className="p-3 sm:p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-xl sm:rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
           <div>
-            <span className="text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
               You'll Pay
             </span>
-            <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-outfit tracking-tight truncate">
+            <div className="mt-1.5 sm:mt-2.5 flex items-baseline justify-between">
+              <span className="text-xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-outfit tracking-tight truncate">
                 ₹{youWillGive.toLocaleString('en-IN')}
               </span>
-              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/50 flex items-center justify-center text-lg shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/50 flex items-center justify-center text-sm sm:text-lg shrink-0">
                 <HiOutlineArrowUp />
               </div>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-gray dark:text-slate-400 font-medium">
-            <span>{advanceAccounts} accounts</span>
+          <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-[10px] sm:text-xs text-slate-gray dark:text-slate-400 font-medium">
+            <span>{advanceAccounts} acc</span>
             <span className="font-semibold text-rose-600 dark:text-rose-400">Advance</span>
           </div>
         </div>
 
         {/* Card 4: Total Transactions */}
-        <div className="p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
+        <div className="p-3 sm:p-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-xl sm:rounded-2xl shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-md">
           <div>
-            <span className="text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
-              Total Transactions
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-gray dark:text-slate-400 block tracking-wide">
+              Transactions
             </span>
-            <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-black text-deep-navy dark:text-white font-outfit tracking-tight truncate">
+            <div className="mt-1.5 sm:mt-2.5 flex items-baseline justify-between">
+              <span className="text-xl sm:text-3xl font-black text-deep-navy dark:text-white font-outfit tracking-tight truncate">
                 {validTransactions.length}
               </span>
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-soft-gray dark:border-slate-700 flex items-center justify-center text-lg shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-soft-gray dark:border-slate-700 flex items-center justify-center text-sm sm:text-lg shrink-0">
                 <HiOutlineCreditCard />
               </div>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-xs text-slate-gray dark:text-slate-400 font-medium">
-            <span>{t('thisMonth') || 'This Month'}</span>
+          <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-soft-gray/60 dark:border-slate-800 flex items-center justify-between text-[10px] sm:text-xs text-slate-gray dark:text-slate-400 font-medium">
+            <span>Total</span>
             <span className="font-semibold text-deep-navy dark:text-white">Active</span>
           </div>
         </div>
@@ -548,54 +550,149 @@ const DashboardPage = () => {
               </div>
             ) : (
               <>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-                  <div>
-                    <h3 className="text-base font-bold text-deep-navy dark:text-white">{t('customers') || 'Customers'}</h3>
-                    <p className="text-xs text-slate-gray dark:text-slate-400 font-medium mt-0.5">Manage customer balances and ledger records</p>
+                <div className="space-y-4 mb-5">
+                  {/* Search Bar at the very top of Customers Section */}
+                  <div className="relative w-full">
+                    <HiOutlineSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-gray/70" size={16} />
+                    <input
+                      type="text"
+                      value={custSearch}
+                      onChange={(e) => setCustSearch(e.target.value)}
+                      placeholder="Search by name or phone..."
+                      className="w-full pl-10 pr-9 py-2.5 border border-soft-gray dark:border-slate-700 rounded-xl bg-pure-white dark:bg-slate-800 text-xs sm:text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none text-deep-navy dark:text-white transition-all placeholder:text-slate-gray/50 font-medium shadow-2xs"
+                    />
+                    {custSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setCustSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-0 text-base"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                    <div className="flex bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-soft-gray/60 dark:border-slate-700/60">
-                      <button
-                        onClick={() => setCustFilter('all')}
-                        className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
-                          custFilter === 'all' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-deep-navy dark:hover:text-white'
-                        }`}
-                      >
-                        All
-                      </button>
-                      <button
-                        onClick={() => setCustFilter('get')}
-                        className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
-                          custFilter === 'get' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
-                        }`}
-                      >
-                        You'll Receive
-                      </button>
-                      <button
-                        onClick={() => setCustFilter('pay')}
-                        className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
-                          custFilter === 'pay' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
-                        }`}
-                      >
-                        You'll Pay
-                      </button>
+                  {/* Header: Title on Left, Filter Pills on Right */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-deep-navy dark:text-white m-0">{t('customers') || 'Customers'}</h3>
+                      <p className="text-xs text-slate-gray dark:text-slate-400 font-medium mt-0.5 mb-0">Manage customer balances and ledger records</p>
                     </div>
 
-                    <div className="relative flex-1 sm:w-44">
-                      <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-gray" size={15} />
-                      <input
-                        type="text"
-                        value={custSearch}
-                        onChange={(e) => setCustSearch(e.target.value)}
-                        placeholder="Search customers..."
-                        className="w-full pl-8 pr-3 py-1.5 border border-soft-gray dark:border-slate-700 rounded-xl bg-pure-white dark:bg-slate-800 text-xs focus:border-orange focus:ring-1 focus:ring-orange/20 outline-none text-deep-navy dark:text-white"
-                      />
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+                      <div className="flex bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-soft-gray/60 dark:border-slate-700/60">
+                        <button
+                          onClick={() => setCustFilter('all')}
+                          className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
+                            custFilter === 'all' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-deep-navy dark:hover:text-white'
+                          }`}
+                        >
+                          All
+                        </button>
+                        <button
+                          onClick={() => setCustFilter('get')}
+                          className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
+                            custFilter === 'get' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                          }`}
+                        >
+                          You'll Receive
+                        </button>
+                        <button
+                          onClick={() => setCustFilter('pay')}
+                          className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-all border-none ${
+                            custFilter === 'pay' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-gray dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
+                          }`}
+                        >
+                          You'll Pay
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-soft-gray/80 dark:border-slate-800">
+                {/* Mobile Customer Cards (md:hidden) - Individual elevated tiles */}
+                <div className="md:hidden space-y-3">
+                  {filteredCustomers.length === 0 ? (
+                    <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray/80 dark:border-slate-800 rounded-2xl p-6 text-center text-xs font-semibold text-slate-gray">
+                      No customers matching your search filter
+                    </div>
+                  ) : (
+                    filteredCustomers.map((c) => {
+                      const isSelected = activeCustomer?._id === c._id;
+                      const badges = getCustomerBadges(c);
+
+                      return (
+                        <div
+                          key={c._id}
+                          onClick={() => { setSelectedCustomerId(c._id); setShowMobileCustModal(true); }}
+                          className={`bg-pure-white dark:bg-slate-900 rounded-2xl border ${
+                            isSelected ? 'border-orange ring-2 ring-orange/20 shadow-md' : 'border-soft-gray/80 dark:border-slate-800 shadow-[0_2px_8px_rgba(15,23,42,0.06)]'
+                          } ${badges.leftBorder} p-3.5 space-y-2.5 cursor-pointer active:scale-[0.99] transition-all`}
+                        >
+                          {/* Top: Avatar + Name & Phone + Balance */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {c.avatar ? (
+                                <img
+                                  src={c.avatar}
+                                  alt={c.name}
+                                  className="w-9 h-9 rounded-full object-cover shrink-0 border border-soft-gray dark:border-slate-700"
+                                />
+                              ) : (
+                                <div
+                                  className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs"
+                                  style={{ background: getAvatarColor(c.name) }}
+                                >
+                                  {c.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <span className="block truncate text-sm font-bold text-deep-navy dark:text-white">
+                                  {c.name}
+                                </span>
+                                <span className="text-xs text-slate-gray dark:text-slate-400 font-medium block truncate">
+                                  {formatPhoneDisplay(c.phone)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className={`text-base font-black font-outfit block ${
+                                c.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : c.balance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'
+                              }`}>
+                                ₹{Math.abs(c.balance).toLocaleString('en-IN')}
+                              </span>
+                              <span className={`inline-flex px-2 py-0.2 rounded-full text-[9px] font-bold tracking-wide uppercase ${badges.balanceTypeClass}`}>
+                                {badges.balanceTypeLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Footer row: Status Pill + Quick Ledger Action */}
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${badges.statusClass}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${badges.statusDotColor}`} />
+                              {badges.statusLabel}
+                            </span>
+
+                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => navigate(`/customers/${c._id}`)}
+                                className="px-2.5 py-1 bg-orange/10 hover:bg-orange/20 text-orange rounded-lg text-xs font-bold border-none cursor-pointer transition-colors flex items-center gap-1"
+                              >
+                                View Ledger <HiOutlineChevronRight size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Desktop Table (hidden md:block) */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-soft-gray/80 dark:border-slate-800">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-soft-gray/80 dark:border-slate-800">
@@ -614,7 +711,9 @@ const DashboardPage = () => {
                           </td>
                         </tr>
                       ) : (
-                        filteredCustomers.map((c) => (
+                        filteredCustomers.map((c) => {
+                          const tableBadges = getCustomerBadges(c);
+                          return (
                           <tr
                             key={c._id}
                             onClick={() => setSelectedCustomerId(c._id)}
@@ -646,31 +745,21 @@ const DashboardPage = () => {
                             </td>
 
                             <td className="px-4 py-3 text-xs">
-                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
-                                c.balance >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/40'
-                              }`}>
-                                {c.balance >= 0 ? "You'll Receive" : "You'll Pay"}
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${tableBadges.balanceTypeClass}`}>
+                                {tableBadges.balanceTypeLabel}
                               </span>
                             </td>
 
                             <td className="px-4 py-3 text-sm font-bold font-outfit">
-                              <span className={c.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                              <span className={c.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : c.balance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'}>
                                 ₹{Math.abs(c.balance).toLocaleString('en-IN')}
                               </span>
                             </td>
 
                             <td className="px-4 py-3 text-xs">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
-                                c.duePrediction === 'trusted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40' :
-                                c.duePrediction === 'delay' ? 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40' :
-                                'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/40'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  c.duePrediction === 'trusted' ? 'bg-emerald-500' :
-                                  c.duePrediction === 'delay' ? 'bg-amber-500' :
-                                  'bg-rose-500'
-                                }`} />
-                                {c.duePrediction === 'trusted' ? 'Trusted' : c.duePrediction === 'delay' ? 'Delay' : 'Risky'}
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${tableBadges.statusClass}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${tableBadges.statusDotColor}`} />
+                                {tableBadges.statusLabel}
                               </span>
                             </td>
 
@@ -748,8 +837,9 @@ const DashboardPage = () => {
                               )}
                             </td>
                           </tr>
-                        ))
-                      )}
+                        );
+                      })
+                    )}
                     </tbody>
                   </table>
                 </div>
@@ -757,8 +847,9 @@ const DashboardPage = () => {
             )}
           </div>
 
-          {/* Bottom 3 Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {/* Bottom Secondary Widgets */}
+          {/* Desktop 3-Card Grid (hidden md:grid) */}
+          <div className="hidden md:grid md:grid-cols-3 gap-4 sm:gap-5">
             {/* Widget 1: Recent Transactions */}
             <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
               <div>
@@ -820,36 +911,10 @@ const DashboardPage = () => {
                   </div>
 
                   <div className="relative flex items-center justify-center shrink-0">
-                    <svg width="90" height="90" viewBox="0 0 100 100" className="transform -rotate-90">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r={radius}
-                        className="stroke-soft-gray dark:stroke-slate-800"
-                        strokeWidth={strokeWidth}
-                        fill="transparent"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r={radius}
-                        className="stroke-emerald-500 transition-all duration-500"
-                        strokeWidth={strokeWidth}
-                        fill="transparent"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={circumference - (creditStroke || 0.1)}
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r={radius}
-                        className="stroke-rose-500 transition-all duration-500"
-                        strokeWidth={strokeWidth}
-                        fill="transparent"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={circumference - (debitStroke || 0.1)}
-                        transform={`rotate(${(youWillGet / totalUdharVal) * 360} 50 50)`}
-                      />
+                    <svg width="80" height="80" viewBox="0 0 100 100" className="transform -rotate-90">
+                      <circle cx="50" cy="50" r={radius} className="stroke-soft-gray dark:stroke-slate-800" strokeWidth={strokeWidth} fill="transparent" />
+                      <circle cx="50" cy="50" r={radius} className="stroke-emerald-500 transition-all duration-500" strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={circumference - (creditStroke || 0.1)} />
+                      <circle cx="50" cy="50" r={radius} className="stroke-rose-500 transition-all duration-500" strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={circumference - (debitStroke || 0.1)} transform={`rotate(${(youWillGet / totalUdharVal) * 360} 50 50)`} />
                     </svg>
                     <div className="absolute flex flex-col items-center justify-center text-center">
                       <span className="text-[9px] text-slate-gray dark:text-slate-400 font-bold">Ratio</span>
@@ -907,10 +972,108 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Mobile Secondary Widget Tab (md:hidden) - compact single widget with tab switcher */}
+          <div className="md:hidden bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 space-y-3.5">
+            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-soft-gray/60 dark:border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => setMobileWidgetTab('transactions')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer transition-all ${
+                  mobileWidgetTab === 'transactions' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray'
+                }`}
+              >
+                Recent
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileWidgetTab('reports')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer transition-all ${
+                  mobileWidgetTab === 'reports' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray'
+                }`}
+              >
+                Reports
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileWidgetTab('insights')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer transition-all ${
+                  mobileWidgetTab === 'insights' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray'
+                }`}
+              >
+                Insights
+              </button>
+            </div>
+
+            {mobileWidgetTab === 'transactions' && (
+              <div>
+                <div className="flex justify-between items-center mb-2.5">
+                  <h4 className="text-xs font-bold text-deep-navy dark:text-white m-0">Recent Activity</h4>
+                  <Link to="/history" className="text-[11px] font-semibold text-orange hover:underline">View All</Link>
+                </div>
+                {transactionList.length === 0 ? (
+                  <p className="text-xs text-slate-gray text-center py-4">No recent transactions</p>
+                ) : (
+                  <div className="space-y-2">
+                    {transactionList.slice(0, 3).map((txn) => (
+                      <div key={txn._id} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/40 dark:border-slate-800 text-xs">
+                        <div className="min-w-0 flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-[10px]">
+                            {txn.customer?.name?.charAt(0) || 'C'}
+                          </div>
+                          <div className="truncate">
+                            <span className="font-bold text-deep-navy dark:text-white block truncate">{txn.customer?.name}</span>
+                            <span className="text-[10px] text-slate-gray block">{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                          </div>
+                        </div>
+                        <span className={`font-bold font-outfit ${txn.type === 'credit' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                          {txn.type === 'credit' ? '+' : '-'}₹{txn.amount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {mobileWidgetTab === 'reports' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-gray font-bold uppercase block">Receivables</span>
+                    <span className="text-sm font-black text-emerald-600 block">₹{youWillGet.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-gray font-bold uppercase block">Payables</span>
+                    <span className="text-sm font-black text-rose-600 block">₹{youWillGive.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-gray font-bold uppercase block">Recovery</span>
+                    <span className="text-sm font-black text-deep-navy dark:text-white block">
+                      {Math.round((youWillGet / totalUdharVal) * 100)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {mobileWidgetTab === 'insights' && (
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-gray font-bold block uppercase">Store Score</span>
+                  <span className="text-sm font-black text-deep-navy dark:text-white block">94 / 100</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-gray font-bold block uppercase">On-Time Reminders</span>
+                  <span className="text-sm font-black text-emerald-600 block">98.5%</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Right Column (4 cols): Customer Details Panel */}
-        <div className="col-span-12 lg:col-span-4 space-y-6">
+        {/* Right Column (4 cols): Customer Details Panel - Desktop Only (hidden lg:block) */}
+        <div className="hidden lg:block lg:col-span-4 space-y-6">
           <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col gap-5">
             <div className="flex justify-between items-center pb-3 border-b border-soft-gray/50 dark:border-slate-800">
               <h3 className="text-base font-bold text-deep-navy dark:text-white">{t('customerDetails') || 'Customer Details'}</h3>
@@ -967,19 +1130,22 @@ const DashboardPage = () => {
                     <span className="text-xs font-semibold text-slate-400 block tracking-wide">
                       Total Outstanding
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                      activeCustomer.duePrediction === 'trusted' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'
-                    }`}>
-                      {activeCustomer.duePrediction === 'trusted' ? 'Trusted' : 'Delay Risk'}
-                    </span>
+                    {(() => {
+                      const activeBadges = getCustomerBadges(activeCustomer);
+                      return (
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${activeBadges.statusClass}`}>
+                          {activeBadges.statusLabel}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <div className="mt-3">
                     <span className="text-3xl font-black font-outfit tracking-tight block">
                       ₹{Math.abs(activeCustomer.balance).toLocaleString('en-IN')}
                     </span>
-                    <span className="text-xs font-bold text-emerald-400 mt-1 block">
-                      {activeCustomer.balance >= 0 ? "You'll Receive" : "You'll Pay (Advance)"}
+                    <span className="text-xs font-bold text-slate-300 mt-1 block">
+                      {getCustomerBadges(activeCustomer).balanceTypeLabel}
                     </span>
                   </div>
                 </div>
@@ -1064,6 +1230,158 @@ const DashboardPage = () => {
         >
           {listening ? <HiOutlineX className="w-5 h-5" /> : <HiOutlineMicrophone className="w-5 h-5" />}
         </button>
+      )}
+
+      {/* Mobile Customer Details Bottom Sheet Modal (lg:hidden) */}
+      {showMobileCustModal && activeCustomer && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 lg:hidden animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-deep-navy/60 backdrop-blur-xs"
+            onClick={() => setShowMobileCustModal(false)}
+          />
+
+          {/* Bottom Sheet Container */}
+          <div className="relative w-full max-w-lg bg-pure-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-soft-gray dark:border-slate-800 shadow-2xl z-10 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-250 p-5 space-y-4">
+            {/* Handle bar on mobile */}
+            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto sm:hidden" />
+
+            {/* Header with Close */}
+            <div className="flex items-center justify-between pb-2 border-b border-soft-gray/50 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-deep-navy dark:text-white m-0">Customer Details</h3>
+                <span className="text-[10px] text-slate-gray font-medium">Quick Khata Summary</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileCustModal(false)}
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+              >
+                <HiOutlineX size={18} />
+              </button>
+            </div>
+
+            {/* Profile Header */}
+            <div className="flex items-center gap-3">
+              {activeCustomer.avatar ? (
+                <img
+                  src={activeCustomer.avatar}
+                  alt={activeCustomer.name}
+                  className="w-12 h-12 rounded-full object-cover shrink-0 border border-soft-gray dark:border-slate-700"
+                />
+              ) : (
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm text-white shrink-0"
+                  style={{ background: getAvatarColor(activeCustomer.name) }}
+                >
+                  {activeCustomer.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h4 className="text-base font-bold text-deep-navy dark:text-white truncate m-0">{activeCustomer.name}</h4>
+                <p className="text-xs text-slate-gray dark:text-slate-400 font-medium m-0 mt-0.5">{formatPhoneDisplay(activeCustomer.phone)}</p>
+                {activeCustomer.email && (
+                  <p className="text-[11px] text-slate-gray/70 dark:text-slate-400 truncate m-0 mt-0.5">{activeCustomer.email}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileCustModal(false);
+                  navigate(`/customers/${activeCustomer._id}`);
+                }}
+                className="px-2.5 py-1.5 bg-orange/10 hover:bg-orange/20 text-orange font-bold text-xs rounded-xl border-none cursor-pointer flex items-center gap-1 shrink-0"
+              >
+                <HiOutlineUser size={13} /> Ledger
+              </button>
+            </div>
+
+            {/* Outstanding Amount Main Card */}
+            <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-800">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-semibold text-slate-400">Total Outstanding</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${activeBadges?.statusClass || ''}`}>
+                  {activeBadges?.statusLabel || 'TRUSTED'}
+                </span>
+              </div>
+              <div className="mt-2.5">
+                <span className="text-2xl sm:text-3xl font-black font-outfit block">
+                  ₹{Math.abs(activeCustomer.balance).toLocaleString('en-IN')}
+                </span>
+                <span className="text-xs font-bold text-emerald-400 mt-0.5 block">
+                  {activeCustomer.balance >= 0 ? "You'll Receive" : "You'll Pay (Advance)"}
+                </span>
+              </div>
+            </div>
+
+            {/* Sub Metrics: Udhar / Jama / Entries */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-xl">
+                <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block">Udhar</span>
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400 block mt-0.5 font-outfit">
+                  ₹{activeCustomer.balance >= 0 ? activeCustomer.balance.toLocaleString('en-IN') : '0'}
+                </span>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-xl">
+                <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block">Jama</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5 font-outfit">
+                  ₹{activeCustomer.balance < 0 ? Math.abs(activeCustomer.balance).toLocaleString('en-IN') : '0'}
+                </span>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-xl">
+                <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 block">Entries</span>
+                <span className="text-xs font-bold text-deep-navy dark:text-white block mt-0.5 font-outfit">
+                  {activeCustomer.totalTransactions || activeCustomerTxns.length || 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Recent Activity List */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold text-deep-navy dark:text-white block">Recent Activity</span>
+              {activeCustomerTxns.length === 0 ? (
+                <div className="text-center py-3 bg-slate-50 dark:bg-slate-800/30 border border-dashed border-soft-gray dark:border-slate-800 rounded-xl text-xs text-slate-gray">
+                  No activity logged yet
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-[130px] overflow-y-auto pr-1">
+                  {activeCustomerTxns.map((t) => (
+                    <div key={t._id} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-800/50 border border-soft-gray/40 dark:border-slate-800 rounded-lg text-xs">
+                      <span className="font-semibold text-deep-navy dark:text-white truncate max-w-[160px]">{t.description || 'Transaction entry'}</span>
+                      <span className={`font-bold font-outfit ${t.type === 'credit' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {t.type === 'credit' ? '+' : '-'}₹{t.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons: Add Udhar / Get Paid */}
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileCustModal(false);
+                  openCustomerTxnModal('credit');
+                }}
+                className="flex-1 py-3 px-3 rounded-xl font-bold text-xs shadow-xs cursor-pointer border-none bg-rose-600 hover:bg-rose-700 text-white active:scale-[0.98] transition-all"
+              >
+                + Add Udhar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileCustModal(false);
+                  openCustomerTxnModal('debit');
+                }}
+                className="flex-1 py-3 px-3 rounded-xl font-bold text-xs shadow-xs cursor-pointer border-none bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.98] transition-all"
+              >
+                Get Paid
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Transaction Modal */}

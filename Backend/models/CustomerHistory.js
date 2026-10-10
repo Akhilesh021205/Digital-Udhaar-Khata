@@ -21,6 +21,7 @@ const customerHistorySchema = new mongoose.Schema(
     },
     transactionId: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: 'Transaction',
     },
     type: {
       type: String,
@@ -32,6 +33,10 @@ const customerHistorySchema = new mongoose.Schema(
       default: 0,
     },
     description: {
+      type: String,
+      default: '',
+    },
+    billImageUrl: {
       type: String,
       default: '',
     },

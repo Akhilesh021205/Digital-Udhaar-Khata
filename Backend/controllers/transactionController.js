@@ -122,6 +122,7 @@ const createTransaction = async (req, res, next) => {
       type: type,
       amount: parseFloat(amount),
       description: description || '',
+      billImageUrl: billImageUrl || '',
       date: transaction.date,
       action: 'CREATE'
     });

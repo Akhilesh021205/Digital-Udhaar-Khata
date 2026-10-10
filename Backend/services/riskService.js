@@ -2,6 +2,7 @@ const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const { sendEmail } = require('./mailService');
 const { getFrontendUrl } = require('../utils/urlHelper');
+const { generatePaymentLink } = require('./paymentTokenService');
 
 /**
  * Calculate and update a customer's risk level, credit score, and due prediction.
@@ -109,9 +110,17 @@ const updateRiskLevel = async (customerId) => {
       }
     }
 
-    // Clean record check: If customer has 0 transactions or balance <= 0, default to Trusted
-    if (transactions.length === 0 || customer.balance <= 0) {
-      score = 800;
+    // Clean record check
+    if (transactions.length === 0) {
+      score = 750;
+      duePrediction = 'new';
+      riskLevel = 'low';
+    } else if (customer.balance === 0) {
+      score = 850;
+      duePrediction = 'cleared';
+      riskLevel = 'low';
+    } else if (customer.balance < 0) {
+      score = 820;
       duePrediction = 'trusted';
       riskLevel = 'low';
     } else {
@@ -140,22 +149,22 @@ const updateRiskLevel = async (customerId) => {
       try {
         const storeName = customer.owner?.storeName || 'AI Digital Khata';
         const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
-        const frontendUrl = getFrontendUrl();
+        const { paymentUrl } = await generatePaymentLink(customer._id, customer.owner?._id || customer.owner);
         
-        let riskText = `Namaste ${customerFirstName}!\n\n⚠️ IMPORTANT CREDIT ALERT: Your credit profile status at ${storeName} has changed.\n\nYour credit score is now ${customer.creditScore}/900 (Risk Level: ${riskLevel.toUpperCase()}).\n\nKindly clear your outstanding balance of ₹${customer.balance.toFixed(2)} to improve your credit standing.\n\n💳 Pay now: ${frontendUrl}/pay/${customer._id}`;
+        let riskText = `Namaste ${customerFirstName}!\n\nNew Payment Reminder from ${storeName}.\n\nDear Customer, we noticed your payment is overdue. Please clear your outstanding balance of ₹${customer.balance.toFixed(2)} to improve your credit standing.\n\nPay now: ${paymentUrl}`;
         
         let riskHtml = `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 16px; background-color: #ffffff; color: #18181b;">
             <div style="text-align: center; margin-bottom: 24px;">
               <h2 style="color: #ef4444; font-weight: 800; margin: 0; font-size: 24px; letter-spacing: -0.025em;">${storeName}</h2>
-              <p style="color: #ef4444; font-weight: bold; font-size: 14px; margin: 4px 0 0 0;">⚠️ CREDIT ACCOUNT STATUS UPDATE</p>
+              <p style="color: #ef4444; font-weight: bold; font-size: 14px; margin: 4px 0 0 0;">CREDIT ACCOUNT STATUS UPDATE</p>
             </div>
             
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Namaste <strong>${customerFirstName}</strong>,</p>
             <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">This is an alert from <strong>AI Digital Khata</strong> regarding your credit standing. Your account profile status at <strong>${storeName}</strong> has been updated due to payment delays.</p>
             
             <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 16px; border-radius: 8px; margin: 16px 0; text-align: left;">
-              <span style="font-size: 13px; color: #991b1b; display: block; font-weight: bold;">🚨 Credit Standing Downgrade:</span>
+              <span style="font-size: 13px; color: #991b1b; display: block; font-weight: bold;">Credit Standing Downgrade:</span>
               <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 8px;">
                 <span style="color: #7f1d1d;">New Credit Score: <strong style="font-size: 15px; color: #b91c1c;">${customer.creditScore} / 900</strong></span>
                 <span style="color: #7f1d1d;">Risk Level: <strong style="color: #b91c1c; text-transform: uppercase;">${riskLevel}</strong></span>
@@ -169,7 +178,7 @@ const updateRiskLevel = async (customerId) => {
             </div>
             
             <div style="text-align: center; margin: 32px 0 24px 0;">
-              <a href="${frontendUrl}/pay/${customer._id}" 
+              <a href="${paymentUrl}" 
                  style="background-color: #ef4444; color: #ffffff; padding: 12px 28px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">
                  Pay Now
               </a>
@@ -182,11 +191,11 @@ const updateRiskLevel = async (customerId) => {
 
         await sendEmail({
           to: customer.email,
-          subject: `[CREDIT ALERT] Account Risk Status Update at ${storeName}`,
+          subject: `New Payment Reminder from ${storeName}`,
           text: riskText,
           html: riskHtml
         });
-        console.log(`✉️ Sent risk level alert email to ${customer.name} (${customer.email})`);
+        console.log(` New Payment Reminder sent to ${customer.name} (${customer.email})`);
       } catch (emailErr) {
         console.error('Error sending risk level alert email:', emailErr.message);
       }

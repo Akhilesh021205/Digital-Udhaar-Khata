@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const Customer = require('../models/Customer');
+const Transaction = require('../models/Transaction');
 const { sendReminder, sendBulkReminders, sendFast2SMSSMS, sendCloudWhatsApp } = require('../controllers/reminderController');
 const { protect } = require('../middleware/authMiddleware');
 const { getFrontendUrl } = require('../utils/urlHelper');
-const Customer = require('../models/Customer');
-const Transaction = require('../models/Transaction');
 const { generateStatement } = require('../services/pdfService');
+const { validatePaymentToken } = require('../services/paymentTokenService');
 const {
   getCashfreeConfig,
   verifyCashfreeOrder,
@@ -16,24 +20,99 @@ const {
 const {
   createRazorpayOrder,
   verifyRazorpaySignature,
+  fetchRazorpayPayment,
   verifyRazorpayWebhookSignature,
   processVerifiedRazorpayPayment,
 } = require('../services/razorpayPaymentService');
 
-// Public route for payment checkout (no authentication required)
+/**
+ * Resolves and authorizes a customer checkout request.
+ * Enforces token validity, short-lived expiry, and prevents unauthorized customer ID access.
+ */
+const resolveCustomerAndToken = async (identifier, req) => {
+  const cleanId = String(identifier || req.headers['x-payment-token'] || req.query?.token || req.body?.token || '').trim();
+
+  if (!cleanId) {
+    return {
+      authorized: false,
+      status: 400,
+      message: 'Payment link token or customer identifier is required.',
+    };
+  }
+
+  // 1. Validate as cryptographically secure payment token
+  const tokenValidation = await validatePaymentToken(cleanId);
+  if (tokenValidation.valid) {
+    return {
+      authorized: true,
+      customer: tokenValidation.customer,
+      owner: tokenValidation.owner,
+      token: cleanId,
+      tokenDoc: tokenValidation.tokenDoc,
+    };
+  }
+
+  if (tokenValidation.isExpired || tokenValidation.isUsed) {
+    return {
+      authorized: false,
+      status: 410,
+      message: tokenValidation.message,
+    };
+  }
+
+  // 2. If an ordinary MongoDB customer ID is provided:
+  // Do NOT treat possession of an ordinary customer ID as sufficient authorization!
+  // Only permit if authenticated as the store owner (shopkeeper dashboard preview).
+  if (mongoose.Types.ObjectId.isValid(cleanId)) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        if (user) {
+          const customer = await Customer.findOne({ _id: cleanId, owner: user._id }).populate('owner');
+          if (customer) {
+            return {
+              authorized: true,
+              customer,
+              owner: customer.owner,
+              isShopkeeperPreview: true,
+            };
+          }
+        }
+      } catch (err) {
+        // invalid jwt, proceed to rejection
+      }
+    }
+
+    return {
+      authorized: false,
+      status: 403,
+      message: 'Direct customer ID access is not permitted. Please use the secure payment link provided in your payment reminder email.',
+    };
+  }
+
+  return {
+    authorized: false,
+    status: 404,
+    message: tokenValidation.message || 'Invalid or expired payment checkout link.',
+  };
+};
+
+// Public route for payment checkout
 router.get('/checkout/:customerId', async (req, res, next) => {
   try {
-    const mongoose = require('mongoose');
-    const cleanId = req.params.customerId ? req.params.customerId.toString().trim() : '';
-
-    if (!cleanId || !mongoose.Types.ObjectId.isValid(cleanId)) {
-      return res.status(404).json({
+    const authResult = await resolveCustomerAndToken(req.params.customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 404).json({
         success: false,
-        message: 'Invalid payment checkout link or customer not found',
+        message: authResult.message,
       });
     }
 
-    const customer = await Customer.findById(cleanId).populate('owner');
+    // Fetch fresh customer data from MongoDB
+    const customer = await Customer.findById(authResult.customer._id).populate('owner');
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -42,14 +121,13 @@ router.get('/checkout/:customerId', async (req, res, next) => {
     }
 
     // Fetch total Credit (Udhaar) and total Debit (Jama)
-    const Transaction = require('../models/Transaction');
     const credits = await Transaction.find({ customer: customer._id, type: 'credit' });
     const debits = await Transaction.find({ customer: customer._id, type: 'debit' });
 
     const totalUdhaar = credits.reduce((sum, tx) => sum + (tx.amount || 0), 0);
     const totalJama = debits.reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
-    // Fetch last successfully SETTLED payment only
+    // Fetch last successfully SETTLED payment
     const lastPayment = await Transaction.findOne({
       customer: customer._id,
       type: 'debit',
@@ -58,19 +136,22 @@ router.get('/checkout/:customerId', async (req, res, next) => {
 
     let lastPaymentUtr = '';
     if (lastPayment && lastPayment.description) {
-      const match = lastPayment.description.match(/UTR:\s*(\d+)/i);
+      const match = lastPayment.description.match(/UTR:\s*([a-zA-Z0-9_-]+)/i);
       if (match) {
         lastPaymentUtr = match[1];
       }
     }
 
-    const ownerObj = customer.owner || {};
+    const ownerObj = customer.owner || authResult.owner || {};
 
     res.status(200).json({
       success: true,
       data: {
+        token: authResult.token || null,
+        customerId: customer._id,
         customerName: customer.name,
         customerPhone: customer.phone || '',
+        customerEmail: customer.email || '',
         customerAddress: customer.address || 'Ghatkesar Rd',
         balance: customer.balance || 0,
         storeName: ownerObj.storeName || ownerObj.name || 'AI Digital Khata',
@@ -83,7 +164,8 @@ router.get('/checkout/:customerId', async (req, res, next) => {
           amount: lastPayment.amount,
           date: lastPayment.date,
           utr: lastPaymentUtr || lastPayment.utr || '',
-          status: lastPayment.paymentStatus || 'SUCCESS',
+          paymentId: lastPayment.razorpayPaymentId || lastPayment.cashfreePaymentId || '',
+          status: lastPayment.paymentStatus || 'SETTLED',
         } : null,
       }
     });
@@ -95,7 +177,15 @@ router.get('/checkout/:customerId', async (req, res, next) => {
 // Public route to download receipt PDF
 router.get('/checkout/:customerId/receipt', async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.customerId).populate('owner');
+    const authResult = await resolveCustomerAndToken(req.params.customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 403).json({
+        success: false,
+        message: authResult.message,
+      });
+    }
+
+    const customer = await Customer.findById(authResult.customer._id).populate('owner');
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
@@ -104,10 +194,11 @@ router.get('/checkout/:customerId/receipt', async (req, res, next) => {
     const lastPayment = await Transaction.findOne({
       customer: customer._id,
       type: 'debit',
+      paymentStatus: 'SETTLED',
     }).sort({ date: -1 });
 
     if (!lastPayment) {
-      return res.status(404).json({ success: false, message: 'No payment transaction found' });
+      return res.status(404).json({ success: false, message: 'No settled payment transaction found' });
     }
 
     // Fetch all customer transactions
@@ -250,7 +341,8 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
       transactionId: transaction._id,
       type: 'debit',
       amount: parseFloat(amount),
-      description: paymentScreenshot ? `Online Payment (Screenshot Verified, Ref: ${utrStr})` : `Online UPI Payment (UTR: ${utrStr})`,
+      description: paymentScreenshot ? `Online Payment (Payment Verified, Ref: ${utrStr})` : `Online UPI Payment (UTR: ${utrStr})`,
+      billImageUrl: paymentScreenshot || '',
       date: new Date(),
       action: 'CREATE',
     });
@@ -275,13 +367,13 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
       message: 'Payment verified and receipt generated successfully.',
       data: {
         balance: customer.balance,
-        transactionStatus: 'SETTLED',
+        transactionStatus: 'PAID',
         lastPayment: {
           id: transaction._id,
           amount: transaction.amount,
           utr: utrStr,
           date: transaction.date,
-          status: 'SETTLED',
+          status: 'PAID',
         }
       }
     });
@@ -349,7 +441,7 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
     console.error('Error creating Cashfree order:', error.response?.data || error.message);
     res.status(500).json({
       success: false,
-      message: error.response?.data?.message || 'Failed to initialize payment gateway order.'
+      message: error.response?.data?.message || 'Failed to initialize payment order.'
     });
   }
 });
@@ -380,7 +472,7 @@ router.get('/checkout/:customerId/verify-payment/:orderId', async (req, res, nex
 
       return res.status(200).json({
         success: true,
-        message: 'Payment verified and settled successfully.',
+        message: 'Payment verified and paid successfully.',
         status: 'PAID',
         data: {
           transactionId: result.transaction._id,
@@ -388,7 +480,7 @@ router.get('/checkout/:customerId/verify-payment/:orderId', async (req, res, nex
           utr: result.transaction.utr,
           amount: result.transaction.amount,
           date: result.transaction.date,
-          paymentStatus: 'SETTLED',
+          paymentStatus: 'PAID',
           balance: result.customer.balance,
           alreadyProcessed: result.alreadyProcessed
         }
@@ -457,24 +549,53 @@ router.post('/webhook/cashfree', async (req, res) => {
 // ─── RAZORPAY CREATE ORDER ───
 router.post('/checkout/:customerId/create-razorpay-order', async (req, res, next) => {
   try {
-    const { customerId } = req.params;
-    const { amount: requestedAmount } = req.body || {};
-    const customer = await Customer.findById(customerId).populate('owner');
+    const authResult = await resolveCustomerAndToken(req.params.customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 403).json({
+        success: false,
+        message: authResult.message,
+      });
+    }
+
+    const customer = await Customer.findById(authResult.customer._id).populate('owner');
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
 
-    const amount = requestedAmount ? parseFloat(requestedAmount) : parseFloat(customer.balance);
-    if (isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Valid payment amount is required.' });
+    // Always fetch fresh customer balance from DB - never trust frontend or email amount
+    const currentBalance = parseFloat(customer.balance || 0);
+    if (currentBalance <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer has no outstanding balance to pay (balance is ₹0.00).',
+      });
     }
 
-    const rzpOrder = await createRazorpayOrder(amount, customerId, {
+    let payAmount = currentBalance;
+    if (req.body && req.body.amount !== undefined) {
+      const requested = parseFloat(req.body.amount);
+      if (isNaN(requested) || requested <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid payment amount greater than ₹0 is required.',
+        });
+      }
+      if (requested > currentBalance) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment amount (₹${requested.toFixed(2)}) cannot exceed customer's outstanding balance of ₹${currentBalance.toFixed(2)}.`,
+        });
+      }
+      payAmount = requested;
+    }
+
+    const rzpOrder = await createRazorpayOrder(payAmount, customer._id.toString(), {
       customerName: customer.name,
       customerPhone: customer.phone,
+      paymentToken: authResult.token || '',
     });
 
-    console.log(`💳 Razorpay Order Created: ${rzpOrder.orderId} for customer ${customer.name}, Amount: ₹${amount}`);
+    console.log(`💳 Razorpay Order Created: ${rzpOrder.orderId} for customer ${customer.name}, Amount: ₹${payAmount}`);
 
     res.status(200).json({
       success: true,
@@ -482,6 +603,9 @@ router.post('/checkout/:customerId/create-razorpay-order', async (req, res, next
       amount: rzpOrder.amount, // in paise
       currency: rzpOrder.currency,
       key_id: rzpOrder.keyId,
+      customerName: customer.name,
+      balance: customer.balance,
+      payAmount: payAmount,
     });
   } catch (error) {
     console.error('Error creating Razorpay order:', error.message || error);
@@ -495,37 +619,83 @@ router.post('/checkout/:customerId/create-razorpay-order', async (req, res, next
 // ─── RAZORPAY VERIFY PAYMENT ───
 router.post('/checkout/:customerId/verify-razorpay-payment', async (req, res, next) => {
   try {
-    const { customerId } = req.params;
+    const authResult = await resolveCustomerAndToken(req.params.customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 403).json({
+        success: false,
+        message: authResult.message,
+      });
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body || {};
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required Razorpay payment response parameters.',
+        message: 'Missing required Razorpay payment response parameters (order_id, payment_id, signature).',
       });
     }
 
+    // 1. Cryptographic HMAC-SHA256 signature verification
     const isValid = verifyRazorpaySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
     if (!isValid) {
       console.warn(`⚠️ Razorpay Payment Signature verification failed for order: ${razorpay_order_id}`);
       return res.status(400).json({
         success: false,
-        message: 'Razorpay payment signature verification failed. Transaction invalid.',
+        message: 'Razorpay payment verification failed. Payment signature is invalid or tampered.',
       });
     }
 
-    const customer = await Customer.findById(customerId);
+    // 2. Fetch ground truth payment record from Razorpay API where available
+    let rzpPayment;
+    try {
+      rzpPayment = await fetchRazorpayPayment(razorpay_payment_id);
+    } catch (rzpErr) {
+      console.warn(`⚠️ Razorpay API fetch failed (${rzpErr.message}), relying on cryptographic signature.`);
+    }
+
+    if (rzpPayment) {
+      if (rzpPayment.order_id && rzpPayment.order_id !== razorpay_order_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Razorpay payment record does not match the provided order ID.',
+        });
+      }
+      if (rzpPayment.status !== 'captured' && rzpPayment.status !== 'authorized') {
+        return res.status(400).json({
+          success: false,
+          message: `Payment is not successful. Current status: ${rzpPayment.status}`,
+        });
+      }
+      if (rzpPayment.notes?.customerId && rzpPayment.notes.customerId !== authResult.customer._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Payment customer identity mismatch with active ledger account.',
+        });
+      }
+    }
+
+    const customer = await Customer.findById(authResult.customer._id);
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
 
-    const payAmount = amount ? parseFloat(amount) : customer.balance;
+    const verifiedAmount = rzpPayment
+      ? (rzpPayment.amount / 100)
+      : (amount ? parseFloat(amount) : customer.balance);
+
+    if (isNaN(verifiedAmount) || verifiedAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid payment amount detected.' });
+    }
+
+    // 3. Process verified payment idempotently and update ledger exactly once
     const result = await processVerifiedRazorpayPayment({
-      customerId,
+      customerId: customer._id,
       orderId: razorpay_order_id,
       paymentId: razorpay_payment_id,
       signature: razorpay_signature,
-      amount: payAmount,
+      amount: verifiedAmount,
+      token: authResult.token,
       source: 'Razorpay Verification Route',
     });
 
@@ -536,6 +706,7 @@ router.post('/checkout/:customerId/verify-razorpay-payment', async (req, res, ne
       data: {
         transactionId: result.transaction._id,
         paymentId: result.transaction.razorpayPaymentId,
+        orderId: result.transaction.razorpayOrderId,
         utr: result.transaction.utr,
         amount: result.transaction.amount,
         date: result.transaction.date,
@@ -557,15 +728,23 @@ router.post('/checkout/:customerId/verify-razorpay-payment', async (req, res, ne
 router.post('/webhook/razorpay', async (req, res) => {
   try {
     const signature = req.headers['x-razorpay-signature'];
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = req.rawBody || JSON.stringify(req.body);
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    if (webhookSecret && !verifyRazorpayWebhookSignature(rawBody, signature, webhookSecret)) {
+    // Fail closed if webhook secret is missing or signature verification fails
+    if (!webhookSecret) {
+      console.warn('⚠️ Razorpay Webhook rejected: RAZORPAY_WEBHOOK_SECRET is not configured (failing closed).');
+      return res.status(500).json({ error: 'Webhook secret is not configured on server.' });
+    }
+
+    if (!signature || !verifyRazorpayWebhookSignature(rawBody, signature, webhookSecret)) {
       console.warn('⚠️ Razorpay Webhook Signature Verification Failed');
       return res.status(400).send('Invalid Webhook Signature');
     }
 
-    const event = req.body.event;
+    const event = req.body?.event;
+    console.log(`🔔 Razorpay Webhook Verified Event: ${event}`);
+
     if (event === 'payment.captured' || event === 'order.paid') {
       const paymentEntity = req.body.payload?.payment?.entity;
       if (paymentEntity) {

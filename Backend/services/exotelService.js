@@ -84,6 +84,9 @@ const initiateOutboundCall = async ({ toPhone, callSessionId, customerName, shop
 
   try {
     const flowUrl = `http://my.exotel.com/${config.sid}/exoml/start_voice/${config.flowId}`;
+    const directWebhookUrl = process.env.BACKEND_URL
+      ? `${process.env.BACKEND_URL}/api/ai-calls/exoml?callSessionId=${encodeURIComponent(callSessionId)}`
+      : flowUrl;
     const apiUrl = `https://${config.subdomain}/v1/Accounts/${config.sid}/Calls/connect.json`;
     const callerId = config.phone && !config.phone.includes('your_') ? config.phone : formattedPhone;
 
@@ -91,7 +94,7 @@ const initiateOutboundCall = async ({ toPhone, callSessionId, customerName, shop
     params.append('From', formattedPhone);
     params.append('To', callerId);
     params.append('CallerId', callerId);
-    params.append('Url', flowUrl);
+    params.append('Url', directWebhookUrl);
     params.append('CustomField', JSON.stringify({ callSessionId, customerName, shopName, amount, language }));
 
     console.log(`[EXOTEL] Calling API: ${apiUrl} (Flow ${config.flowId}, SID: ${config.sid})`);
@@ -186,9 +189,47 @@ const sendPaymentReminderSMS = async ({ toPhone, text }) => {
   }
 };
 
+/**
+ * Terminate / Hangup active Exotel PSTN Call
+ */
+const hangupCall = async (callSid) => {
+  const config = getExotelConfig();
+  if (!config.isConfigured || !callSid) {
+    return { success: false, message: 'Exotel credentials missing or callSid not provided' };
+  }
+
+  try {
+    const apiUrl = `https://${config.subdomain}/v1/Accounts/${config.sid}/Calls/${callSid}.json`;
+    const params = new URLSearchParams();
+    params.append('Status', 'completed');
+
+    console.log(`[EXOTEL] Terminating active call ${callSid}`);
+
+    await axios.post(apiUrl, params.toString(), {
+      headers: {
+        'Authorization': config.authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      timeout: 8000
+    });
+
+    return {
+      success: true,
+      message: 'Call terminated successfully'
+    };
+  } catch (err) {
+    console.error('[EXOTEL] Hangup error:', err.response?.data || err.message);
+    return {
+      success: false,
+      message: err.message || 'Exotel call termination failed'
+    };
+  }
+};
+
 module.exports = {
   getExotelConfig,
   formatPhoneNumber,
   initiateOutboundCall,
-  sendPaymentReminderSMS
+  sendPaymentReminderSMS,
+  hangupCall
 };

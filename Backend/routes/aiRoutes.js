@@ -11,12 +11,24 @@ const {
   handleTwilioGather,
   handleTwilioStatus,
 } = require('../controllers/aiController');
+const {
+  handleExomlPassthru,
+  handleTtsAudio,
+  handleGatherResponse
+} = require('../controllers/aiCallController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Public Webhooks for Cloud Telephony (Twilio / Exotel)
 router.all('/voice-call/twilio-twiml', handleTwilioTwiml);
 router.all('/voice-call/twilio-gather', handleTwilioGather);
 router.post('/voice-call/twilio-status', handleTwilioStatus);
+
+// Public Exotel Webhooks
+router.all('/voice-call/exotel-passthru', handleExomlPassthru);
+router.all('/voice-call/exoml', handleExomlPassthru);
+router.all('/voice-call/tts-audio', handleTtsAudio);
+router.all('/voice-call/tts-audio.wav', handleTtsAudio);
+router.all('/voice-call/gather-response', handleGatherResponse);
 
 // Protected Routes
 router.use(protect);

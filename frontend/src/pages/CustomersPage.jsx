@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api/axios';
-import { getDeterministicPrediction } from '../utils/prediction';
+import { getDeterministicPrediction, getCustomerBadges } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
 import Modal from '../components/Common/Modal';
@@ -11,7 +11,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import LocationAddressInput, { navigateToAddress } from '../components/Common/LocationAddressInput';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlineTrash, HiOutlineMicrophone, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation, HiOutlineClock, HiOutlineMail, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineLocationMarker, HiOutlineExternalLink, HiOutlineSparkles, HiOutlinePhone } from 'react-icons/hi';
+import { geocodeAddressText, buildAddressQuery } from '../utils/geocoder';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlineTrash, HiOutlineMicrophone, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation, HiOutlineClock, HiOutlineMail, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineLocationMarker, HiOutlineExternalLink, HiOutlineSparkles, HiOutlinePhone, HiOutlineChevronRight, HiOutlineLightBulb } from 'react-icons/hi';
 import { FaWhatsapp, FaSms, FaMobileAlt, FaPhone } from 'react-icons/fa';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import AiVoiceCallModal from '../components/AI/AiVoiceCallModal';
@@ -83,11 +84,19 @@ const CustomersPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [selectedCallCustomer, setSelectedCallCustomer] = useState(null);
-  const [form, setForm] = useState({ 
-    name: '', 
-    phone: '', 
-    email: '', 
-    address: '', 
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    houseNumber: '',
+    street: '',
+    area: '',
+    city: '',
+    state: '',
+    pincode: '',
+    latitude: null,
+    longitude: null,
     avatar: customerPresets[0].value,
     preferredLanguage: 'te-IN',
     phoneType: 'smartphone',
@@ -95,7 +104,63 @@ const CustomersPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState({});
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeDetectedAddr, setGeocodeDetectedAddr] = useState('');
   const fileInputRef = useRef(null);
+
+  // Auto-detect location of house number & area when address fields change
+  useEffect(() => {
+    if (!showForm) return;
+
+    const query = buildAddressQuery({
+      houseNumber: form.houseNumber,
+      street: form.street,
+      area: form.area,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode
+    });
+
+    if (!query || query.trim().length < 3) {
+      setGeocodeDetectedAddr('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsGeocoding(true);
+      const result = await geocodeAddressText(query);
+      setIsGeocoding(false);
+      if (result) {
+        setForm(prev => ({
+          ...prev,
+          latitude: result.lat,
+          longitude: result.lng,
+          address: prev.address || result.displayName
+        }));
+        setGeocodeDetectedAddr(result.displayName);
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [form.houseNumber, form.street, form.area, form.city, form.state, form.pincode, showForm]);
+
+  const handleLocationDetailsSelect = (details) => {
+    setForm(prev => ({
+      ...prev,
+      address: details.address || prev.address,
+      latitude: details.latitude !== undefined ? details.latitude : prev.latitude,
+      longitude: details.longitude !== undefined ? details.longitude : prev.longitude,
+      houseNumber: details.houseNumber || prev.houseNumber,
+      street: details.street || prev.street,
+      area: details.area || prev.area,
+      city: details.city || prev.city,
+      state: details.state || prev.state,
+      pincode: details.pincode || prev.pincode
+    }));
+    if (details.address) {
+      setGeocodeDetectedAddr(details.address);
+    }
+  };
 
   // Quick transaction state
   const [quickTxn, setQuickTxn] = useState(null); // { customer, type }
@@ -144,10 +209,10 @@ const CustomersPage = () => {
     lang: speechLang,
     onResult: (text) => {
       let cleaned = text.trim();
-      cleaned = cleaned.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+      cleaned = cleaned.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
       const prefixRegex = /^(search\s+for|find|search|go\s+to|show)\s+/i;
       cleaned = cleaned.replace(prefixRegex, "").trim();
-      
+
       if (cleaned) {
         setSearchInput(cleaned);
         toast.success(`Searching for "${cleaned}"`);
@@ -182,9 +247,10 @@ const CustomersPage = () => {
       const rawCustomers = data?.data || [];
       const enriched = rawCustomers.map(c => {
         const prediction = getDeterministicPrediction(c);
+        const isSettledOrNew = c.balance === 0 || (c.totalTransactions || 0) === 0;
         return {
           ...c,
-          duePrediction: c.duePrediction || prediction.duePrediction,
+          duePrediction: isSettledOrNew ? prediction.duePrediction : (c.duePrediction || prediction.duePrediction),
           creditScore: c.creditScore || prediction.creditScore,
           riskLevel: c.riskLevel || prediction.riskLevel
         };
@@ -232,12 +298,12 @@ const CustomersPage = () => {
   const handleEmailRemind = async (e, customer) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!customer.email) {
       toast.warning('Please edit this customer and add an email address first.');
       return;
     }
-    
+
     setSendingEmail(prev => ({ ...prev, [customer._id]: true }));
     try {
       const { data } = await API.post(`/reminders/send/${customer._id}`);
@@ -253,35 +319,205 @@ const CustomersPage = () => {
 
   const customerList = Array.isArray(customers) ? customers : [];
 
+  const renderCustomerCard = (c) => {
+    const badges = getCustomerBadges(c);
+    return (
+    <div
+      key={c._id}
+      className={`bg-pure-white border border-soft-gray ${badges.leftBorder} rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3.5 group`}
+    >
+      {/* Top Header: Avatar, Name & Phone, and Balance */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-full border border-soft-gray overflow-hidden flex items-center justify-center bg-light-cream flex-shrink-0">
+            {c.avatar ? (
+              <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-extrabold text-orange uppercase">{c.name?.charAt(0)}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <Link
+              to={`/customers/${c._id}`}
+              className="text-deep-navy font-bold text-base hover:text-orange transition-colors decoration-none truncate block"
+            >
+              {c.name}
+            </Link>
+            <div className="flex items-center gap-1.5 text-xs text-slate-gray mt-0.5">
+              <span>{c.phone}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Balance Display */}
+        <div className="text-right flex-shrink-0">
+          <div className={`text-base font-extrabold ${c.balance > 0 ? 'text-red-give' : c.balance < 0 ? 'text-purple-600' : 'text-slate-600'}`}>
+            ₹{Math.abs(c.balance).toLocaleString('en-IN')}
+          </div>
+          <div className="mt-0.5">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badges.balanceTypeClass}`}>
+              {badges.balanceTypeLabel}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact: Email & Address (Uniform height on every card) */}
+      <div className="flex flex-col gap-1.5 text-xs text-slate-gray bg-soft-white/70 rounded-xl p-2.5 border border-soft-gray/40 min-h-[58px] justify-center">
+        {c.email ? (
+          <div className="flex items-center gap-1.5 truncate">
+            <HiOutlineMail size={13} className="text-slate-gray shrink-0" />
+            <span className="truncate select-all text-[11px] font-medium">{c.email}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-slate-gray/40 italic text-[11px]">
+            <HiOutlineMail size={13} className="shrink-0 opacity-40" />
+            <span>No email registered</span>
+          </div>
+        )}
+
+        {c.address ? (
+          <div className="flex items-center gap-1.5">
+            <HiOutlineLocationMarker size={13} className="text-blue-500 shrink-0" />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigateToAddress(c.address);
+              }}
+              className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold truncate max-w-full text-left bg-transparent border-none p-0 cursor-pointer flex items-center gap-1"
+              title={`Navigate to ${c.address}`}
+            >
+              <span className="truncate">{c.address}</span>
+              <HiOutlineExternalLink size={10} className="shrink-0" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-slate-gray/40 italic text-[11px]">
+            <HiOutlineLocationMarker size={13} className="shrink-0 opacity-40" />
+            <span>No address registered</span>
+          </div>
+        )}
+      </div>
+
+      {/* Score & Status Badge */}
+      <div className="flex items-center justify-between pt-1 border-t border-soft-gray/40 text-xs">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 font-bold text-[10px] px-2.5 py-0.5 rounded-full border ${badges.statusClass}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${badges.statusDotColor}`} />
+            {badges.statusLabel}
+          </span>
+          {c.totalTransactions > 0 && (
+            <span className="text-[10px] text-slate-gray/80 font-medium">
+              Score: <strong className={
+                c.creditScore >= 700 ? 'text-green-get' :
+                c.creditScore >= 550 ? 'text-warning-pending' :
+                'text-red-give'
+              }>{c.creditScore}</strong>
+            </span>
+          )}
+        </div>
+
+        <Link
+          to={`/customers/${c._id}`}
+          className="text-[11px] font-bold text-orange hover:text-orange-hover flex items-center gap-0.5 decoration-none"
+        >
+          View Ledger <HiOutlineChevronRight size={12} />
+        </Link>
+      </div>
+
+      {/* Action Buttons: Identical options on EVERY customer card */}
+      <div className="flex flex-col gap-2 pt-2.5 border-t border-soft-gray/40">
+        {/* Row 1: Primary Ledger Transactions */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            title="You Gave — Record Udhaar"
+            onClick={(e) => openQuickTxn(e, c, 'credit')}
+            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-red-give/10 hover:bg-red-give/20 text-red-give text-xs font-bold rounded-xl border-none cursor-pointer transition-colors shadow-2xs"
+          >
+            <HiOutlineArrowUp size={13} /> You Gave
+          </button>
+          <button
+            title="You Got — Record Payment"
+            onClick={(e) => openQuickTxn(e, c, 'debit')}
+            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-green-get/10 hover:bg-green-get/20 text-green-get text-xs font-bold rounded-xl border-none cursor-pointer transition-colors shadow-2xs"
+          >
+            <HiOutlineArrowDown size={13} /> You Got
+          </button>
+        </div>
+
+        {/* Row 2: Communication, Statement & Delete */}
+        <div className="flex items-center gap-2">
+          <button
+            title="Start AI Voice Call Assistant"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSelectedCallCustomer(c);
+            }}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white text-xs font-bold rounded-xl border-none cursor-pointer transition-all shadow-xs hover:shadow"
+          >
+            <HiOutlinePhone size={13} /> AI Call
+          </button>
+          <button
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-orange/10 hover:bg-orange/20 text-orange text-xs font-bold rounded-xl border-none cursor-pointer transition-colors"
+            title="Send Email Statement / Reminder"
+            onClick={(e) => handleEmailRemind(e, c)}
+            disabled={sendingEmail[c._id]}
+          >
+            {sendingEmail[c._id] ? (
+              <span className="w-3.5 h-3.5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <HiOutlineMail size={13} />
+            )}
+            Email
+          </button>
+          <button
+            className="p-2 text-slate-gray hover:text-red-give hover:bg-red-give/10 rounded-xl cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors shrink-0"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDeleteId(c._id);
+            }}
+            title={t('delete')}
+          >
+            <HiOutlineTrash size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+    );
+  };
+
   return (
     <>
       <Header title={t('customers')} subtitle={t('manageCustomers')} />
-      
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative flex-1">
             <HiOutlineSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-gray" size={18} />
-            <input 
-              className="w-full pl-10 pr-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all placeholder:text-slate-gray/50" 
-              placeholder={`${t('search')} ...`} 
-              value={searchInput} 
-              onChange={(e) => setSearchInput(e.target.value)} 
+            <input
+              className="w-full pl-10 pr-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all placeholder:text-slate-gray/50"
+              placeholder={`${t('search')} ...`}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
           {isSpeechSupported && (
             <button
               onClick={toggleVoiceEntry}
-              className={`p-2.5 rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shrink-0 shadow-sm ${
-                isListening ? 'bg-red-give text-white animate-pulse' : 'bg-pure-white border border-soft-gray hover:bg-orange/10 text-slate-gray hover:text-orange'
-              }`}
+              className={`p-2.5 rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shrink-0 shadow-sm ${isListening ? 'bg-red-give text-white animate-pulse' : 'bg-pure-white border border-soft-gray hover:bg-orange/10 text-slate-gray hover:text-orange'
+                }`}
               title={isListening ? "Stop Listening" : "Search customer by name using voice"}
             >
               {isListening ? <HiOutlineX size={18} /> : <HiOutlineMicrophone size={18} />}
             </button>
           )}
         </div>
-        <button 
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-sm hover:shadow" 
+        <button
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-sm hover:shadow"
           onClick={() => setShowForm(true)}
         >
           <HiOutlinePlus size={16} /> {t('addCustomer')}
@@ -293,8 +529,8 @@ const CustomersPage = () => {
           <div className="bg-pure-white border border-soft-gray rounded-2xl p-12 text-center shadow-sm space-y-4 max-w-xl mx-auto">
             <h3 className="text-lg font-bold text-deep-navy mb-0">No customer found matching "{search}"</h3>
             <p className="text-sm text-slate-gray mt-0">Would you like to add them to your ledger?</p>
-            <button 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-sm hover:shadow" 
+            <button
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-sm hover:shadow"
               onClick={() => {
                 setForm(prev => ({ ...prev, name: search }));
                 setShowForm(true);
@@ -307,8 +543,8 @@ const CustomersPage = () => {
           <div className="bg-pure-white border border-soft-gray rounded-2xl p-12 text-center shadow-sm space-y-4 max-w-xl mx-auto">
             <h3 className="text-lg font-bold text-deep-navy mb-0">{t('noCustomers')}</h3>
             <p className="text-sm text-slate-gray mt-0">{t('addFirstCustomer')}</p>
-            <button 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-sm hover:shadow" 
+            <button
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange hover:bg-orange-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-sm hover:shadow"
               onClick={() => setShowForm(true)}
             >
               <HiOutlinePlus size={16} /> {t('addCustomer')}
@@ -316,177 +552,12 @@ const CustomersPage = () => {
           </div>
         )
       ) : (
-        <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead>
-              <tr className="bg-soft-white border-b border-soft-gray">
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('customerName')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('phone')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('balance')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">Status & Score</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('status')}</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-gray">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customerList.map((c) => (
-                <tr key={c._id} className="border-b border-soft-gray/50 hover:bg-light-cream/10 transition-colors">
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full border border-soft-gray overflow-hidden flex items-center justify-center bg-light-cream flex-shrink-0">
-                        {c.avatar ? (
-                          <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xs font-extrabold text-orange uppercase">{c.name.charAt(0)}</span>
-                        )}
-                      </div>
-                      <Link to={`/customers/${c._id}`} className="text-deep-navy font-bold hover:text-orange transition-colors decoration-none">
-                        {c.name}
-                      </Link>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle text-deep-navy">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span>{c.phone}</span>
-                      </div>
-                      {c.email && (
-                        <span className="text-[11px] text-slate-gray/70 font-medium block mt-0.5 select-all">
-                          {c.email}
-                        </span>
-                      )}
-                      {c.address && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            navigateToAddress(c.address);
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-semibold mt-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200/60 transition-colors w-max cursor-pointer border-none"
-                          title={`Navigate to ${c.address}`}
-                        >
-                          <HiOutlineLocationMarker size={12} />
-                          <span className="truncate max-w-[130px]">{c.address}</span>
-                          <HiOutlineExternalLink size={10} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className={`px-6 py-4 text-sm align-middle font-bold ${c.balance > 0 ? 'text-red-give' : 'text-green-get'}`}>
-                    ₹{Math.abs(c.balance).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    {c.totalTransactions > 0 ? (
-                      <div className="flex flex-col gap-1">
-                        <span className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full w-max ${
-                          c.duePrediction === 'trusted' ? 'bg-green-get/10 text-green-get' :
-                          c.duePrediction === 'delay' ? 'bg-warning-pending/10 text-warning-pending' :
-                          'bg-red-give/10 text-red-give'
-                        }`}>
-                          {c.duePrediction === 'trusted' ? (
-                            <>
-                              <HiOutlineCheckCircle size={12} className="shrink-0 text-green-get" />
-                              Trusted
-                            </>
-                          ) : c.duePrediction === 'delay' ? (
-                            <>
-                              <HiOutlineExclamation size={12} className="shrink-0 text-warning-pending" />
-                              Late Payer
-                            </>
-                          ) : (
-                            <>
-                              <HiOutlineExclamation size={12} className="shrink-0 text-red-give" />
-                              Risky
-                            </>
-                          )}
-                        </span>
-                        <span className="text-[10px] text-slate-gray/70 font-semibold px-2">
-                          Score: <strong className={
-                            c.creditScore >= 700 ? 'text-green-get' :
-                            c.creditScore >= 550 ? 'text-warning-pending' :
-                            'text-red-give'
-                          }>{c.creditScore}</strong>
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full w-max bg-slate-gray/10 text-slate-gray">
-                          <HiOutlineClock size={12} className="shrink-0" /> No History
-                        </span>
-                        <span className="text-[10px] text-slate-gray/50 font-semibold px-2">
-                          Score: <strong>—</strong>
-                        </span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    {c.balance > 0 ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-give/10 text-red-give">{t('due')}</span>
-                    ) : c.balance < 0 ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-get/10 text-green-get">{t('advance')}</span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-get/10 text-green-get">{t('clear')}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm align-middle">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        title="You Gave — Record Udhaar"
-                        onClick={(e) => openQuickTxn(e, c, 'credit')}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-give/10 hover:bg-red-give/20 text-red-give text-[10px] font-bold rounded-lg border-none cursor-pointer transition-colors"
-                      >
-                        <HiOutlineArrowUp size={11} /> You Gave
-                      </button>
-                      <button
-                        title="You Got — Record Payment"
-                        onClick={(e) => openQuickTxn(e, c, 'debit')}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-green-get/10 hover:bg-green-get/20 text-green-get text-[10px] font-bold rounded-lg border-none cursor-pointer transition-colors"
-                      >
-                        <HiOutlineArrowDown size={11} /> You Got
-                      </button>
-                      <button
-                        title="Start AI Voice Call Assistant"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSelectedCallCustomer(c);
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white text-[10px] font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm"
-                      >
-                        <HiOutlinePhone size={11} /> AI Call
-                      </button>
-                      {c.balance > 0 && (
-                        <button 
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange hover:bg-orange-hover text-white text-[10px] font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm" 
-                          title="Send Email Reminder" 
-                          onClick={(e) => handleEmailRemind(e, c)}
-                          disabled={sendingEmail[c._id]}
-                        >
-                          {sendingEmail[c._id] ? (
-                            <span className="w-3 h-3 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <HiOutlineMail size={11} />
-                          )}
-                          Email
-                        </button>
-                      )}
-                      <button 
-                        className="p-1.5 text-slate-gray hover:text-red-give hover:bg-red-give/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors" 
-                        onClick={() => setDeleteId(c._id)} 
-                        title={t('delete')}
-                      >
-                        <HiOutlineTrash size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="w-full min-w-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full">
+            {customerList.map(renderCustomerCard)}
+          </div>
         </div>
       )}
-
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t('addCustomer')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Profile Picture Section */}
@@ -495,7 +566,7 @@ const CustomersPage = () => {
             <div className="flex items-center gap-4 p-3 bg-soft-white border border-soft-gray rounded-xl w-full">
               {/* Avatar Preview */}
               <div className="relative w-16 h-16 flex-shrink-0">
-                <div 
+                <div
                   className="w-16 h-16 rounded-full bg-pure-white border-2 border-orange flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
                   onClick={() => fileInputRef.current.click()}
                   type="button"
@@ -531,9 +602,8 @@ const CustomersPage = () => {
                       <button
                         key={idx}
                         type="button"
-                        className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all p-0 cursor-pointer ${
-                          isSelected ? 'border-orange scale-110 shadow-sm' : 'border-soft-gray opacity-70 hover:opacity-100'
-                        }`}
+                        className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all p-0 cursor-pointer ${isSelected ? 'border-orange scale-110 shadow-sm' : 'border-soft-gray opacity-70 hover:opacity-100'
+                          }`}
                         onClick={() => setForm(prev => ({ ...prev, avatar: p.value }))}
                       >
                         <img src={p.value} alt={p.label} className="w-full h-full object-cover" />
@@ -547,23 +617,133 @@ const CustomersPage = () => {
 
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('customerName')} *</label>
-            <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" required value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} />
+            <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('phone')} *</label>
-            <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" required value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} placeholder="+91 9876543210" />
+            <input className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 9876543210" />
           </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Email Address</label>
-            <input type="email" className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.email || ''} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="customer@example.com" />
+            <input type="email" className="w-full px-4 py-2.5 bg-pure-white border border-soft-gray rounded-xl text-sm focus:outline-none focus:border-orange transition-all" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="customer@example.com" />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('address')}</label>
+            <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">{t('address')} & Map Location</label>
             <LocationAddressInput
               value={form.address}
               onChange={(val) => setForm({ ...form, address: val })}
-              placeholder="Enter address manually or use GPS map location"
+              onSelectLocationDetails={handleLocationDetailsSelect}
+              latitude={form.latitude}
+              longitude={form.longitude}
+              placeholder="Enter address manually or select on Google Maps"
             />
+          </div>
+
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-soft-gray dark:border-slate-700 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between border-b border-soft-gray/50 pb-1">
+              <span className="text-[11px] font-extrabold text-slate-gray dark:text-slate-400 uppercase tracking-wider">
+                Structured Address Verification Details
+              </span>
+              {isGeocoding && (
+                <span className="text-[10px] font-bold text-orange flex items-center gap-1 animate-pulse">
+                  <span className="w-2.5 h-2.5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+                  Auto-Detecting Location...
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-gray dark:text-slate-300 uppercase">House / Flat / Door No. *</label>
+                <input
+                  type="text"
+                  value={form.houseNumber}
+                  onChange={(e) => setForm({ ...form, houseNumber: e.target.value })}
+                  placeholder="e.g. House No. 12"
+                  className="w-full px-3 py-2 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-700 rounded-lg text-xs font-medium text-deep-navy dark:text-white focus:outline-none focus:border-orange"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-gray dark:text-slate-300 uppercase">Street / Road / Colony</label>
+                <input
+                  type="text"
+                  value={form.street}
+                  onChange={(e) => setForm({ ...form, street: e.target.value })}
+                  placeholder="e.g. MG Road, ABC Colony"
+                  className="w-full px-3 py-2 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-700 rounded-lg text-xs font-medium text-deep-navy dark:text-white focus:outline-none focus:border-orange"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-gray dark:text-slate-300 uppercase">Area / Landmark</label>
+                <input
+                  type="text"
+                  value={form.area}
+                  onChange={(e) => setForm({ ...form, area: e.target.value })}
+                  placeholder="e.g. Near Water Tank"
+                  className="w-full px-3 py-2 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-700 rounded-lg text-xs font-medium text-deep-navy dark:text-white focus:outline-none focus:border-orange"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-gray dark:text-slate-300 uppercase">City / Town</label>
+                <input
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  placeholder="e.g. Hyderabad"
+                  className="w-full px-3 py-2 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-700 rounded-lg text-xs font-medium text-deep-navy dark:text-white focus:outline-none focus:border-orange"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-gray dark:text-slate-300 uppercase">State</label>
+                <input
+                  type="text"
+                  value={form.state}
+                  onChange={(e) => setForm({ ...form, state: e.target.value })}
+                  placeholder="e.g. Telangana"
+                  className="w-full px-3 py-2 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-700 rounded-lg text-xs font-medium text-deep-navy dark:text-white focus:outline-none focus:border-orange"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-gray dark:text-slate-300 uppercase">PIN Code (6 Digits)</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={form.pincode}
+                  onChange={(e) => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '') })}
+                  placeholder="e.g. 500001"
+                  className="w-full px-3 py-2 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-700 rounded-lg text-xs font-medium text-deep-navy dark:text-white focus:outline-none focus:border-orange"
+                />
+              </div>
+            </div>
+
+            {form.latitude && form.longitude && (
+              <div className="text-[10px] font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40 p-2.5 rounded-lg border border-green-200/50 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1 font-bold">
+                    <HiOutlineCheckCircle size={14} className="text-green-600" />
+                    <span>Location Auto-Detected & Pinned</span>
+                  </span>
+                  <span className="font-mono font-bold text-[10px] bg-green-200/60 dark:bg-green-900/60 px-2 py-0.5 rounded">
+                    {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
+                  </span>
+                </div>
+                {geocodeDetectedAddr && (
+                  <span className="text-[10px] text-slate-600 dark:text-slate-300 truncate inline-flex items-center gap-1">
+                    <HiOutlineLocationMarker size={12} className="text-orange shrink-0" />
+                    <span className="truncate">{geocodeDetectedAddr}</span>
+                  </span>
+                )}
+                <span className="text-[9.5px] text-slate-500 dark:text-slate-400 italic inline-flex items-center gap-1">
+                  <HiOutlineLightBulb size={12} className="text-amber-500 shrink-0" />
+                  <span>location is set. Click "Select Location" on map anytime to drag pin</span>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* AI Voice Assistant Configuration */}
@@ -585,14 +765,17 @@ const CustomersPage = () => {
                 </span>
               </label>
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">Preferred Language</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1 min-w-0">
+                <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">
+                  Preferred Language
+                </label>
                 <select
-                  className="w-full px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
+                  className="w-full min-w-0 px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
                   value={form.preferredLanguage}
-                  onChange={(e) => setForm({ ...form, preferredLanguage: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, preferredLanguage: e.target.value })
+                  }
                 >
                   <option value="te-IN">Telugu (తెలుగు)</option>
                   <option value="hi-IN">Hindi (हिंदी)</option>
@@ -602,7 +785,7 @@ const CustomersPage = () => {
                 </select>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <label className="block text-[11px] font-bold text-slate-gray uppercase tracking-wider">Phone Type</label>
                 <select
                   className="w-full px-3 py-2 bg-pure-white border border-soft-gray rounded-lg text-xs font-semibold focus:outline-none focus:border-orange"
@@ -641,26 +824,41 @@ const CustomersPage = () => {
               <button
                 type="button"
                 onClick={() => setQuickTxn(prev => ({ ...prev, type: 'credit' }))}
-                className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 border-none cursor-pointer transition-colors ${
-                  quickTxn.type === 'credit'
-                    ? 'bg-red-give text-white'
-                    : 'bg-transparent text-slate-gray hover:bg-red-give/5'
-                }`}
+                className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 border-none cursor-pointer transition-colors ${quickTxn.type === 'credit'
+                  ? 'bg-red-give text-white'
+                  : 'bg-transparent text-slate-gray hover:bg-red-give/5'
+                  }`}
               >
                 <HiOutlineArrowUp size={13} /> You Gave
               </button>
               <button
                 type="button"
                 onClick={() => setQuickTxn(prev => ({ ...prev, type: 'debit' }))}
-                className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 border-none cursor-pointer transition-colors ${
-                  quickTxn.type === 'debit'
-                    ? 'bg-green-get text-white'
-                    : 'bg-transparent text-slate-gray hover:bg-green-get/5'
-                }`}
+                className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 border-none cursor-pointer transition-colors ${quickTxn.type === 'debit'
+                  ? 'bg-green-get text-white'
+                  : 'bg-transparent text-slate-gray hover:bg-green-get/5'
+                  }`}
               >
                 <HiOutlineArrowDown size={13} /> You Got
               </button>
             </div>
+
+            {/* Credit Safety Warning Banner */}
+            {quickTxn.type === 'credit' && quickTxn.customer.addressVerificationStatus !== 'verified' && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 rounded-xl space-y-1 text-amber-900 dark:text-amber-200 shadow-xs">
+                <div className="flex items-center justify-between font-bold text-xs">
+                  <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300">
+                    <HiOutlineExclamation size={16} /> Address Not Verified
+                  </span>
+                  <span className="uppercase text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100">
+                    Status: {quickTxn.customer.addressVerificationStatus || 'pending'}
+                  </span>
+                </div>
+                <p className="text-[11px] leading-snug text-amber-800 dark:text-amber-300">
+                  Address is not verified. Please verify the customer's address before approving high credit.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-gray uppercase tracking-wider">Amount *</label>
@@ -707,11 +905,10 @@ const CustomersPage = () => {
                 <button
                   type="button"
                   onClick={() => setQuickForm({ ...quickForm, date: new Date().toISOString().split('T')[0] })}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                    quickForm.date === new Date().toISOString().split('T')[0]
-                      ? 'bg-orange text-white border-orange shadow-xs'
-                      : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${quickForm.date === new Date().toISOString().split('T')[0]
+                    ? 'bg-orange text-white border-orange shadow-xs'
+                    : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
+                    }`}
                 >
                   Today ({new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
                 </button>
@@ -722,11 +919,10 @@ const CustomersPage = () => {
                     yesterday.setDate(yesterday.getDate() - 1);
                     setQuickForm({ ...quickForm, date: yesterday.toISOString().split('T')[0] });
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                    quickForm.date === new Date(Date.now() - 86400000).toISOString().split('T')[0]
-                      ? 'bg-orange text-white border-orange shadow-xs'
-                      : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${quickForm.date === new Date(Date.now() - 86400000).toISOString().split('T')[0]
+                    ? 'bg-orange text-white border-orange shadow-xs'
+                    : 'bg-soft-white text-slate-gray border-soft-gray hover:bg-slate-gray/5'
+                    }`}
                 >
                   Yesterday
                 </button>
@@ -751,7 +947,7 @@ const CustomersPage = () => {
                     <span>Balance Preview</span>
                     <span className="text-[9px] bg-slate-200/60 dark:bg-slate-800 text-slate-gray px-2 py-0.5 rounded-md font-semibold">Live Preview</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center gap-1.5 text-center relative">
                     {/* Card 1: Current */}
                     <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl">
@@ -759,9 +955,8 @@ const CustomersPage = () => {
                       <span className="text-xs font-mono font-bold text-deep-navy mt-1">
                         ₹{Math.abs(currentBal).toLocaleString('en-IN')}
                       </span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${
-                        currentBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                      }`}>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${currentBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
+                        }`}>
                         {currentBal >= 0 ? 'Due' : 'Advance'}
                       </span>
                     </div>
@@ -775,9 +970,8 @@ const CustomersPage = () => {
                       <span className={`text-xs font-mono font-black mt-1 ${isCredit ? 'text-red-give' : 'text-green-get'}`}>
                         {isCredit ? '+' : '-'}₹{txnAmount.toLocaleString('en-IN')}
                       </span>
-                      <span className={`text-[8px] font-bold px-1 py-0.5 rounded-md mt-1 text-white ${
-                        isCredit ? 'bg-red-give' : 'bg-green-get'
-                      }`}>
+                      <span className={`text-[8px] font-bold px-1 py-0.5 rounded-md mt-1 text-white ${isCredit ? 'bg-red-give' : 'bg-green-get'
+                        }`}>
                         {isCredit ? 'Gave' : 'Got'}
                       </span>
                     </div>
@@ -788,14 +982,12 @@ const CustomersPage = () => {
                     {/* Card 3: New Balance */}
                     <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl">
                       <span className="text-[9px] text-slate-gray font-bold uppercase tracking-wider">New Balance</span>
-                      <span className={`text-xs font-mono font-extrabold mt-1 ${
-                        newBal >= 0 ? 'text-red-give' : 'text-green-get'
-                      }`}>
+                      <span className={`text-xs font-mono font-extrabold mt-1 ${newBal >= 0 ? 'text-red-give' : 'text-green-get'
+                        }`}>
                         ₹{Math.abs(newBal).toLocaleString('en-IN')}
                       </span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${
-                        newBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
-                      }`}>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${newBal >= 0 ? 'bg-red-give/10 text-red-give' : 'bg-green-get/10 text-green-get'
+                        }`}>
                         {newBal >= 0 ? 'Due' : 'Advance'}
                       </span>
                     </div>
@@ -815,9 +1007,8 @@ const CustomersPage = () => {
               <button
                 type="submit"
                 disabled={quickSubmitting}
-                className={`px-5 py-2.5 text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50 ${
-                  quickTxn.type === 'credit' ? 'bg-red-give hover:bg-red-hover' : 'bg-green-get hover:bg-green-hover'
-                }`}
+                className={`px-5 py-2.5 text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50 ${quickTxn.type === 'credit' ? 'bg-red-give hover:bg-red-hover' : 'bg-green-get hover:bg-green-hover'
+                  }`}
               >
                 {quickSubmitting ? 'Adding...' : 'Add Transaction'}
               </button>
@@ -849,7 +1040,7 @@ const CustomersPage = () => {
                 Hindi / Telugu / English
               </span>
             </div>
-            
+
             {/* Visualizer Waveform */}
             <div className="flex items-center gap-1.5 h-10 my-1 justify-center">
               <span className="w-1.5 rounded-full bg-gradient-to-t from-red-500 to-orange-500 animate-bounce h-4" style={{ animationDelay: '0.1s' }} />

@@ -13,7 +13,10 @@ import {
   HiOutlineTrash, 
   HiOutlineClipboardCopy,
   HiOutlineChevronRight,
-  HiOutlineX
+  HiOutlinePhotograph,
+  HiOutlineEye,
+  HiOutlineX,
+  HiOutlinePhone
 } from 'react-icons/hi';
 
 const PermanentHistoryPage = () => {
@@ -23,6 +26,7 @@ const PermanentHistoryPage = () => {
   const [search, setSearch] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState(null);
   const [activeFilter, setActiveFilter] = useState('ALL'); // 'ALL', 'CREATE', 'UPDATE', 'DELETE'
 
   const fetchHistory = async () => {
@@ -67,56 +71,56 @@ const PermanentHistoryPage = () => {
       />
 
       {/* Audit Stats Dashboard */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
-            <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-pure-white border border-soft-gray p-2.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-2.5 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-orange/10 flex items-center justify-center text-orange shrink-0">
+            <HiOutlineClock className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
             <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">Total Logs</span>
-            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{totalCount}</h4>
+            <h4 className="text-sm sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{totalCount}</h4>
           </div>
         </div>
 
-        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
-            <HiOutlinePlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-pure-white border border-soft-gray p-2.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-2.5 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
+            <HiOutlinePlusCircle className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
             <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">New Records</span>
-            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{createCount}</h4>
+            <h4 className="text-sm sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{createCount}</h4>
           </div>
         </div>
 
-        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-warning-pending/10 flex items-center justify-center text-warning-pending shrink-0">
-            <HiOutlinePencilAlt className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-pure-white border border-soft-gray p-2.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-2.5 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-warning-pending/10 flex items-center justify-center text-warning-pending shrink-0">
+            <HiOutlinePencilAlt className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
             <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">Updates & Edits</span>
-            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{editCount}</h4>
+            <h4 className="text-sm sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{editCount}</h4>
           </div>
         </div>
 
-        <div className="bg-pure-white border border-soft-gray p-3.5 sm:p-5 rounded-2xl shadow-xs flex items-center gap-3 sm:gap-4 transition-all hover:shadow-sm min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-red-give/10 flex items-center justify-center text-red-give shrink-0">
-            <HiOutlineTrash className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-pure-white border border-soft-gray p-2.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-2.5 sm:gap-4 transition-all hover:shadow-sm min-w-0">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-red-give/10 flex items-center justify-center text-red-give shrink-0">
+            <HiOutlineTrash className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
             <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-gray block truncate">Deletions</span>
-            <h4 className="text-base sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{deleteCount}</h4>
+            <h4 className="text-sm sm:text-xl font-extrabold text-deep-navy m-0 mt-0.5 truncate">{deleteCount}</h4>
           </div>
         </div>
       </div>
 
       {/* Filters & Search Bar */}
-      <div className="bg-pure-white border border-soft-gray p-4 rounded-2xl shadow-xs mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-pure-white border border-soft-gray p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs mb-4 sm:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         {/* Search */}
         <div className="relative w-full md:max-w-md">
           <HiOutlineSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-gray/70" size={16} />
           <input
             type="text"
-            className="w-full pl-10 pr-4 py-2.5 bg-soft-white border border-soft-gray rounded-xl text-xs text-deep-navy focus:outline-none focus:border-orange focus:ring-4 focus:ring-orange/5 transition-all placeholder:text-slate-gray/40 font-medium"
+            className="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-soft-white border border-soft-gray rounded-xl text-xs text-deep-navy focus:outline-none focus:border-orange focus:ring-4 focus:ring-orange/5 transition-all placeholder:text-slate-gray/40 font-medium"
             placeholder="Search by customer name, phone, description..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -124,10 +128,10 @@ const PermanentHistoryPage = () => {
         </div>
 
         {/* Action filter pills */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
           <button
             onClick={() => setActiveFilter('ALL')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeFilter === 'ALL'
                 ? 'bg-orange text-white shadow-sm'
                 : 'bg-soft-white border border-soft-gray text-slate-gray hover:bg-orange/5 hover:text-orange'
@@ -137,7 +141,7 @@ const PermanentHistoryPage = () => {
           </button>
           <button
             onClick={() => setActiveFilter('CREATE')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeFilter === 'CREATE'
                 ? 'bg-green-600 text-white shadow-sm'
                 : 'bg-soft-white border border-soft-gray text-slate-gray hover:bg-green-500/5 hover:text-green-600'
@@ -147,7 +151,7 @@ const PermanentHistoryPage = () => {
           </button>
           <button
             onClick={() => setActiveFilter('UPDATE')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeFilter === 'UPDATE'
                 ? 'bg-warning-pending text-white shadow-sm'
                 : 'bg-soft-white border border-soft-gray text-slate-gray hover:bg-warning-pending/5 hover:text-warning-pending'
@@ -157,7 +161,7 @@ const PermanentHistoryPage = () => {
           </button>
           <button
             onClick={() => setActiveFilter('DELETE')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeFilter === 'DELETE'
                 ? 'bg-red-give text-white shadow-sm'
                 : 'bg-soft-white border border-soft-gray text-slate-gray hover:bg-red-give/5 hover:text-red-give'
@@ -179,8 +183,176 @@ const PermanentHistoryPage = () => {
           </p>
         </div>
       ) : (
-        <div className="bg-pure-white border border-soft-gray rounded-2xl shadow-xs overflow-hidden mb-24">
-          <div className="overflow-x-auto">
+        <div className="mb-24 space-y-4">
+          {/* Mobile Card Feed (md:hidden) - Distinct separated cards with date headers */}
+          <div className="md:hidden space-y-3">
+            {filteredLogs.map((log, index) => {
+              const logDate = new Date(log.date || log.createdAt);
+              const formattedDate = logDate.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+
+              // Date header separator logic
+              const getDayLabel = (d) => {
+                const dateObj = new Date(d);
+                const today = new Date();
+                const yesterday = new Date();
+                yesterday.setDate(today.getDate() - 1);
+
+                if (dateObj.toDateString() === today.toDateString()) return 'Today';
+                if (dateObj.toDateString() === yesterday.toDateString()) return 'Yesterday';
+                return dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+              };
+
+              const currentDayLabel = getDayLabel(log.date || log.createdAt);
+              const prevDayLabel = index > 0 ? getDayLabel(filteredLogs[index - 1].date || filteredLogs[index - 1].createdAt) : null;
+              const isNewDay = currentDayLabel !== prevDayLabel;
+
+              let badgeClass = 'bg-slate-gray/10 text-slate-gray';
+              let actionLabel = log.action;
+              let icon = <HiOutlineClock size={11} />;
+              let leftBorderClass = 'border-l-4 border-l-slate-300';
+
+              if (log.action === 'CREATE') {
+                if (log.type === 'customer_created') {
+                  badgeClass = 'bg-blue-500/10 text-blue-600 border border-blue-500/20';
+                  actionLabel = 'CUSTOMER CREATE';
+                  leftBorderClass = 'border-l-4 border-l-blue-500';
+                } else {
+                  badgeClass = 'bg-green-get/10 text-green-get border border-green-get/20';
+                  actionLabel = 'TRANSACTION CREATE';
+                  leftBorderClass = 'border-l-4 border-l-emerald-500';
+                }
+                icon = <HiOutlinePlusCircle size={11} />;
+              } else if (log.action === 'UPDATE') {
+                badgeClass = 'bg-warning-pending/10 text-warning-pending border border-warning-pending/20';
+                actionLabel = 'TRANSACTION EDIT';
+                leftBorderClass = 'border-l-4 border-l-amber-500';
+                icon = <HiOutlinePencilAlt size={11} />;
+              } else if (log.action === 'DELETE') {
+                badgeClass = 'bg-red-give/10 text-red-give border border-red-give/20';
+                actionLabel = 'TRANSACTION DELETE';
+                leftBorderClass = 'border-l-4 border-l-rose-500';
+                icon = <HiOutlineTrash size={11} />;
+              } else if (log.action === 'CUSTOMER_DELETED') {
+                badgeClass = 'bg-red-give/20 text-red-give border border-red-give/30 font-bold';
+                actionLabel = 'CUSTOMER DELETE';
+                leftBorderClass = 'border-l-4 border-l-rose-600';
+                icon = <HiOutlineTrash size={11} />;
+              }
+
+              const initials = log.customerName
+                ? log.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                : 'C';
+
+              return (
+                <div key={log._id} className="space-y-2">
+                  {/* Date section separator pill */}
+                  {isNewDay && (
+                    <div className="flex items-center gap-3 pt-3 pb-1">
+                      <div className="h-px bg-soft-gray/80 flex-1" />
+                      <span className="px-3 py-0.5 rounded-full bg-slate-100 border border-soft-gray text-slate-gray text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
+                        {currentDayLabel}
+                      </span>
+                      <div className="h-px bg-soft-gray/80 flex-1" />
+                    </div>
+                  )}
+
+                  {/* Discrete elevated card */}
+                  <div
+                    onClick={() => {
+                      setSelectedLog(log);
+                      setShowModal(true);
+                    }}
+                    className={`bg-pure-white rounded-2xl border border-soft-gray/80 ${leftBorderClass} shadow-[0_2px_8px_rgba(15,23,42,0.06)] p-4 space-y-3 cursor-pointer active:scale-[0.99] transition-all hover:shadow-md`}
+                  >
+                    {/* Top: Customer & Amount */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange/20 to-orange/10 text-orange font-bold text-xs flex items-center justify-center shrink-0 border border-orange/20">
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-extrabold text-deep-navy block truncate">
+                            {log.customerName}
+                          </span>
+                          <span className="text-xs text-slate-gray font-medium block truncate">
+                            {log.customerPhone || 'No Phone'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {log.amount > 0 ? (
+                          <span className={`text-base font-black block ${
+                            log.action === 'DELETE' || log.action === 'CUSTOMER_DELETED' 
+                              ? 'text-slate-gray line-through' 
+                              : 'text-deep-navy'
+                          }`}>
+                            ₹{log.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-500 uppercase bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded-md">
+                            Audit Entry
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Badge & Timestamp */}
+                    <div className="flex items-center justify-between gap-2 text-[10px]">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase ${badgeClass}`}>
+                        {icon}
+                        {actionLabel}
+                      </span>
+                      <span className="text-slate-gray font-semibold text-[11px] flex items-center gap-1">
+                        <HiOutlineClock size={12} className="text-slate-400" />
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    {/* Description Note Box */}
+                    {log.description && (
+                      <div className="bg-slate-50/90 border border-slate-200/70 rounded-xl p-2.5 text-xs text-slate-800 font-medium leading-relaxed break-words">
+                        {log.description}
+                      </div>
+                    )}
+
+                    {/* Card Footer with clear demarcation */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      {log.billImageUrl ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxImg(log.billImageUrl);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-200 shadow-2xs hover:bg-blue-100 cursor-pointer transition-colors"
+                        >
+                          <HiOutlinePhotograph size={13} className="text-blue-600" />
+                          <span>View Proof Screenshot</span>
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-mono font-medium text-slate-400">
+                          Record ID: #{log._id ? log._id.slice(-6).toUpperCase() : 'AUDIT'}
+                        </span>
+                      )}
+
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange/10 hover:bg-orange/20 text-orange rounded-lg text-[11px] font-bold transition-colors ml-auto">
+                        Details <HiOutlineChevronRight size={12} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table (hidden md:block) */}
+          <div className="hidden md:block bg-pure-white border border-soft-gray rounded-2xl shadow-xs overflow-hidden overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
                 <tr className="bg-soft-white border-b border-soft-gray">
@@ -260,8 +432,16 @@ const PermanentHistoryPage = () => {
                           {actionLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4.5 text-xs text-deep-navy/80 font-medium max-w-[300px] truncate" title={log.description}>
-                        {log.description || '—'}
+                      <td className="px-6 py-4.5 text-xs text-deep-navy/80 font-medium max-w-[300px]" title={log.description}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="truncate max-w-[200px]">{log.description || '—'}</span>
+                          {log.billImageUrl && (
+                            <span className="inline-flex items-center gap-1 text-[9px] text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md font-bold border border-blue-200 shadow-2xs shrink-0">
+                              <HiOutlinePhotograph size={12} />
+                              Screenshot
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4.5 text-xs font-bold text-right text-deep-navy">
                         {log.amount > 0 ? (
@@ -314,7 +494,7 @@ const PermanentHistoryPage = () => {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               <div className="bg-[#f8fafc] border border-soft-gray/60 rounded-2xl p-5 divide-y divide-soft-gray/40 space-y-4">
                 {/* Customer Details */}
                 <div className="flex justify-between items-center pb-4">
@@ -404,6 +584,42 @@ const PermanentHistoryPage = () => {
                     <span className="text-lg font-black text-orange">₹{selectedLog.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
+
+                {/* Payment Screenshot Preview Card */}
+                {selectedLog.billImageUrl && (
+                  <div className="pt-4">
+                    <span className="text-[9px] text-slate-gray font-extrabold uppercase tracking-wider block mb-2 flex items-center gap-1">
+                      <HiOutlinePhotograph size={12} className="text-orange" />
+                      Payment Screenshot / Receipt Proof
+                    </span>
+                    <div className="relative group overflow-hidden rounded-xl border border-soft-gray bg-slate-900/5 p-3 flex flex-col items-center justify-center">
+                      <img
+                        src={selectedLog.billImageUrl}
+                        alt="Payment Screenshot Proof"
+                        className="max-h-56 w-auto object-contain rounded-lg shadow-sm transition-transform duration-200 group-hover:scale-[1.02] cursor-pointer"
+                        onClick={() => setLightboxImg(selectedLog.billImageUrl)}
+                      />
+                      <div className="mt-3 flex items-center gap-2 w-full justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setLightboxImg(selectedLog.billImageUrl)}
+                          className="px-3.5 py-1.5 bg-orange text-white text-[11px] font-bold rounded-lg hover:bg-orange/90 cursor-pointer shadow-xs flex items-center gap-1 border-none"
+                        >
+                          <HiOutlineEye size={14} /> View Full Screenshot
+                        </button>
+                        <a
+                          href={selectedLog.billImageUrl}
+                          download={`payment_screenshot_${selectedLog._id}.png`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3.5 py-1.5 bg-white border border-soft-gray text-slate-gray hover:text-deep-navy text-[11px] font-bold rounded-lg cursor-pointer shadow-2xs flex items-center gap-1 no-underline"
+                        >
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Compliance Text */}
@@ -427,8 +643,34 @@ const PermanentHistoryPage = () => {
           </div>
         </div>
       )}
+
+      {/* Lightbox Image Preview Modal */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setLightboxImg(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-slate-950 p-2 border border-slate-800 shadow-2xl flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setLightboxImg(null)}
+              className="absolute top-3 right-3 z-10 bg-slate-800/90 text-white hover:bg-slate-700 p-2 rounded-full border-none cursor-pointer shadow-md transition-colors"
+            >
+              <HiOutlineX size={20} />
+            </button>
+            <img
+              src={lightboxImg}
+              alt="Payment Screenshot Full Preview"
+              className="max-h-[82vh] max-w-full object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
 export default PermanentHistoryPage;
+

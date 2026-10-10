@@ -489,3 +489,91 @@ body, header, aside, tr, td, th, input, select, textarea, button,
     background: rgba(245, 158, 11, 0.22);
   }
 }
+
+/* Mobile usability improvements for AI Digital Khata.
+   These overrides intentionally avoid changing application logic or desktop layouts. */
+@media (max-width: 767px) {
+  html {
+    width: 100%;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /* Keep long customer names, account IDs and headings from widening the page. */
+  main,
+  main > div,
+  main section,
+  main article {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Comfortable touch targets and legible form controls on phones. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 42px;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Keep dense ledger tables usable: scroll the table wrapper, not the whole page. */
+  .overflow-x-auto {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent toast notifications from covering the full mobile screen. */
+  .Toastify__toast-container {
+    width: calc(100vw - 24px) !important;
+    max-width: 420px;
+    left: 12px !important;
+    right: 12px !important;
+    padding: 8px 0 !important;
+  }
+
+  .Toastify__toast {
+    margin-bottom: 8px !important;
+    border-radius: 14px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  /* Extra-tight screens such as older 320–360px phones. */
+  .Toastify__toast-body {
+    font-size: 12px !important;
+  }
+
+  .Toastify__toast-icon {
+    margin-right: 8px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

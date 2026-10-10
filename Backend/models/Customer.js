@@ -87,8 +87,8 @@ const customerSchema = new mongoose.Schema(
     },
     duePrediction: {
       type: String,
-      enum: ['trusted', 'delay', 'risky'],
-      default: 'trusted',
+      enum: ['trusted', 'delay', 'risky', 'new', 'cleared'],
+      default: 'new',
     },
     totalTransactions: {
       type: Number,
@@ -146,6 +146,67 @@ const customerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    houseNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    street: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    area: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    pincode: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    latitude: {
+      type: Number,
+      default: null,
+    },
+    longitude: {
+      type: Number,
+      default: null,
+    },
+    addressVerificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'mismatch', 'rejected'],
+      default: 'pending',
+    },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    verifiedAt: {
+      type: Date,
+      default: null,
+    },
+    verificationNote: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    verificationEvidence: {
+      type: String,
+      default: '',
+    },
     isDeleted: {
       type: Boolean,
       default: false,
@@ -173,6 +234,27 @@ customerSchema.pre('save', function (next) {
   if (this.isModified('notes') && this.notes) {
     this.notes = encrypt(this.notes);
   }
+  if (this.isModified('houseNumber') && this.houseNumber) {
+    this.houseNumber = encrypt(this.houseNumber);
+  }
+  if (this.isModified('street') && this.street) {
+    this.street = encrypt(this.street);
+  }
+  if (this.isModified('area') && this.area) {
+    this.area = encrypt(this.area);
+  }
+  if (this.isModified('city') && this.city) {
+    this.city = encrypt(this.city);
+  }
+  if (this.isModified('state') && this.state) {
+    this.state = encrypt(this.state);
+  }
+  if (this.isModified('pincode') && this.pincode) {
+    this.pincode = encrypt(this.pincode);
+  }
+  if (this.isModified('verificationNote') && this.verificationNote) {
+    this.verificationNote = encrypt(this.verificationNote);
+  }
   next();
 });
 
@@ -181,6 +263,13 @@ customerSchema.post('init', function (doc) {
   if (doc.phone) doc.phone = decrypt(doc.phone);
   if (doc.address) doc.address = decrypt(doc.address);
   if (doc.notes) doc.notes = decrypt(doc.notes);
+  if (doc.houseNumber) doc.houseNumber = decrypt(doc.houseNumber);
+  if (doc.street) doc.street = decrypt(doc.street);
+  if (doc.area) doc.area = decrypt(doc.area);
+  if (doc.city) doc.city = decrypt(doc.city);
+  if (doc.state) doc.state = decrypt(doc.state);
+  if (doc.pincode) doc.pincode = decrypt(doc.pincode);
+  if (doc.verificationNote) doc.verificationNote = decrypt(doc.verificationNote);
 });
 
 // Post-save hook: Decrypt fields in memory after save
@@ -188,6 +277,13 @@ customerSchema.post('save', function (doc) {
   if (doc.phone) doc.phone = decrypt(doc.phone);
   if (doc.address) doc.address = decrypt(doc.address);
   if (doc.notes) doc.notes = decrypt(doc.notes);
+  if (doc.houseNumber) doc.houseNumber = decrypt(doc.houseNumber);
+  if (doc.street) doc.street = decrypt(doc.street);
+  if (doc.area) doc.area = decrypt(doc.area);
+  if (doc.city) doc.city = decrypt(doc.city);
+  if (doc.state) doc.state = decrypt(doc.state);
+  if (doc.pincode) doc.pincode = decrypt(doc.pincode);
+  if (doc.verificationNote) doc.verificationNote = decrypt(doc.verificationNote);
 });
 
 // Index for faster queries by owner

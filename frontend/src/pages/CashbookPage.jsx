@@ -434,7 +434,7 @@ const CashbookPage = () => {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-soft-white border border-soft-gray p-4 rounded-2xl mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-soft-white border border-soft-gray p-3.5 sm:p-4 rounded-2xl mb-6">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-gray" size={15} />
             <input
@@ -499,7 +499,71 @@ const CashbookPage = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-xl border border-soft-gray">
+            {/* Mobile Card View (md:hidden) */}
+            <div className="md:hidden divide-y divide-soft-gray/30 rounded-xl border border-soft-gray bg-pure-white overflow-hidden shadow-2xs">
+              {entries.map((entry) => {
+                const isCashIn = entry.type === 'in';
+                const formattedDate = new Date(entry.date).toLocaleString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+
+                return (
+                  <div key={entry._id} className="p-3.5 space-y-2 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            entry.paymentMode === 'cash' 
+                              ? 'bg-warning-pending/10 text-warning-pending' 
+                              : 'bg-green-get/10 text-green-get'
+                          }`}
+                        >
+                          {entry.paymentMode === 'cash' ? t('cash') : t('online')}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold ${
+                            entry.type === 'in' 
+                              ? 'bg-green-get/5 text-green-get border border-green-get/10' 
+                              : 'bg-red-give/5 text-red-give border border-red-give/10'
+                          }`}
+                        >
+                          {entry.category || 'Other'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-sm font-extrabold ${isCashIn ? 'text-green-get' : 'text-red-give'}`}>
+                          {isCashIn ? `+₹${entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : `-₹${entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {entry.description && (
+                      <p className="text-xs font-semibold text-deep-navy m-0 line-clamp-2">
+                        {entry.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1 text-[11px] text-slate-gray">
+                      <span>{formattedDate}</span>
+                      <button
+                        className="p-1.5 text-red-give hover:bg-red-give/10 rounded-lg cursor-pointer flex items-center justify-center border-none bg-transparent transition-colors"
+                        onClick={() => handleOpenDelete(entry)}
+                        title={t('delete')}
+                      >
+                        <HiOutlineTrash size={15} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-soft-gray">
               <table className="w-full text-left border-collapse min-w-[650px]">
                 <thead>
                   <tr className="bg-soft-white border-b border-soft-gray">
@@ -570,7 +634,7 @@ const CashbookPage = () => {
             </div>
 
             {/* Filter Summary footer */}
-            <div className="mt-4 flex justify-end gap-6 p-4 bg-soft-white border border-soft-gray rounded-xl text-xs font-bold text-slate-gray">
+            <div className="mt-4 flex flex-col sm:flex-row justify-between sm:justify-end gap-2 sm:gap-6 p-3 sm:p-4 bg-soft-white border border-soft-gray rounded-xl text-xs font-bold text-slate-gray">
               <div>
                 <span>Total Cash In: </span>
                 <span className="text-green-get">

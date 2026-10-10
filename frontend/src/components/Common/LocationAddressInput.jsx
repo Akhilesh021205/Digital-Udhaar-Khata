@@ -24,6 +24,9 @@ export const navigateToAddress = (address) => {
 const LocationAddressInput = ({
   value = '',
   onChange,
+  onSelectLocationDetails,
+  latitude = null,
+  longitude = null,
   placeholder = 'Enter address manually or select on map...',
   className = '',
   id = 'customer-address-input',
@@ -60,8 +63,9 @@ const LocationAddressInput = ({
 
       {value && value.trim() && showNavigateButton && (
         <div className="flex items-center justify-between gap-2 pt-0.5">
-          <span className="text-[11px] text-slate-gray dark:text-slate-400 font-medium truncate max-w-[60%]">
-            📍 Google Maps location set
+          <span className="text-[11px] text-slate-gray dark:text-slate-400 font-medium truncate max-w-[60%] inline-flex items-center gap-1">
+            <HiOutlineLocationMarker size={13} className="text-orange shrink-0" />
+            <span>Google Maps location set</span>
           </span>
           <button
             type="button"
@@ -80,7 +84,10 @@ const LocationAddressInput = ({
         isOpen={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSelectLocation={handleSelectLocation}
+        onSelectLocationDetails={onSelectLocationDetails}
         initialAddress={value}
+        initialLat={latitude}
+        initialLng={longitude}
       />
     </div>
   );

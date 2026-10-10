@@ -25,12 +25,24 @@ router.get('/', async (req, res, next) => {
       ];
     }
 
-    const history = await CustomerHistory.find(query).sort({ date: -1 });
+    const history = await CustomerHistory.find(query)
+      .populate('transactionId', 'billImageUrl')
+      .sort({ date: -1 })
+      .lean();
+
+    const enrichedHistory = history.map((item) => {
+      const billUrl = item.billImageUrl || (item.transactionId && item.transactionId.billImageUrl) || '';
+      return {
+        ...item,
+        billImageUrl: billUrl,
+        transactionId: item.transactionId?._id || item.transactionId || null,
+      };
+    });
 
     res.status(200).json({
       success: true,
-      count: history.length,
-      data: history,
+      count: enrichedHistory.length,
+      data: enrichedHistory,
     });
   } catch (error) {
     next(error);

@@ -21,6 +21,7 @@ const translations = {
     reportsOverview: 'Reports Overview',
     customerDetails: 'Customer Details',
     quickActions: 'Quick Actions',
+    transactionHistory: 'History',
 
     // Common actions
     youGave: '+ You Gave',

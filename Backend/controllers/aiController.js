@@ -511,7 +511,7 @@ You are assisting the shop owner, ${ownerName}, who runs the shop named "${store
 Today's date and time is ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}.
 
 Here is the real-time data of the shopkeeper's customers (names, current balances, credit scores, AI prediction labels, risk levels):
-${customers.map(c => `- Name: ${c.name}, Balance: ₹${c.balance} (${c.balance > 0 ? 'owes you / due' : c.balance < 0 ? 'advance' : 'settled'}), Credit Score: ${c.creditScore || 750}, AI Prediction: ${c.duePrediction === 'trusted' ? 'Trusted Customer ✅' : c.duePrediction === 'delay' ? 'Late Payer ⚠️' : 'Risky Customer 🚨'}, Risk: ${c.riskLevel.toUpperCase()}`).join('\n')}
+${customers.map(c => `- Name: ${c.name}, Balance: ₹${c.balance} (${c.balance > 0 ? 'owes you / due' : c.balance < 0 ? 'advance' : 'settled'}), Credit Score: ${c.creditScore || 750}, AI Prediction: ${c.duePrediction === 'trusted' ? 'Trusted Customer' : c.duePrediction === 'delay' ? 'Late Payer' : 'Risky Customer'}, Risk: ${c.riskLevel.toUpperCase()}`).join('\n')}
 
 Here is the list of recent ledger transactions (last 20 entries, sorted from newest to oldest):
 ${transactions.map((t, index) => `${index + 1}. Date: ${new Date(t.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}, Customer: ${t.customer ? t.customer.name : 'Unknown'}, Type: ${t.type === 'credit' ? 'Udhaar (Gave / Customer owes)' : 'Jama (Got / Paid back)'}, Amount: ₹${t.amount}, Description: ${t.description || 'none'}, Status: ${t.paymentStatus}, Mode: ${t.paymentMode || 'none'}, Txn ID: ${t._id}`).join('\n')}
@@ -641,9 +641,9 @@ You MUST respond ONLY with a JSON object in this format:
       normalized.includes('उधार') || normalized.includes('बैलेंस') || normalized.includes('बाकी') ||
       normalized.includes('ఉధార్') || normalized.includes('బాకీ') || normalized.includes('బ్యాలెన్స్')
     )) {
-      const predLabel = matchedCustomer.duePrediction === 'trusted' ? 'Trusted Customer ✅'
-                      : matchedCustomer.duePrediction === 'delay' ? 'Late Payer ⚠️'
-                      : 'Risky Customer 🚨';
+      const predLabel = matchedCustomer.duePrediction === 'trusted' ? 'Trusted Customer'
+                      : matchedCustomer.duePrediction === 'delay' ? 'Late Payer'
+                      : 'Risky Customer';
                       
       let statusText = '';
       if (matchedCustomer.balance > 0) {
@@ -681,7 +681,7 @@ You MUST respond ONLY with a JSON object in this format:
 
       return res.status(200).json({
         success: true,
-        response: `📈 **This Month's Collection:**\n\nYou have collected a total of **₹${totalCollection.toLocaleString('en-IN')}** from payments this month.`,
+        response: `**This Month's Collection:**\n\nYou have collected a total of **₹${totalCollection.toLocaleString('en-IN')}** from payments this month.`,
         suggestions: ["Show today's transactions", "Who has highest due?", "Risky customers"]
       });
     }
@@ -698,14 +698,14 @@ You MUST respond ONLY with a JSON object in this format:
       if (!topCustomer || topCustomer.balance <= 0) {
         return res.status(200).json({
           success: true,
-          response: "No customers have outstanding dues right now! Everyone is cleared up. 🎉",
+          response: "No customers have outstanding dues right now! Everyone is cleared up.",
           suggestions: ["Show this month collection", "Risky customers"]
         });
       }
 
       return res.status(200).json({
         success: true,
-        response: `👑 **Highest Due Customer:**\n\n**${topCustomer.name}** has the highest outstanding due of **₹${topCustomer.balance.toLocaleString('en-IN')}**.\n\n* Credit Score: ${topCustomer.creditScore || 750}\n* AI Prediction: ${topCustomer.duePrediction === 'trusted' ? 'Trusted ✅' : topCustomer.duePrediction === 'delay' ? 'Late Payer ⚠️' : 'Risky 🚨'}`,
+        response: `**Highest Due Customer:**\n\n**${topCustomer.name}** has the highest outstanding due of **₹${topCustomer.balance.toLocaleString('en-IN')}**.\n\n* Credit Score: ${topCustomer.creditScore || 750}\n* AI Prediction: ${topCustomer.duePrediction === 'trusted' ? 'Trusted' : topCustomer.duePrediction === 'delay' ? 'Late Payer' : 'Risky'}`,
         suggestions: [`How much udhar does ${topCustomer.name} have?`, "Show this month collection", "Risky customers"]
       });
     }
@@ -721,7 +721,7 @@ You MUST respond ONLY with a JSON object in this format:
       if (risky.length === 0) {
         return res.status(200).json({
           success: true,
-          response: "Great news! You have **0 High-Risk** customers right now. Everyone pays on time or has low outstanding balances. ✅",
+          response: "Great news! You have **0 High-Risk** customers right now. Everyone pays on time or has low outstanding balances.",
           suggestions: ["Show this month collection", "Who has highest due?"]
         });
       }
@@ -730,7 +730,7 @@ You MUST respond ONLY with a JSON object in this format:
 
       return res.status(200).json({
         success: true,
-        response: `⚠️ **Risky Customers (High Risk of Delay):**\n\nThe following customers may delay payments based on their transaction speed and history:\n\n${listStr}`,
+        response: `**Risky Customers (High Risk of Delay):**\n\nThe following customers may delay payments based on their transaction speed and history:\n\n${listStr}`,
         suggestions: ["Show this month collection", "Who has highest due?"]
       });
     }
@@ -746,7 +746,7 @@ You MUST respond ONLY with a JSON object in this format:
 
       return res.status(200).json({
         success: true,
-        response: `📊 **Customer Credit Scores Overview:**\n\n**Top Rated (Trusted) Customers:**\n${topStr}\n\n**Needs Attention (Risky/Late):**\n${bottomStr}`,
+        response: `**Customer Credit Scores Overview:**\n\n**Top Rated (Trusted) Customers:**\n${topStr}\n\n**Needs Attention (Risky/Late):**\n${bottomStr}`,
         suggestions: ["Risky customers", "Who has highest due?", "Show this month collection"]
       });
     }
@@ -764,7 +764,7 @@ You MUST respond ONLY with a JSON object in this format:
       if (txns.length === 0) {
         return res.status(200).json({
           success: true,
-          response: "You haven't recorded any transactions yet today. 🗓️",
+          response: "You haven't recorded any transactions yet today.",
           suggestions: ["Show this month collection", "Who has highest due?"]
         });
       }
@@ -773,14 +773,14 @@ You MUST respond ONLY with a JSON object in this format:
 
       return res.status(200).json({
         success: true,
-        response: `📅 **Today's Transactions:**\n\n${txnsList}`,
+        response: `**Today's Transactions:**\n\n${txnsList}`,
         suggestions: ["Show this month collection", "Who has highest due?"]
       });
     }
 
     return res.status(200).json({
       success: true,
-      response: "I'm not sure how to answer that question. 😅\n\nYou can ask me things like:\n* \"How much udhar does customer have?\"\n* \"Show this month collection\"\n* \"Who has highest due?\"\n* \"Who is risky?\"\n* \"What is the credit score of Suresh?\"",
+      response: "I'm not sure how to answer that question.\n\nYou can ask me things like:\n* \"How much udhar does customer have?\"\n* \"Show this month collection\"\n* \"Who has highest due?\"\n* \"Who is risky?\"\n* \"What is the credit score of Suresh?\"",
       suggestions: ["How much udhar does customer have?", "Show this month collection", "Who has highest due?", "Risky customers"]
     });
   } catch (error) {

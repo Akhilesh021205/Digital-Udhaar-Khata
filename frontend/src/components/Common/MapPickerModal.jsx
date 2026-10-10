@@ -13,20 +13,41 @@ const GoogleGIcon = () => (
   </svg>
 );
 
-const MapPickerModal = ({ isOpen, onClose, onSelectLocation, initialAddress = '' }) => {
+const MapPickerModal = ({ 
+  isOpen, 
+  onClose, 
+  onSelectLocation, 
+  onSelectLocationDetails, 
+  initialAddress = '',
+  initialLat = null,
+  initialLng = null
+}) => {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const tileLayerRef = useRef(null);
 
+  const hasInitialCoords = initialLat !== null && initialLng !== null && !isNaN(initialLat) && !isNaN(initialLng);
+
   const [selectedAddr, setSelectedAddr] = useState(initialAddress);
-  const [coords, setCoords] = useState({ lat: 17.3850, lng: 78.4867 });
+  const [coords, setCoords] = useState({ 
+    lat: hasInitialCoords ? Number(initialLat) : 17.3850, 
+    lng: hasInitialCoords ? Number(initialLng) : 78.4867 
+  });
+  const [addressDetails, setAddressDetails] = useState({
+    houseNumber: '',
+    street: '',
+    area: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
   const [searchQuery, setSearchQuery] = useState(initialAddress);
   const [mapType, setMapType] = useState('roadmap'); // 'roadmap' or 'satellite'
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
 
-  // Reverse geocode lat/lng into human readable address
+  // Reverse geocode lat/lng into human readable address & structured fields
   const reverseGeocode = async (lat, lng) => {
     try {
       const res = await fetch(
@@ -38,6 +59,16 @@ const MapPickerModal = ({ isOpen, onClose, onSelectLocation, initialAddress = ''
       if (data && data.display_name) {
         setSelectedAddr(data.display_name);
         setSearchQuery(data.display_name);
+        if (data.address) {
+          setAddressDetails({
+            houseNumber: data.address.house_number || data.address.building || '',
+            street: data.address.road || data.address.street || '',
+            area: data.address.suburb || data.address.neighbourhood || data.address.residential || '',
+            city: data.address.city || data.address.town || data.address.village || '',
+            state: data.address.state || '',
+            pincode: data.address.postcode || ''
+          });
+        }
       } else {
         const fallback = `Location Pin (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
         setSelectedAddr(fallback);
@@ -74,8 +105,8 @@ const MapPickerModal = ({ isOpen, onClose, onSelectLocation, initialAddress = ''
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
 
-      let startLat = coords.lat;
-      let startLng = coords.lng;
+      let startLat = hasInitialCoords ? Number(initialLat) : coords.lat;
+      let startLng = hasInitialCoords ? Number(initialLng) : coords.lng;
 
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -126,17 +157,29 @@ const MapPickerModal = ({ isOpen, onClose, onSelectLocation, initialAddress = ''
       mapInstanceRef.current = map;
       markerRef.current = marker;
 
-      // Auto locate GPS position if no initial address
-      if (!initialAddress && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          if (!isMounted) return;
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setCoords({ lat, lng });
-          map.setView([lat, lng], 17);
-          marker.setLatLng([lat, lng]);
-          reverseGeocode(lat, lng);
-        }, () => {}, { enableHighAccuracy: true });
+      // Automatically detect live GPS position whenever Google Maps opens
+      if (navigator.geolocation) {
+        setLocating(true);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (!isMounted) return;
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setCoords({ lat, lng });
+            map.setView([lat, lng], 17);
+            marker.setLatLng([lat, lng]);
+            reverseGeocode(lat, lng);
+            setLocating(false);
+          },
+          (err) => {
+            if (!isMounted) return;
+            setLocating(false);
+            reverseGeocode(startLat, startLng);
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } else {
+        reverseGeocode(startLat, startLng);
       }
 
       // Multiple size recalculation steps to guarantee tiles load immediately when modal opens
@@ -257,6 +300,14 @@ const MapPickerModal = ({ isOpen, onClose, onSelectLocation, initialAddress = ''
     if (!selectedAddr || !selectedAddr.trim()) {
       toast.warning('Please select a location on Google Maps.');
       return;
+    }
+    if (onSelectLocationDetails) {
+      onSelectLocationDetails({
+        address: selectedAddr.trim(),
+        latitude: coords.lat,
+        longitude: coords.lng,
+        ...addressDetails
+      });
     }
     onSelectLocation(selectedAddr.trim());
     onClose();

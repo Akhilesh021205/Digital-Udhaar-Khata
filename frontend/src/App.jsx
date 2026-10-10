@@ -79,10 +79,11 @@ const AppRoutes = () => (
     <Route path="/security-setup" element={<SecuritySetupRoute><SecurityLockSetup /></SecuritySetupRoute>} />
     <Route path="/biometric-demo" element={<BiometricDemoPage />} />
     <Route path="/pay/:customerId" element={<PaymentCheckoutPage />} />
+    <Route path="/pay" element={<PaymentCheckoutPage />} />
     <Route path="/" element={<IndexRoute />} />
     <Route path="/customers" element={<ProtectedRoute><Layout><CustomersPage /></Layout></ProtectedRoute>} />
     <Route path="/customers/:id" element={<ProtectedRoute><Layout><CustomerDetailPage /></Layout></ProtectedRoute>} />
-    <Route path="/transactions" element={<Navigate to="/customers" />} />
+    <Route path="/transactions" element={<Navigate to="/history" />} />
     <Route path="/cashbook" element={<ProtectedRoute><Layout><CashbookPage /></Layout></ProtectedRoute>} />
     <Route path="/reminders" element={<ProtectedRoute><Layout><RemindersPage /></Layout></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
