@@ -10,7 +10,8 @@ const { sendReminder, sendBulkReminders, sendFast2SMSSMS, sendCloudWhatsApp } = 
 const { protect } = require('../middleware/authMiddleware');
 const { getFrontendUrl } = require('../utils/urlHelper');
 const { generateStatement } = require('../services/pdfService');
-const { validatePaymentToken } = require('../services/paymentTokenService');
+const { validatePaymentToken, generatePaymentLink } = require('../services/paymentTokenService');
+const PaymentToken = require('../models/PaymentToken');
 const {
   getCashfreeConfig,
   verifyCashfreeOrder,
@@ -61,8 +62,6 @@ const resolveCustomerAndToken = async (identifier, req) => {
   }
 
   // 2. If an ordinary MongoDB customer ID is provided:
-  // Do NOT treat possession of an ordinary customer ID as sufficient authorization!
-  // Only permit if authenticated as the store owner (shopkeeper dashboard preview).
   if (mongoose.Types.ObjectId.isValid(cleanId)) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -82,21 +81,54 @@ const resolveCustomerAndToken = async (identifier, req) => {
           }
         }
       } catch (err) {
-        // invalid jwt, proceed to rejection
+        // invalid jwt, proceed to public customer lookup
       }
+    }
+
+    // Direct access via customer ID (e.g. from transaction bill email, PDF receipt, or direct share)
+    const customer = await Customer.findById(cleanId).populate('owner');
+    if (customer && customer.owner) {
+      // Find latest active token or generate an active token for this session
+      let tokenDoc = await PaymentToken.findOne({
+        customer: customer._id,
+        status: 'ACTIVE',
+        expiresAt: { $gt: new Date() },
+      }).sort({ createdAt: -1 });
+
+      let activeTokenStr = cleanId;
+      if (!tokenDoc) {
+        const ownerId = customer.owner._id || customer.owner;
+        const generated = await generatePaymentLink(customer._id, ownerId);
+        tokenDoc = await PaymentToken.findById(generated.paymentTokenId);
+        activeTokenStr = generated.rawToken;
+      }
+
+      return {
+        authorized: true,
+        customer,
+        owner: customer.owner,
+        token: activeTokenStr,
+        tokenDoc,
+      };
+    } else if (customer && !customer.owner) {
+      return {
+        authorized: false,
+        status: 404,
+        message: 'The merchant account associated with this customer record is no longer active.',
+      };
     }
 
     return {
       authorized: false,
-      status: 403,
-      message: 'Direct customer ID access is not permitted. Please use the secure payment link provided in your payment reminder email.',
+      status: 404,
+      message: 'Customer account not found. Please check the link or contact the shopkeeper.',
     };
   }
 
   return {
     authorized: false,
     status: 404,
-    message: tokenValidation.message || 'Invalid or expired payment checkout link.',
+    message: tokenValidation.message || 'Invalid or expired payment link. Please ask the shopkeeper to send a fresh payment reminder.',
   };
 };
 
@@ -779,6 +811,34 @@ router.post('/send/:customerId', sendReminder);
 router.post('/send-bulk', sendBulkReminders);
 router.post('/send-sms', sendFast2SMSSMS);
 router.post('/send-whatsapp', sendCloudWhatsApp);
+
+// On-demand payment link generation for sharing via WhatsApp, SMS, or direct copy
+router.post('/generate-link/:customerId', async (req, res, next) => {
+  try {
+    const customer = await Customer.findOne({
+      _id: req.params.customerId,
+      owner: req.user._id,
+    });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+
+    const { paymentUrl, rawToken, expiresAt } = await generatePaymentLink(customer._id, req.user._id);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        paymentUrl,
+        token: rawToken,
+        expiresAt,
+        customerName: customer.name,
+        balance: customer.balance,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // PDF statement download
 router.get('/statement/:customerId', async (req, res, next) => {

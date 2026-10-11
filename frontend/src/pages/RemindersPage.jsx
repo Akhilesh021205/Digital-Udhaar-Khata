@@ -5,6 +5,7 @@ import Loader from '../components/Common/Loader';
 import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
 import { HiOutlinePaperAirplane, HiOutlineCheckCircle, HiOutlineMail } from 'react-icons/hi';
+import { FaWhatsapp, FaRegCopy, FaCheck } from 'react-icons/fa';
 
 const RemindersPage = () => {
   const { t } = useLanguage();
@@ -41,6 +42,44 @@ const RemindersPage = () => {
       toast.error(err.response?.data?.message || 'Failed to send reminder'); 
     } finally { 
       setSending(p => ({ ...p, [customer._id]: false })); 
+    }
+  };
+
+  const copyPaymentLink = async (customer) => {
+    setCopying(p => ({ ...p, [customer._id]: true }));
+    try {
+      const { data } = await API.post(`/reminders/generate-link/${customer._id}`);
+      const link = data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`;
+      await navigator.clipboard.writeText(link);
+      setCopiedId(customer._id);
+      setTimeout(() => setCopiedId(null), 2500);
+      toast.success(`✓ Payment link copied for ${customer.name}!`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate payment link');
+    } finally {
+      setCopying(p => ({ ...p, [customer._id]: false }));
+    }
+  };
+
+  const shareViaWhatsApp = async (customer) => {
+    try {
+      const phone = customer.phone?.replace(/[^0-9]/g, '');
+      let link = '';
+      try {
+        const { data } = await API.post(`/reminders/generate-link/${customer._id}`);
+        link = data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`;
+      } catch {
+        link = `${window.location.origin}/pay/${customer._id}`;
+      }
+      const due = Math.abs(customer.balance || 0);
+      const message = `Namaste ${customer.name}, your total outstanding balance at our store is ₹${due.toLocaleString('en-IN')}.\n\nPlease click here to settle online via UPI, Cards, or NetBanking:\n${link}\n\nThank you!`;
+      const formattedPhone = phone ? (phone.startsWith('91') && phone.length === 12 ? phone : `91${phone}`) : '';
+      const url = formattedPhone 
+        ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    } catch {
+      toast.error('Failed to open WhatsApp reminder');
     }
   };
 
@@ -116,19 +155,36 @@ const RemindersPage = () => {
                       <span className="text-[11px] text-slate-gray/50 italic">No Email Added</span>
                     )}
                   </div>
-                  <button 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-2xs disabled:opacity-50 shrink-0" 
-                    title="Send Email Reminder" 
-                    onClick={() => sendEmailRemind(c)}
-                    disabled={sending[c._id] || !c.email}
-                  >
-                    {sending[c._id] ? (
-                      <span className="w-3.5 h-3.5 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <HiOutlineMail size={14} />
-                    )}
-                    Email Reminder
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-2xs"
+                      title="Send WhatsApp Reminder"
+                      onClick={() => shareViaWhatsApp(c)}
+                    >
+                      <FaWhatsapp size={13} />
+                    </button>
+                    <button
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg transition-colors shadow-2xs disabled:opacity-50"
+                      title="Copy Payment Link"
+                      onClick={() => copyPaymentLink(c)}
+                      disabled={copying[c._id]}
+                    >
+                      {copiedId === c._id ? <FaCheck size={12} className="text-emerald-600" /> : <FaRegCopy size={12} />}
+                    </button>
+                    <button 
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-2xs disabled:opacity-40" 
+                      title="Send Email Reminder" 
+                      onClick={() => sendEmailRemind(c)}
+                      disabled={sending[c._id] || !c.email}
+                    >
+                      {sending[c._id] ? (
+                        <span className="w-3 h-3 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <HiOutlineMail size={13} />
+                      )}
+                      Email
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -160,19 +216,47 @@ const RemindersPage = () => {
                     <td className="px-6 py-4 text-sm align-middle text-deep-navy">{c.phone}</td>
                     <td className="px-6 py-4 text-sm align-middle font-bold text-red-give">₹{c.balance.toLocaleString('en-IN')}</td>
                     <td className="px-6 py-4 text-sm align-middle">
-                      <button 
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm disabled:opacity-50" 
-                        title="Send Email Reminder" 
-                        onClick={() => sendEmailRemind(c)}
-                        disabled={sending[c._id] || !c.email}
-                      >
-                        {sending[c._id] ? (
-                          <span className="w-3.5 h-3.5 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <HiOutlineMail size={14} />
-                        )}
-                        Email Reminder
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+                          title="Send WhatsApp Reminder with Payment Link"
+                          onClick={() => shareViaWhatsApp(c)}
+                        >
+                          <FaWhatsapp size={14} />
+                          WhatsApp
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                          title="Copy Direct Payment Link"
+                          onClick={() => copyPaymentLink(c)}
+                          disabled={copying[c._id]}
+                        >
+                          {copiedId === c._id ? (
+                            <>
+                              <FaCheck size={12} className="text-emerald-600" />
+                              <span className="text-emerald-600">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <FaRegCopy size={12} />
+                              Copy Link
+                            </>
+                          )}
+                        </button>
+                        <button 
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-orange hover:bg-orange-hover text-white text-xs font-bold rounded-lg border-none cursor-pointer transition-colors shadow-sm disabled:opacity-40" 
+                          title="Send Email Reminder" 
+                          onClick={() => sendEmailRemind(c)}
+                          disabled={sending[c._id] || !c.email}
+                        >
+                          {sending[c._id] ? (
+                            <span className="w-3.5 h-3.5 border-2 border-pure-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <HiOutlineMail size={14} />
+                          )}
+                          Email
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

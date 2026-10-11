@@ -256,7 +256,7 @@ const DashboardPage = () => {
     }
   };
 
-  const handleWhatsAppRemind = (customer) => {
+  const handleWhatsAppRemind = async (customer) => {
     if (!customer) {
       toast.warning('Please select a customer first');
       return;
@@ -267,7 +267,16 @@ const DashboardPage = () => {
       return;
     }
     const dueAmount = Math.abs(customer.balance || 0);
-    const message = `Hello ${customer.name}, your total outstanding balance at ${user?.storeName || 'our store'} is ₹${dueAmount.toLocaleString('en-IN')}. Kindly clear the payment at your earliest convenience. Thank you!`;
+
+    let paymentUrl = '';
+    try {
+      const { data } = await API.post(`/reminders/generate-link/${customer._id}`);
+      paymentUrl = data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`;
+    } catch {
+      paymentUrl = `${window.location.origin}/pay/${customer._id}`;
+    }
+
+    const message = `Namaste ${customer.name}, your total outstanding balance at ${user?.storeName || 'our store'} is ₹${dueAmount.toLocaleString('en-IN')}.\n\nPlease click here to settle online via UPI, Cards, or NetBanking:\n${paymentUrl}\n\nThank you!`;
     const formattedPhone = phone.startsWith('91') && phone.length === 12 ? phone : `91${phone}`;
     const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');

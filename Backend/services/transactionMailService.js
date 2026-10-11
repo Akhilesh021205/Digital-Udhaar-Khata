@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { sendEmail } = require('./mailService');
 const { generateStatementBuffer, generateReceiptPDFBuffer } = require('./pdfService');
 const { getFrontendUrl } = require('../utils/urlHelper');
+const { generatePaymentLink } = require('./paymentTokenService');
 
 /**
  * Send a bill email for credit (Udhaar) transactions or a payment confirmation email for debit (Jama) transactions.
@@ -23,6 +24,15 @@ const sendTransactionEmail = async (transactionId) => {
     const storeName = owner.storeName || 'AI Digital Khata';
     const customerFirstName = customer.name ? customer.name.split(' ')[0] : 'Valued Customer';
     const frontendUrl = getFrontendUrl();
+    let customerPaymentUrl = `${frontendUrl}/pay/${customer._id}`;
+    try {
+      const linkRes = await generatePaymentLink(customer._id, owner._id);
+      if (linkRes && linkRes.paymentUrl) {
+        customerPaymentUrl = linkRes.paymentUrl;
+      }
+    } catch (linkErr) {
+      console.warn('Failed to generate token payment link:', linkErr.message);
+    }
     const dateStr = new Date(transaction.date).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'long',
@@ -128,7 +138,7 @@ const sendTransactionEmail = async (transactionId) => {
       const customerAddress = customer.address || 'Not specified';
       const customerInitial = customerName.charAt(0).toUpperCase();
 
-      const textMessage = `Namaste ${customerFirstName}!\n\nThis is an automated bill notification from KathaGPT.\n\nA new purchase has been recorded on your account at ${storeName}.\n\nBill Details:\n- Amount: ₹${transaction.amount.toFixed(2)}\n- Purchased Products: ${transaction.description || 'Not specified'}\n- Date: ${dateStr}\n\nYour total outstanding balance is now ₹${customer.balance.toFixed(2)}.\n\nYou can view your statement or pay online here: ${frontendUrl}/pay/${customer._id}\n\nThank you!\nKathaGPT`;
+      const textMessage = `Namaste ${customerFirstName}!\n\nThis is an automated bill notification from KathaGPT.\n\nA new purchase has been recorded on your account at ${storeName}.\n\nBill Details:\n- Amount: ₹${transaction.amount.toFixed(2)}\n- Purchased Products: ${transaction.description || 'Not specified'}\n- Date: ${dateStr}\n\nYour total outstanding balance is now ₹${customer.balance.toFixed(2)}.\n\nYou can view your statement or pay online here: ${customerPaymentUrl}\n\nThank you!\nKathaGPT`;
 
       const htmlMessage = `
         <div style="background-color: #f1f5f9; padding: 24px 12px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
@@ -296,7 +306,7 @@ const sendTransactionEmail = async (transactionId) => {
 
               <!-- Payment Link CTA -->
               <div style="text-align: center; margin: 28px 0;">
-                <a href="${frontendUrl}/pay/${customer._id}" 
+                <a href="${customerPaymentUrl}" 
                    style="background-color: #ef4444; color: #ffffff; padding: 14px 32px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">
                    <img src="https://img.icons8.com/ios-filled/50/ffffff/credit-card.png" width="16" height="12" style="vertical-align: middle; margin-right: 8px; margin-bottom: 2px;" />Pay Bill Now
                 </a>
@@ -310,7 +320,7 @@ const sendTransactionEmail = async (transactionId) => {
                     <table style="border-collapse: collapse;">
                       <tr>
                         <td>
-                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(frontendUrl + '/pay/' + customer._id)}" width="50" height="50" style="border: 1px solid #cbd5e1; padding: 2px; border-radius: 6px;" />
+                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(customerPaymentUrl)}" width="50" height="50" style="border: 1px solid #cbd5e1; padding: 2px; border-radius: 6px;" />
                         </td>
                         <td style="padding-left: 8px; text-align: left; vertical-align: middle;">
                           <h4 style="margin: 0; font-size: 11px; font-weight: 900; color: #1e293b;">Scan to Pay / View</h4>
@@ -668,7 +678,7 @@ const sendTransactionEmail = async (transactionId) => {
                     <table style="border-collapse: collapse;">
                       <tr>
                         <td>
-                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(frontendUrl + '/pay/' + customer._id)}" width="50" height="50" style="border: 1px solid #cbd5e1; padding: 2px; border-radius: 6px;" />
+                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(customerPaymentUrl)}" width="50" height="50" style="border: 1px solid #cbd5e1; padding: 2px; border-radius: 6px;" />
                         </td>
                         <td style="padding-left: 8px; text-align: left; vertical-align: middle;">
                           <h4 style="margin: 0; font-size: 11px; font-weight: 900; color: #1e293b;">Scan to Verify</h4>

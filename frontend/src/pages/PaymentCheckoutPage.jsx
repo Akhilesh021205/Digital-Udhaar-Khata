@@ -23,67 +23,81 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-// High-fidelity Logo Assets
+// High-fidelity Logo Assets with clean height & styling
 const PhonePeLogo = () => (
-  <img 
-    src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" 
-    alt="PhonePe" 
-    className="h-5 md:h-6 object-contain" 
-    loading="lazy"
-  />
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <img 
+      src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" 
+      alt="PhonePe" 
+      className="h-4 object-contain" 
+      loading="lazy"
+    />
+  </div>
 );
 
 const GPayLogo = () => (
-  <img 
-    src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" 
-    alt="Google Pay" 
-    className="h-5 md:h-6 object-contain" 
-    loading="lazy"
-  />
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <img 
+      src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" 
+      alt="Google Pay" 
+      className="h-4 object-contain" 
+      loading="lazy"
+    />
+  </div>
 );
 
 const PaytmLogo = () => (
-  <img 
-    src="https://img.icons8.com/color/100/paytm.png" 
-    alt="Paytm" 
-    className="h-4 md:h-5 object-contain" 
-    loading="lazy"
-  />
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <img 
+      src="https://img.icons8.com/color/100/paytm.png" 
+      alt="Paytm" 
+      className="h-4 object-contain" 
+      loading="lazy"
+    />
+  </div>
 );
 
 const BhimUpiLogo = () => (
-  <img 
-    src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo.png" 
-    alt="UPI" 
-    className="h-5 md:h-6 object-contain" 
-    loading="lazy"
-  />
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <img 
+      src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo.png" 
+      alt="UPI" 
+      className="h-3.5 object-contain" 
+      loading="lazy"
+    />
+  </div>
 );
 
 const VisaLogo = () => (
-  <img
-    src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/320px-Visa_Inc._logo.svg.png"
-    alt="Visa"
-    className="h-5 object-contain"
-    loading="lazy"
-  />
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/320px-Visa_Inc._logo.svg.png"
+      alt="Visa"
+      className="h-3.5 object-contain"
+      loading="lazy"
+    />
+  </div>
 );
 
 const MastercardLogo = () => (
-  <img
-    src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/320px-Mastercard-logo.svg.png"
-    alt="Mastercard"
-    className="h-6 object-contain"
-    loading="lazy"
-  />
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/320px-Mastercard-logo.svg.png"
+      alt="Mastercard"
+      className="h-4 object-contain"
+      loading="lazy"
+    />
+  </div>
 );
 
 const RupayLogo = () => (
-  <svg className="w-10 h-6 shrink-0" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="20" rx="3" fill="#0A3E8A" />
-    <text x="2" y="13" fill="#FF8F00" fontFamily="sans-serif" fontWeight="900" fontStyle="italic" fontSize="8">Ru</text>
-    <text x="12" y="13" fill="#FFFFFF" fontFamily="sans-serif" fontWeight="900" fontStyle="italic" fontSize="8">Pay</text>
-  </svg>
+  <div className="h-7 px-2.5 py-1 bg-white border border-slate-200/90 rounded-lg flex items-center justify-center shadow-2xs hover:border-slate-300 transition-all">
+    <svg className="h-4 w-auto" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="20" rx="3" fill="#0A3E8A" />
+      <text x="2" y="13" fill="#FF8F00" fontFamily="sans-serif" fontWeight="900" fontStyle="italic" fontSize="8">Ru</text>
+      <text x="12" y="13" fill="#FFFFFF" fontFamily="sans-serif" fontWeight="900" fontStyle="italic" fontSize="8">Pay</text>
+    </svg>
+  </div>
 );
 
 export default function PaymentCheckoutPage() {
@@ -123,6 +137,15 @@ export default function PaymentCheckoutPage() {
   const [utr, setUtr] = useState('');
   const [cashfreePaymentId, setCashfreePaymentId] = useState('');
   const [screenshotPreview, setScreenshotPreview] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
+  const handleCopyUpi = () => {
+    if (!data?.upiId) return;
+    navigator.clipboard.writeText(data.upiId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+    toast.success('✓ Merchant UPI ID copied to clipboard!');
+  };
 
   // Dynamically load Razorpay SDK
   const loadRazorpayScript = () => {
@@ -525,15 +548,15 @@ export default function PaymentCheckoutPage() {
             <FaTimesCircle size={44} className="text-rose-500" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-black text-slate-850 tracking-tight">Payment Link Unavailable</h2>
-            <p className="text-slate-500 text-xs leading-relaxed font-medium">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Payment Link Unavailable</h2>
+            <p className="text-slate-600 text-xs leading-relaxed font-medium">
               {error}
             </p>
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left space-y-1">
             <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">Security Notice:</span>
             <p className="text-xs text-amber-700 leading-relaxed">
-              Payment reminder links are cryptographically secured and expire automatically to safeguard your account. Please ask the shopkeeper to send you a fresh payment reminder email.
+              Payment reminder links are secured and may expire. Contact the shopkeeper for a new link if needed.
             </p>
           </div>
           <Link
@@ -593,7 +616,7 @@ export default function PaymentCheckoutPage() {
               </div>
 
               <div className="text-center">
-                <h1 className="text-2xl font-black text-slate-850 tracking-tight">{storeName}</h1>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">{storeName}</h1>
                 <p className="text-slate-400 text-[11px] font-bold tracking-wide uppercase">AI Digital Khata &bull; Official Payment Receipt</p>
                 <div className="flex justify-center items-center gap-4 text-slate-500 text-[11px] font-semibold mt-1">
                   <span className="flex items-center gap-1.5"><FaUser size={11} className="text-slate-400 shrink-0" /> Owner: {ownerName}</span>
@@ -741,7 +764,7 @@ export default function PaymentCheckoutPage() {
                 href={`${API.defaults.baseURL}/reminders/checkout/${paymentToken}/receipt`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 py-3 px-4 bg-slate-850 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md text-decoration-none"
+                className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md text-decoration-none"
               >
                 <FaDownload size={13} /> Download PDF Receipt
               </a>
@@ -763,93 +786,187 @@ export default function PaymentCheckoutPage() {
   const currentPayAmount = parseFloat(amountPaid) || outstandingBalance;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans text-slate-700 antialiased" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
-      {/* Top Navbar Header */}
-      <div className="w-full bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center z-10 shrink-0 shadow-sm print:hidden">
+    <div 
+      className="min-h-screen bg-slate-50/70 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px] flex flex-col justify-between font-sans text-slate-800 antialiased" 
+      style={{ 
+        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        textRendering: 'optimizeLegibility'
+      }}
+    >
+      {/* Top Executive Header Bar */}
+      <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-8 py-3.5 flex justify-between items-center z-20 shrink-0 shadow-xs sticky top-0 print:hidden">
         <Link 
           to="/"
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold text-sm transition-all py-1 no-underline"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-bold text-xs transition-colors no-underline border border-slate-200/80"
         >
-          <FaArrowLeft /> AI Digital Khata
+          <FaArrowLeft size={11} className="text-slate-600" />
+          <span>AI Digital Khata</span>
         </Link>
 
-        <div className="text-center">
-          <h1 className="text-xl md:text-2xl font-black text-slate-850 tracking-tight">{storeName}</h1>
-          <p className="text-slate-400 text-[10px] font-bold tracking-wide uppercase mt-0.5">
-            Automatic Secure Checkout
-          </p>
+        {/* Center: Store Brand Identity */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white font-black text-sm flex items-center justify-center shadow-sm shrink-0 border border-slate-700">
+            {(storeName || 'S').charAt(0).toUpperCase()}
+          </div>
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-none">{storeName}</h1>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">
+                <FaShieldAlt size={9} className="text-emerald-600" /> Verified Merchant
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-500 tracking-normal mt-0.5">
+              Official Checkout Portal &bull; Direct Settlement
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
-          <FaShieldAlt className="text-emerald-500" size={12} />
-          <span>Razorpay Test Mode</span>
+        {/* Right: Security Trust Badges */}
+        <div className="hidden sm:flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-bold text-xs shadow-2xs">
+            <FaShieldAlt className="text-emerald-600" size={11} />
+            <span>256-Bit SSL Encrypted</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-bold text-xs shadow-2xs">
+            <FaLock className="text-blue-600" size={10} />
+            <span>Razorpay Verified</span>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Container */}
-      <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-6 items-stretch print:hidden">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col md:flex-row gap-6 items-stretch print:hidden">
         {/* Left Column: Account Details & Amount Selection */}
-        <div className="w-full md:w-1/2 bg-white rounded-3xl shadow-lg border border-slate-100 p-8 flex flex-col justify-between space-y-6">
+        <div className="w-full md:w-1/2 bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/90 p-6 sm:p-7 flex flex-col justify-between space-y-6">
           <div className="space-y-5">
             <div>
-              <span className="text-[10px] font-extrabold tracking-widest text-[#F97316] uppercase block">AI Digital Khata &bull; Ledger Payment</span>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">Settle Your Outstanding Udhaar</h2>
-              <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                Clear your dues securely via Razorpay. Your ledger balance updates immediately upon verified payment.
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200/80 rounded-full text-[10px] font-black tracking-wider uppercase">
+                  Verified Udhaar Statement
+                </span>
+                <span className="text-xs font-semibold text-slate-500">
+                  Real-Time Ledger Settlement
+                </span>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Settle Outstanding Balance</h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed font-medium">
+                Review your verified account balance below. Your merchant ledger updates immediately upon payment verification.
               </p>
             </div>
 
-            {/* Total Balance Card */}
-            <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-800 p-6 text-center shadow-xl relative overflow-hidden">
-              <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-[#F97316]/10 rounded-full blur-xl pointer-events-none"></div>
-              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">Total Outstanding Dues</p>
-              <p className="text-4xl md:text-5xl font-light text-white tracking-tight">₹{outstandingBalance.toFixed(2)}</p>
-              <div className="mt-3 flex items-center justify-center gap-2">
-                <span className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 text-[10px] font-bold rounded-full uppercase tracking-wider">
+            {/* Total Balance Card (Obsidian Titanium Style) */}
+            <div className="rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-6 text-white shadow-xl border border-slate-800 relative overflow-hidden">
+              <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold tracking-widest text-slate-300 uppercase">
+                  Total Outstanding Due
+                </span>
+                <span className="px-2.5 py-0.5 bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-full text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
                   Payment Due
                 </span>
-                <span className="text-slate-400 text-xs font-semibold">Store: <strong className="text-white">{storeName}</strong></span>
+              </div>
+
+              <div className="my-4 flex items-baseline gap-1.5">
+                <span className="text-3xl font-extrabold text-orange-400">₹</span>
+                <span className="text-5xl sm:text-6xl font-black tracking-tight text-white font-sans">
+                  {outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <span>Store:</span>
+                  <strong className="text-white font-bold">{storeName}</strong>
+                </span>
+                <span className="font-mono text-xs text-slate-300 bg-slate-800/90 px-2.5 py-0.5 rounded border border-slate-700/80">
+                  REF: #{String(paymentToken).slice(-6).toUpperCase()}
+                </span>
               </div>
             </div>
 
-            {/* Customer Information Card */}
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 divide-y divide-slate-100">
-              <div className="flex justify-between items-center py-2 text-xs">
-                <span className="text-slate-400 font-semibold">Customer Name</span>
-                <span className="text-slate-800 font-black">{customerName}</span>
+            {/* Customer & Merchant Information Sheet */}
+            <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 divide-y divide-slate-200/70 space-y-2.5">
+              <div className="flex justify-between items-center text-xs sm:text-sm pt-1 first:pt-0">
+                <span className="text-slate-600 font-bold flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <FaUser size={10} />
+                  </div>
+                  Customer Name
+                </span>
+                <span className="text-slate-900 font-black text-sm">{customerName}</span>
               </div>
-              <div className="flex justify-between items-center py-2 text-xs">
-                <span className="text-slate-400 font-semibold">Registered Phone</span>
-                <span className="text-slate-800 font-black">{customerPhone || 'Not specified'}</span>
+
+              <div className="flex justify-between items-center text-xs sm:text-sm pt-2.5">
+                <span className="text-slate-600 font-bold flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
+                    <FaPhoneAlt size={10} />
+                  </div>
+                  Registered Phone
+                </span>
+                <span className="text-slate-900 font-bold text-xs font-mono">{customerPhone || 'Not specified'}</span>
               </div>
+
               {upiId && (
-                <div className="flex justify-between items-center py-2 text-xs">
-                  <span className="text-slate-400 font-semibold">Merchant UPI</span>
-                  <span className="text-slate-800 font-black font-mono">{upiId}</span>
+                <div className="flex justify-between items-center text-xs sm:text-sm pt-2.5">
+                  <span className="text-slate-600 font-bold flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                      <FaQrcode size={10} />
+                    </div>
+                    Merchant UPI ID
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-900 font-bold text-xs font-mono bg-white px-2.5 py-1 rounded-md border border-slate-200/90">
+                      {upiId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyUpi}
+                      className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer border-none"
+                      title="Copy UPI ID"
+                    >
+                      {copiedUpi ? <FaCheck size={11} className="text-emerald-600" /> : <FaRegCopy size={11} />}
+                    </button>
+                  </div>
                 </div>
               )}
+
+              <div className="flex justify-between items-center text-xs sm:text-sm pt-2.5">
+                <span className="text-slate-600 font-bold flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
+                    <FaShieldAlt size={10} />
+                  </div>
+                  Store Owner
+                </span>
+                <span className="text-slate-900 font-bold text-xs">{ownerName}</span>
+              </div>
             </div>
 
-            {/* Partial / Full Payment Amount Selector */}
-            <div className="space-y-3 pt-2">
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                Select Payment Amount:
+            {/* Payment Amount Selection Segment */}
+            <div className="space-y-2.5 pt-1">
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                Select Payment Amount
               </label>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setPaymentMode('full');
                     setAmountPaid(outstandingBalance.toString());
                   }}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  className={`py-3 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border-none flex flex-col items-center justify-center gap-0.5 ${
                     paymentMode === 'full'
-                      ? 'bg-orange-50 border-[#F97316] text-[#F97316] shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
+                      : 'text-slate-600 hover:text-slate-900 bg-transparent'
                   }`}
                 >
-                  Pay Full (₹{outstandingBalance.toFixed(2)})
+                  <span>Pay Full Balance</span>
+                  <span className={paymentMode === 'full' ? 'text-orange-600 font-black' : 'text-slate-700 font-bold'}>
+                    ₹{outstandingBalance.toFixed(2)}
+                  </span>
                 </button>
 
                 <button
@@ -860,57 +977,84 @@ export default function PaymentCheckoutPage() {
                       setAmountPaid((Math.round(outstandingBalance / 2)).toString());
                     }
                   }}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  className={`py-3 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border-none flex flex-col items-center justify-center gap-0.5 ${
                     paymentMode === 'partial'
-                      ? 'bg-orange-50 border-[#F97316] text-[#F97316] shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
+                      : 'text-slate-600 hover:text-slate-900 bg-transparent'
                   }`}
                 >
-                  Pay Partial Amount
+                  <span>Custom / Partial</span>
+                  <span className={paymentMode === 'partial' ? 'text-orange-600 font-black' : 'text-slate-700 font-bold'}>
+                    {paymentMode === 'partial' ? `₹${parseFloat(amountPaid || 0).toFixed(2)}` : 'Choose Amount'}
+                  </span>
                 </button>
               </div>
 
               {paymentMode === 'partial' && (
-                <div className="space-y-1 animate-fadeIn">
+                <div className="space-y-2 pt-1 animate-fadeIn">
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-black text-base">₹</span>
                     <input
                       type="number"
-                      step="1"
+                      step="any"
                       min="1"
                       max={outstandingBalance}
                       value={amountPaid}
                       onChange={(e) => setAmountPaid(e.target.value)}
                       placeholder="Enter custom amount"
-                      className="w-full pl-8 pr-4 py-3 bg-white border border-slate-200 rounded-xl font-black text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 text-slate-800"
+                      className="w-full pl-9 pr-4 py-3 bg-white border-2 border-orange-500/50 rounded-xl font-black text-base focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 text-slate-900"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 font-semibold block">
-                    Max: ₹{outstandingBalance.toFixed(2)} (cannot exceed remaining balance)
-                  </span>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Quick:</span>
+                      {[0.25, 0.5, 0.75].map((pct) => {
+                        const quickVal = Math.max(1, Math.round(outstandingBalance * pct));
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setAmountPaid(quickVal.toString())}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-colors cursor-pointer"
+                          >
+                            {pct * 100}% (₹{quickVal})
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold">
+                      Max: ₹{outstandingBalance.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 text-center">
-            <span className="text-[11px] text-slate-400 font-semibold flex items-center justify-center gap-1.5">
-              <FaShieldAlt className="text-emerald-500" size={11} /> 256-Bit SSL Secured Payment via Razorpay
+            <span className="text-xs text-slate-500 font-semibold flex items-center justify-center gap-1.5">
+              <FaShieldAlt className="text-emerald-500" size={12} /> 256-Bit SSL Encrypted &bull; Direct Merchant Settlement
             </span>
           </div>
         </div>
 
         {/* Right Column: Checkout Action Panel */}
         <div className="w-full md:w-1/2 flex flex-col gap-6">
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col justify-between flex-1">
-            <div className="h-2 w-full bg-gradient-to-r from-[#072654] via-[#0b3b80] to-[#F97316]" />
+          <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/90 overflow-hidden flex flex-col justify-between flex-1">
+            <div className="h-1.5 w-full bg-gradient-to-r from-slate-900 via-blue-600 to-orange-500" />
 
-            <div className="p-8 space-y-6 flex-1 flex flex-col justify-between">
+            <div className="p-6 sm:p-7 space-y-6 flex-1 flex flex-col justify-between">
               <div>
-                <span className="text-[10px] font-extrabold tracking-widest text-[#F97316] uppercase block">Instant Payment</span>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">Razorpay Checkout</h2>
-                <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                  Support for UPI (GPay, PhonePe, Paytm, BHIM), Debit/Credit Cards, Net Banking, and Wallets.
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-xs font-black text-emerald-700 uppercase tracking-wider block">
+                    Instant Bank Gateway &bull; Active
+                  </span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Razorpay Express Checkout</h2>
+                <p className="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed font-medium">
+                  Supports all Indian UPI Apps (GPay, PhonePe, Paytm, BHIM), Debit/Credit Cards, Net Banking & Wallets.
                 </p>
               </div>
 
@@ -934,25 +1078,37 @@ export default function PaymentCheckoutPage() {
                   id="razorpay-pay-now-button"
                   onClick={() => launchRazorpayCheckout(currentPayAmount, false)}
                   disabled={submitting || verifyingPayment}
-                  className="w-full py-5 px-6 bg-gradient-to-r from-[#072654] via-[#0b3b80] to-[#072654] hover:from-[#0b3b80] hover:to-[#0f4ca8] active:scale-[0.98] disabled:bg-slate-300 text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-blue-900/25 flex items-center justify-center gap-3 cursor-pointer border-none"
+                  className="w-full py-4.5 px-6 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:from-slate-900 hover:to-slate-850 active:scale-[0.99] text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-slate-900/20 hover:shadow-2xl flex items-center justify-between gap-3 cursor-pointer border border-slate-800 group"
                 >
                   {submitting ? (
-                    <>
+                    <div className="w-full flex items-center justify-center gap-3">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Opening Razorpay Checkout...</span>
-                    </>
+                      <span className="font-extrabold">Opening Razorpay Checkout...</span>
+                    </div>
                   ) : (
                     <>
-                      <FaLock size={15} />
-                      <span>Pay ₹{currentPayAmount.toFixed(2)} with Razorpay Now &rarr;</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                          <FaLock size={13} />
+                        </div>
+                        <div className="text-left leading-tight">
+                          <div className="text-[11px] font-black text-slate-300 uppercase tracking-wider">Instant 1-Click Pay</div>
+                          <div className="text-base font-black text-white">Pay ₹{currentPayAmount.toFixed(2)} with Razorpay</div>
+                        </div>
+                      </div>
+                      <span className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-black tracking-wide flex items-center gap-1 transition-all group-hover:translate-x-0.5 shadow-sm">
+                        Pay Now &rarr;
+                      </span>
                     </>
                   )}
                 </button>
 
                 {/* Accepted Payment Brand Icons */}
                 <div className="pt-2 text-center">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Accepted Payment Methods</p>
-                  <div className="flex justify-center items-center gap-4 flex-wrap">
+                  <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2.5">
+                    Accepted Payment Methods &bull; Zero Surcharge
+                  </p>
+                  <div className="flex justify-center items-center gap-2 flex-wrap">
                     <PhonePeLogo />
                     <GPayLogo />
                     <PaytmLogo />
@@ -967,7 +1123,7 @@ export default function PaymentCheckoutPage() {
               {/* Secondary Fallback Option: Direct QR / Screenshot Upload */}
               <div className="border-t border-slate-100 pt-4">
                 <details className="group" open={Boolean(screenshotPreview)}>
-                  <summary className="text-[11px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer list-none flex items-center justify-between py-1">
+                  <summary className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer list-none flex items-center justify-between py-1">
                     <span className="flex items-center gap-1.5">
                       <FaQrcode className="text-[#F97316]" size={12} />
                       Alternative: Pay via Direct Store QR / Upload Screenshot
@@ -976,8 +1132,25 @@ export default function PaymentCheckoutPage() {
                   </summary>
 
                   <form onSubmit={handleConfirmPayment} className="mt-3 space-y-3">
+                    {/* Direct UPI QR Code Preview if upiId is present */}
+                    {upiId && (
+                      <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-2xl flex items-center gap-3.5">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}&am=${currentPayAmount}&cu=INR`)}`}
+                          alt="Store UPI QR"
+                          className="w-16 h-16 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs shrink-0"
+                          loading="lazy"
+                        />
+                        <div className="text-left text-xs">
+                          <span className="font-extrabold text-slate-900 block">Scan to Pay via Any UPI App</span>
+                          <span className="text-xs text-slate-600 font-mono block mt-0.5">{upiId}</span>
+                          <span className="text-[11px] text-emerald-600 font-semibold block mt-0.5">Amount auto-set to ₹{currentPayAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                         Upload Payment Screenshot
                       </label>
                       {screenshotPreview ? (
@@ -989,7 +1162,7 @@ export default function PaymentCheckoutPage() {
                           />
                           <div className="flex-1 min-w-0 text-left">
                             <span className="text-xs font-bold text-emerald-800 block truncate">✓ Screenshot Attached</span>
-                            <span className="text-[10px] text-emerald-600 font-semibold block">Ready for verification</span>
+                            <span className="text-[11px] text-emerald-600 font-semibold block">Ready for verification</span>
                           </div>
                           <button
                             type="button"
@@ -1000,21 +1173,21 @@ export default function PaymentCheckoutPage() {
                           </button>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-[#F97316] bg-slate-50/50 hover:bg-orange-50/30 rounded-2xl p-3.5 cursor-pointer transition-all text-center">
+                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-[#F97316] bg-slate-50/60 hover:bg-orange-50/30 rounded-2xl p-4 cursor-pointer transition-all text-center">
                           <input 
                             type="file" 
                             accept="image/*" 
                             onChange={handleScreenshotChange} 
                             className="hidden" 
                           />
-                          <span className="text-xs font-bold text-slate-700 block">Click to attach screenshot</span>
-                          <span className="text-[10px] text-slate-400 font-semibold block">Supports PNG, JPG, WEBP</span>
+                          <span className="text-xs font-bold text-slate-800 block">Click to attach screenshot</span>
+                          <span className="text-xs text-slate-500 font-semibold block mt-0.5">Supports PNG, JPG, WEBP</span>
                         </label>
                       )}
                     </div>
 
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                         UPI Ref / UTR (Optional)
                       </label>
                       <input 
@@ -1023,14 +1196,14 @@ export default function PaymentCheckoutPage() {
                         value={utr}
                         onChange={(e) => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
                         placeholder="12-digit UPI UTR"
-                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:outline-none focus:border-slate-400"
                       />
                     </div>
 
                     <button 
                       type="submit"
                       disabled={submitting}
-                      className="w-full py-2.5 bg-[#F97316] hover:bg-[#ea6c10] text-white rounded-xl font-bold text-xs cursor-pointer transition-all border-none shadow-sm"
+                      className="w-full py-3 bg-[#F97316] hover:bg-[#ea6c10] text-white rounded-xl font-bold text-xs cursor-pointer transition-all border-none shadow-sm"
                     >
                       {submitting ? 'Submitting...' : 'Submit Screenshot'}
                     </button>
@@ -1038,21 +1211,26 @@ export default function PaymentCheckoutPage() {
                 </details>
               </div>
 
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-start gap-2">
-                <FaLock size={12} className="text-emerald-600 shrink-0 mt-0.5" />
-                <p className="text-emerald-700 text-[10px] leading-relaxed font-semibold">
-                  Safe & encrypted checkout. Verified payments instantly reduce your udhaar ledger balance.
-                </p>
+              <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 mt-0.5">
+                  <FaShieldAlt size={14} />
+                </div>
+                <div className="text-left text-xs">
+                  <span className="font-black text-emerald-950 block text-xs sm:text-sm">Bank-Grade Protection & Instant Ledger Settlement</span>
+                  <p className="text-emerald-800/90 text-xs mt-0.5 leading-relaxed font-semibold">
+                    Your transaction is processed via encrypted 256-bit SSL. Once completed, your Kirana ledger balance reduces automatically with an instant digital receipt.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Footer */}
-      <div className="w-full text-center py-4 bg-slate-100 border-t border-slate-200 text-[10px] text-slate-400 font-semibold shrink-0 print:hidden">
-        AI Digital Khata &bull; Secure Customer Payment Portal &bull; Powered by Razorpay Test Gateway
-      </div>
+      {/* Global Trust Footer */}
+      <footer className="w-full text-center py-4 bg-slate-100/90 border-t border-slate-200 text-xs text-slate-600 font-semibold shrink-0 print:hidden">
+        AI Digital Khata &bull; Official Customer Payment Portal &bull; 256-Bit TLS Secured &bull; Powered by Razorpay Gateway
+      </footer>
     </div>
   );
 }

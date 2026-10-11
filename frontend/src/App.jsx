@@ -78,6 +78,7 @@ const AppRoutes = () => (
     <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
     <Route path="/security-setup" element={<SecuritySetupRoute><SecurityLockSetup /></SecuritySetupRoute>} />
     <Route path="/biometric-demo" element={<BiometricDemoPage />} />
+    <Route path="/pay/:customerId/:token" element={<PaymentCheckoutPage />} />
     <Route path="/pay/:customerId" element={<PaymentCheckoutPage />} />
     <Route path="/pay" element={<PaymentCheckoutPage />} />
     <Route path="/" element={<IndexRoute />} />

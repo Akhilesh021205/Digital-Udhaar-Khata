@@ -62,7 +62,7 @@ API.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('udhaar-user');
-      const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
+      const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/pay'];
       const isPublicPath = publicPaths.some(path => window.location.pathname.startsWith(path));
       if (!isPublicPath) {
         window.location.href = '/login';
