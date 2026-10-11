@@ -413,8 +413,12 @@ const verifyBiometric = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Biometrics not enabled for this user' });
     }
 
-    // Verify credential ID matches
-    if (user.biometricCredentialId !== credentialId) {
+    // Verify credential ID matches fingerprint passkey OR user has Face ID configured
+    const isPasskeyMatch = Boolean(user.biometricCredentialId && (user.biometricCredentialId === credentialId || credentialId === 'capacitor-native'));
+    const isFaceIdMatch = Boolean((user.biometricFaceTemplate || user.biometricCredentialId?.startsWith('face-id-')) && 
+                          (credentialId === 'face-id' || credentialId?.startsWith('face-id-')));
+
+    if (!isPasskeyMatch && !isFaceIdMatch) {
       return res.status(400).json({ success: false, message: 'Invalid biometric credential' });
     }
 

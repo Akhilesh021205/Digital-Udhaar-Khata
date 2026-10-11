@@ -535,18 +535,13 @@ const SecurityLockScreen = ({ onUnlock }) => {
     }
   };
 
-  // Open modal and immediately trigger registered biometric unlock method
-  const triggerBiometricSelection = async () => {
-    if (!user?.isBiometricEnabled) {
-      toast.warning('Biometric authentication is not enabled or registered for this account');
-      return;
-    }
-
+  // Dedicated trigger for Fingerprint Unlock with device compatibility check
+  const triggerFingerprintUnlock = async () => {
     if (Capacitor.isNativePlatform()) {
       try {
         const available = await BiometricService.isAvailable();
         if (!available) {
-          toast.error('Native biometrics not available on this device.');
+          toast.error('Fingerprint sensor is not supported or not set up on this device. Please use Face ID or your 4-digit PIN.');
           return;
         }
         const verified = await BiometricService.authenticate();
@@ -554,35 +549,49 @@ const SecurityLockScreen = ({ onUnlock }) => {
           localStorage.setItem('udhaar-unlocked', 'true');
           localStorage.setItem('udhaar-last-active', Date.now().toString());
           setUnlockSuccess(true);
-          toast.success('Unlocked!');
-          setTimeout(() => {
-            onUnlock();
-          }, 1000);
+          toast.success('Fingerprint verified!');
+          setTimeout(() => onUnlock(), 800);
         }
       } catch (err) {
         console.error('Native biometric unlock failed:', err);
-        toast.error('Biometric authentication failed or canceled.');
+        toast.error('Fingerprint verification failed or canceled.');
       }
       return;
     }
 
-    const isFaceId = user.biometricCredentialId?.startsWith('face-id-');
-    if (isFaceId) {
-      if (!hasCamera) {
-        toast.error('Camera is not available for Face ID unlock.');
-        return;
-      }
-      setActiveScanType('face');
-      setShowBiometricModal(true);
-      setTimeout(() => startCameraScan(), 150);
+    if (!deviceSupportsBio) {
+      toast.error('Fingerprint sensor is not supported or not set up on this device. Please use Face ID or your 4-digit PIN.');
+      return;
+    }
+
+    setActiveScanType('fingerprint');
+    setShowBiometricModal(true);
+    setTimeout(() => handleFingerprintAuth(), 150);
+  };
+
+  // Dedicated trigger for Face ID Unlock
+  const triggerFaceIdUnlock = async () => {
+    if (!hasCamera) {
+      toast.error('Camera is not available for Face ID unlock. Please use Fingerprint or your 4-digit PIN.');
+      return;
+    }
+
+    if (!user?.biometricFaceTemplate && !user?.biometricCredentialId?.startsWith('face-id-')) {
+      toast.info('Face ID is not registered yet. Please unlock with your PIN and register Face ID in Settings.');
+      return;
+    }
+
+    setActiveScanType('face');
+    setShowBiometricModal(true);
+    setTimeout(() => startCameraScan(), 150);
+  };
+
+  // Fallback selector
+  const triggerBiometricSelection = async () => {
+    if (user?.biometricFaceTemplate || user?.biometricCredentialId?.startsWith('face-id-')) {
+      triggerFaceIdUnlock();
     } else {
-      if (!deviceSupportsBio) {
-        toast.error('Device does not support fingerprint/platform unlock.');
-        return;
-      }
-      setActiveScanType('fingerprint');
-      setShowBiometricModal(true);
-      setTimeout(() => handleFingerprintAuth(), 150);
+      triggerFingerprintUnlock();
     }
   };
 
@@ -661,6 +670,31 @@ const SecurityLockScreen = ({ onUnlock }) => {
         <div className="w-full">
           {renderDots()}
         </div>
+
+        {/* Biometric Quick Unlock Row (Fingerprint & Face ID) */}
+        {user?.isBiometricEnabled && (
+          <div className="flex items-center justify-center gap-3 w-full max-w-[260px] mx-auto mb-4">
+            <button
+              type="button"
+              onClick={triggerFingerprintUnlock}
+              disabled={verifying}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-deep-navy dark:text-white rounded-2xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all shadow-2xs hover:border-orange cursor-pointer disabled:opacity-50"
+            >
+              <LucideFingerprint className="w-4 h-4 text-orange" />
+              <span>Fingerprint</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={triggerFaceIdUnlock}
+              disabled={verifying}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-deep-navy dark:text-white rounded-2xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all shadow-2xs hover:border-orange cursor-pointer disabled:opacity-50"
+            >
+              <LucideScan className="w-4 h-4 text-orange" />
+              <span>Face ID</span>
+            </button>
+          </div>
+        )}
 
         {/* Keypad */}
         <div className="grid grid-cols-3 gap-4.5 w-full max-w-[260px] mx-auto mb-6">
@@ -840,6 +874,33 @@ const SecurityLockScreen = ({ onUnlock }) => {
                       <RefreshCw className="w-3.5 h-3.5" /> Try Fingerprint Again
                     </button>
                   ) : null}
+
+                  {/* Switch between Fingerprint and Face ID */}
+                  {activeScanType === 'face' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cancelScan();
+                        triggerFingerprintUnlock();
+                      }}
+                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-deep-navy dark:text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <LucideFingerprint className="w-4 h-4 text-orange" />
+                      <span>Switch to Fingerprint</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cancelScan();
+                        triggerFaceIdUnlock();
+                      }}
+                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-deep-navy dark:text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <LucideScan className="w-4 h-4 text-orange" />
+                      <span>Switch to Face ID</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleCloseBiometricModal}

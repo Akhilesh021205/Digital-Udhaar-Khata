@@ -766,13 +766,39 @@ const SettingsPage = () => {
         return;
       }
     } else {
-      setSimulating(true);
-      setTimeout(async () => {
-        setSimulating(false);
-        await verifyBiometricOnServer(user.biometricCredentialId);
-      }, 3500);
+      // Genuine WebAuthn hardware biometric verification
+      if (!deviceSupportsBio) {
+        toast.error('Fingerprint sensor is not supported or not set up on this device. Please use Face ID or your password.');
+        setShowUnlockSimulateModal(false);
+        return;
+      }
+
+      try {
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        const getOptions = {
+          publicKey: {
+            challenge,
+            rpId: window.location.hostname,
+            userVerification: 'required',
+            timeout: 60000
+          }
+        };
+        const credential = await navigator.credentials.get(getOptions);
+        if (credential) {
+          setShowUnlockSimulateModal(false);
+          await verifyBiometricOnServer(user.biometricCredentialId || credential.id);
+        } else {
+          setShowUnlockSimulateModal(false);
+          toast.error('Fingerprint verification failed.');
+        }
+      } catch (err) {
+        console.warn('Fingerprint verification error:', err);
+        setShowUnlockSimulateModal(false);
+        toast.error('Fingerprint verification failed or canceled.');
+      }
     }
-  }, [user, verifyBiometricOnServer]);
+  }, [user, deviceSupportsBio, verifyBiometricOnServer]);
 
   const handleCloseUnlockModal = useCallback(() => {
     if (cameraStream) {
@@ -1207,9 +1233,13 @@ const SettingsPage = () => {
                     left: descriptors.left,
                     right: descriptors.right
                   });
+                  const existingPasskey = (user?.biometricCredentialId && !user.biometricCredentialId.startsWith('face-id-')) 
+                    ? user.biometricCredentialId 
+                    : faceIdCredential;
+
                   const { data } = await API.post('/auth/setup-security', {
                     isBiometricEnabled: true,
-                    biometricCredentialId: faceIdCredential,
+                    biometricCredentialId: existingPasskey,
                     biometricFaceTemplate: faceTemplateJSON
                   });
                   updateUser(data.data);
@@ -1238,7 +1268,7 @@ const SettingsPage = () => {
 
   const handleRegisterFingerprint = async () => {
     if (!deviceSupportsBio) {
-      toast.error('Biometrics not supported on this device');
+      toast.error('Fingerprint sensor is not supported or not set up on this device. Please use Face ID or your 4-digit PIN.');
       return;
     }
     
@@ -1449,32 +1479,64 @@ const SettingsPage = () => {
                 </div>
 
                 {user?.isBiometricEnabled && (
-                  <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        {user.biometricCredentialId?.startsWith('face-id-') ? (
-                          <>
-                            <LucideScan className="w-4 h-4 text-orange" />
-                            <span>Active: Face ID</span>
-                          </>
-                        ) : (
-                          <>
-                            <LucideFingerprint className="w-4 h-4 text-orange" />
-                            <span>Active: Fingerprint Passkey</span>
-                          </>
-                        )}
-                      </span>
+                  <div className="mt-3.5 space-y-2.5">
+                    {/* 1. Fingerprint Method Card */}
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-orange/10 flex items-center justify-center text-orange shrink-0">
+                          <LucideFingerprint className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-deep-navy dark:text-white block">Fingerprint Passkey</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                            {user.biometricCredentialId && !user.biometricCredentialId.startsWith('face-id-') 
+                              ? 'Configured on this account' 
+                              : 'Not registered yet'}
+                            {!deviceSupportsBio && ' • Sensor unsupported on this device'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRegisterFingerprint}
+                        disabled={!deviceSupportsBio}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 ${
+                          deviceSupportsBio 
+                            ? 'bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-deep-navy dark:text-white cursor-pointer' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                        }`}
+                      >
+                        <span>{user.biometricCredentialId && !user.biometricCredentialId.startsWith('face-id-') ? 'Update Fingerprint' : 'Register Fingerprint'}</span>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRegisterStep('choice');
-                        setShowRegisterModal(true);
-                      }}
-                      className="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-deep-navy dark:text-white rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>Register This Device</span>
-                    </button>
+
+                    {/* 2. Face ID Method Card */}
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                          <LucideScan className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-deep-navy dark:text-white block">Face ID Camera</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                            {user.biometricFaceTemplate || user.biometricCredentialId?.startsWith('face-id-') 
+                              ? 'Face profile configured' 
+                              : 'Not registered yet'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRegisterStep('scanning_face');
+                          setShowRegisterModal(true);
+                          startRegisterCameraScan();
+                        }}
+                        className="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-deep-navy dark:text-white rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>{user.biometricFaceTemplate || user.biometricCredentialId?.startsWith('face-id-') ? 'Update Face ID' : 'Register Face ID'}</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

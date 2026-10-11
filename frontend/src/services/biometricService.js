@@ -25,7 +25,7 @@ export const BiometricService = {
       }
     }
 
-    return true; // Enable hardware fingerprint trigger for testing/demo
+    return false;
   },
 
   // Perform native biometric fingerprint scan on real phone
