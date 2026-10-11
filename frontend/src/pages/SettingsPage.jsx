@@ -209,33 +209,57 @@ const presets = [
 const versionFeatures = [
   {
     title: 'Biometric & PIN Security',
-    desc: '4-Digit PIN lock, WebAuthn Fingerprint, AI Face ID, and 1-minute inactivity protection.',
-    icon: <HiOutlineShieldCheck className="text-emerald-500 text-lg shrink-0 mt-0.5" />
+    tag: 'Bank-Grade',
+    desc: '4-Digit PIN lock, WebAuthn Fingerprint, AI Face ID, and inactivity protection.',
+    icon: <HiOutlineShieldCheck className="w-5 h-5" />,
+    iconBg: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border-emerald-500/20',
+    tagClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+    hoverBorder: 'hover:border-emerald-400/50 dark:hover:border-emerald-500/40'
   },
   {
     title: 'AI Voice Ledger Entries',
-    desc: 'Hands-free voice entry supporting Hindi, Telugu, and English.',
-    icon: <HiOutlineMicrophone className="text-rose-500 text-lg shrink-0 mt-0.5" />
+    tag: 'Voice AI',
+    desc: 'Hands-free multilingual speech entry supporting Hindi, Telugu, and English.',
+    icon: <HiOutlineMicrophone className="w-5 h-5" />,
+    iconBg: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border-rose-500/20',
+    tagClass: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/60',
+    hoverBorder: 'hover:border-rose-400/50 dark:hover:border-rose-500/40'
   },
   {
     title: 'Real-time Udhar & Jama Ledger',
+    tag: 'Core Ledger',
     desc: 'Instant balance tracking with automated risk prediction (Trusted, Delay, Risky).',
-    icon: <HiOutlineBookOpen className="text-indigo-500 text-lg shrink-0 mt-0.5" />
+    icon: <HiOutlineBookOpen className="w-5 h-5" />,
+    iconBg: 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border-indigo-500/20',
+    tagClass: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60',
+    hoverBorder: 'hover:border-indigo-400/50 dark:hover:border-indigo-500/40'
   },
   {
-    title: '1-Tap WhatsApp & Email Reminders',
-    desc: 'Direct payment reminder messages sent via WhatsApp web and Email.',
-    icon: <HiOutlineBell className="text-amber-500 text-lg shrink-0 mt-0.5" />
+    title: '1-Tap WhatsApp & Reminders',
+    tag: 'Automation',
+    desc: 'Direct payment reminder messages sent via WhatsApp web and instant email alerts.',
+    icon: <HiOutlineBell className="w-5 h-5" />,
+    iconBg: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20',
+    tagClass: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+    hoverBorder: 'hover:border-amber-400/50 dark:hover:border-amber-500/40'
   },
   {
     title: 'Encrypted Cloud & Auto Backup',
-    desc: 'Secure data synchronization with automated database backup.',
-    icon: <HiOutlineDatabase className="text-blue-500 text-lg shrink-0 mt-0.5" />
+    tag: 'Cloud Sync',
+    desc: 'Secure data synchronization with automated database backup and JSON exports.',
+    icon: <HiOutlineDatabase className="w-5 h-5" />,
+    iconBg: 'bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400 border-sky-500/20',
+    tagClass: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800/60',
+    hoverBorder: 'hover:border-sky-400/50 dark:hover:border-sky-500/40'
   },
   {
     title: 'Adaptive Light & Dark Mode',
-    desc: 'Seamless theme switching optimized for all lighting conditions.',
-    icon: <HiOutlineSparkles className="text-purple-500 text-lg shrink-0 mt-0.5" />
+    tag: 'Adaptive UI',
+    desc: 'Seamless theme switching optimized for all lighting conditions and battery saving.',
+    icon: <HiOutlineSparkles className="w-5 h-5" />,
+    iconBg: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border-purple-500/20',
+    tagClass: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800/60',
+    hoverBorder: 'hover:border-purple-400/50 dark:hover:border-purple-500/40'
   }
 ];
 
@@ -1703,57 +1727,114 @@ const SettingsPage = () => {
       </div>
 
       {/* 8. App Version & Features Information (Placed inside Settings at last) */}
-      <div className="mt-8 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-soft-gray/60 dark:border-slate-800">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-center p-2 shadow-xs shrink-0">
+      <div className="relative mt-10 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-9 shadow-md shadow-slate-200/40 dark:shadow-black/20">
+        {/* Subtle decorative accent line on top */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500" />
+        
+        {/* Ambient background glow effects */}
+        <div className="pointer-events-none absolute -top-24 -right-24 w-80 h-80 bg-rose-500/5 dark:bg-rose-500/10 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 w-80 h-80 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl" />
+
+        {/* Header section */}
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5 pb-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-50 to-red-100/70 dark:from-rose-950/40 dark:to-red-900/20 border border-rose-200/80 dark:border-rose-800/60 flex items-center justify-center p-2.5 shadow-xs shrink-0">
               <Logo />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-base sm:text-lg font-bold text-deep-navy dark:text-white leading-tight font-outfit m-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-bold text-deep-navy dark:text-white leading-tight font-outfit m-0">
                   AI Digital Khata
                 </h3>
-                <span className="text-[10px] bg-rose-600/10 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 font-extrabold px-2.5 py-0.5 rounded-full border border-rose-600/20">
+                <span className="text-[11px] bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold px-2.5 py-0.5 rounded-full shadow-xs tracking-wide">
                   v2.0
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
-                  <HiOutlineCheckCircle className="text-xs" /> v2.0.4 (Latest)
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span className="text-[11px] bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1.5 shadow-2xs">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  v2.0.4 (Latest)
                 </span>
-                <span className="text-[10px] text-slate-gray dark:text-slate-400 font-medium">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   • Secure & Reliable Digital Ledger
                 </span>
               </div>
             </div>
           </div>
+
+          <div className="inline-flex items-center gap-2 self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs">
+            <HiOutlineShieldCheck className="text-emerald-500 text-base shrink-0" />
+            <span>Bank-Grade Encryption & AI Enabled</span>
+          </div>
         </div>
 
-        <p className="text-xs text-slate-gray dark:text-slate-300 mt-4 mb-6 leading-relaxed font-medium">
-          AI Digital Khata v2.0 is an intelligent digital ledger designed for Indian small business owners and shopkeepers to manage customer balances, track cashbook transactions, and secure business records.
-        </p>
+        {/* App Description & Highlight Tags */}
+        <div className="relative mt-5 mb-7">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal m-0 max-w-4xl">
+            AI Digital Khata v2.0 is an intelligent digital ledger designed for Indian small business owners and shopkeepers to manage customer balances, track cashbook transactions, and secure business records with zero data loss.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mt-3.5">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70">
+              <HiOutlineShieldCheck className="text-emerald-500 text-sm" /> 256-Bit SSL Protection
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70">
+              <HiOutlineDatabase className="text-blue-500 text-sm" /> Cloud Database Auto-Sync
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70">
+              <HiOutlineSparkles className="text-purple-500 text-sm" /> AI Risk Scoring Engine
+            </span>
+          </div>
+        </div>
 
-        <div>
-          <span className="text-[11px] font-bold text-slate-gray dark:text-slate-400 uppercase tracking-wider block mb-3.5">
-            Included Features in v2.0
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        {/* Included Features Grid */}
+        <div className="relative">
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Included Features in v2.0
+            </span>
+            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+              6 Core Capabilities
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {versionFeatures.map((feat, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-4 bg-soft-white/70 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-2xl hover:border-orange/30 transition-all hover:shadow-xs">
-                {feat.icon}
-                <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-deep-navy dark:text-white m-0 leading-tight">{feat.title}</h4>
-                  <p className="text-[11px] text-slate-gray dark:text-slate-400 mt-1 mb-0 leading-relaxed font-normal">{feat.desc}</p>
+              <div 
+                key={idx} 
+                className={`group relative bg-slate-50/70 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 rounded-2xl p-4 sm:p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-black/30 ${feat.hoverBorder} flex flex-col justify-between`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200 ${feat.iconBg}`}>
+                      {feat.icon}
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${feat.tagClass} uppercase tracking-wider`}>
+                      {feat.tag}
+                    </span>
+                  </div>
+                  <h4 className="text-xs sm:text-sm font-bold text-deep-navy dark:text-white font-outfit m-0 leading-tight group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                    {feat.title}
+                  </h4>
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2 mb-0 leading-relaxed font-normal">
+                    {feat.desc}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-7 pt-4 border-t border-soft-gray/50 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-gray/70 dark:text-slate-400">
-          <span>© 2026 AI Digital Khata. All rights reserved.</span>
-          <span className="font-mono font-medium">Version: 2.0.4 • Build: Stable Production</span>
+        {/* Footer info */}
+        <div className="relative mt-8 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>© 2026 AI Digital Khata. All rights reserved.</span>
+          </div>
+          <span className="font-mono font-medium text-slate-600 dark:text-slate-300">
+            Version: 2.0.4 • Build: Stable Production (Vercel Edge)
+          </span>
         </div>
       </div>
 
