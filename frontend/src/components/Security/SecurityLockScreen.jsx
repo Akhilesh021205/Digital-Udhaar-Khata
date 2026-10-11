@@ -507,6 +507,9 @@ const SecurityLockScreen = ({ onUnlock }) => {
         } catch (webAuthnErr) {
           console.warn('WebAuthn fingerprint prompt canceled or failed:', webAuthnErr);
           verified = false;
+          setShowBiometricModal(false);
+          toast.info('No fingerprint passkey found on this device. Please unlock with your 4-digit PIN, then tap "Register This Device" in Settings.');
+          return;
         }
       } else {
         verified = await BiometricService.authenticate('Unlock AI Digital Khata');
@@ -521,6 +524,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
       } else {
         setUnlockSuccess(false);
         setBiometricStatus('Verification Canceled');
+        setShowBiometricModal(false);
         toast.warning('Biometric authentication canceled or unverified. Enter PIN to unlock.');
       }
     } catch (err) {

@@ -1248,7 +1248,10 @@ const SettingsPage = () => {
       const createOptions = {
         publicKey: {
           challenge,
-          rp: { name: "AI Digital Khata" },
+          rp: { 
+            name: "AI Digital Khata",
+            id: window.location.hostname
+          },
           user: {
             id: new TextEncoder().encode(user._id),
             name: user.email,
@@ -1426,22 +1429,54 @@ const SettingsPage = () => {
                 </button>
               </div>
 
-              <div className="flex justify-between items-center py-2.5">
-                <div className="text-left">
-                  <h4 className="text-sm font-bold text-deep-navy m-0">Biometric Unlock</h4>
-                  <p className="text-xs text-slate-gray m-0 mt-0.5">Use device fingerprint scanner or face camera to unlock</p>
+              <div className="py-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-left">
+                    <h4 className="text-sm font-bold text-deep-navy m-0">Biometric Unlock</h4>
+                    <p className="text-xs text-slate-gray m-0 mt-0.5">Use device fingerprint scanner or face camera to unlock</p>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={user?.isBiometricEnabled || false} 
+                        onChange={handleToggleBiometrics}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-soft-gray rounded-full peer peer-focus:ring-2 peer-focus:ring-orange/20 peer-checked:after:translate-x-full peer-checked:after:border-pure-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-pure-white after:border-soft-gray after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange"></div>
+                    </label>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={user?.isBiometricEnabled || false} 
-                      onChange={handleToggleBiometrics}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-soft-gray rounded-full peer peer-focus:ring-2 peer-focus:ring-orange/20 peer-checked:after:translate-x-full peer-checked:after:border-pure-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-pure-white after:border-soft-gray after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange"></div>
-                  </label>
-                </div>
+
+                {user?.isBiometricEnabled && (
+                  <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        {user.biometricCredentialId?.startsWith('face-id-') ? (
+                          <>
+                            <LucideScan className="w-4 h-4 text-orange" />
+                            <span>Active: Face ID</span>
+                          </>
+                        ) : (
+                          <>
+                            <LucideFingerprint className="w-4 h-4 text-orange" />
+                            <span>Active: Fingerprint Passkey</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegisterStep('choice');
+                        setShowRegisterModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-deep-navy dark:text-white rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Register This Device</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2011,7 +2046,7 @@ const SettingsPage = () => {
               /* Simulated Verification Scan View */
               <>
                 {/* Visual Scanner */}
-                {!user?.biometricCredentialId?.includes('fingerprint') ? (
+                {user?.biometricCredentialId?.startsWith('face-id-') || Boolean(user?.biometricFaceTemplate) ? (
                   /* Face ID Scanner Video view */
                   <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#DC2626] bg-black flex items-center justify-center shadow-lg mb-6">
                     <video 
@@ -2040,10 +2075,10 @@ const SettingsPage = () => {
                 )}
                 
                 <h2 className="text-lg font-bold text-slate-900 font-outfit">
-                  {!user?.biometricCredentialId?.includes('fingerprint') ? 'Scanning Face ID' : 'Verifying Fingerprint'}
+                  {user?.biometricCredentialId?.startsWith('face-id-') || Boolean(user?.biometricFaceTemplate) ? 'Scanning Face ID' : 'Verifying Fingerprint'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  {!user?.biometricCredentialId?.includes('fingerprint') 
+                  {user?.biometricCredentialId?.startsWith('face-id-') || Boolean(user?.biometricFaceTemplate)
                     ? 'Please position your face in the camera frame.' 
                     : 'Place your finger on the device fingerprint reader.'}
                 </p>
@@ -2068,7 +2103,7 @@ const SettingsPage = () => {
 
                 <div className="w-full space-y-3">
                   {/* Face ID Button - visible only if supported/setup */}
-                  {user?.isBiometricEnabled && !user?.biometricCredentialId?.includes('fingerprint') && (
+                  {user?.isBiometricEnabled && (user?.biometricCredentialId?.startsWith('face-id-') || Boolean(user?.biometricFaceTemplate)) && (
                     <button
                       onClick={startUnlockSimulation}
                       className="w-full py-3.5 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
@@ -2081,7 +2116,7 @@ const SettingsPage = () => {
                   )}
 
                   {/* Fingerprint Button - visible only if supported/setup */}
-                  {user?.isBiometricEnabled && user?.biometricCredentialId?.includes('fingerprint') && (
+                  {user?.isBiometricEnabled && !user?.biometricCredentialId?.startsWith('face-id-') && (
                     <button
                       onClick={startUnlockSimulation}
                       className="w-full py-3.5 px-5 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-sm rounded-2xl flex items-center justify-between transition-all duration-200 shadow-md shadow-red-600/10 hover:shadow-lg hover:shadow-red-600/20 active:scale-[0.99] cursor-pointer group"
