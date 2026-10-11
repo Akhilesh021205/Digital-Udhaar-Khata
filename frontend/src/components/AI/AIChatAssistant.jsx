@@ -15,6 +15,7 @@ const AIChatAssistant = () => {
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
+    if (!isOpen) return;
     const fetchFirstCustomer = async () => {
       try {
         const { data } = await API.get('/customers?limit=1');
@@ -26,7 +27,7 @@ const AIChatAssistant = () => {
       }
     };
     fetchFirstCustomer();
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     setMessages([

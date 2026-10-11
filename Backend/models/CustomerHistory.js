@@ -56,6 +56,7 @@ const customerHistorySchema = new mongoose.Schema(
 );
 
 customerHistorySchema.index({ owner: 1, customerId: 1 });
+customerHistorySchema.index({ owner: 1, date: -1 });
 customerHistorySchema.index({ customerPhone: 1 });
 customerHistorySchema.index({ date: -1 });
 

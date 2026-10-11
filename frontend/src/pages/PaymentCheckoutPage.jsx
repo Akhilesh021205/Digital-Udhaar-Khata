@@ -353,8 +353,7 @@ export default function PaymentCheckoutPage() {
             <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
               <FaCheckCircle size={32} className="text-emerald-500" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Payment Verified & Paid</h1>
-            <p className="text-xs text-slate-500 font-medium">Your udhaar account balance has been updated.</p>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Payment Successful</h1>
           </div>
 
           {/* Amount Summary */}

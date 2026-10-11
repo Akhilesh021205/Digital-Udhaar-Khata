@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
@@ -12,7 +12,7 @@ import Loader from './components/Common/Loader';
 import { SecurityLockProvider } from './context/SecurityLockContext';
 import { initSocket } from './services/socket';
 
-// Lazy load pages for lower initial bundle size and faster initial load times
+// Lazy load pages for lower initial bundle size
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -30,48 +30,44 @@ const BiometricDemoPage = lazy(() => import('./pages/BiometricDemoPage'));
 const BlockchainPage = lazy(() => import('./pages/BlockchainPage'));
 const PaymentCheckoutPage = lazy(() => import('./pages/PaymentCheckoutPage'));
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <Loader fullPage />;
-  if (!user) return <Navigate to="/" />;
-
-  if (!user.hasPin) {
-    return <Navigate to="/security-setup" />;
-  }
-
-  return children;
-};
-
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Loader fullPage />;
-  return user ? <Navigate to="/" /> : children;
+  return user ? <Navigate to="/" replace /> : children;
 };
 
 const SecuritySetupRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Loader fullPage />;
-  if (!user) return <Navigate to="/" />;
-  if (user.hasPin) return <Navigate to="/" />;
+  if (!user) return <Navigate to="/" replace />;
+  if (user.hasPin) return <Navigate to="/" replace />;
   return children;
 };
 
-const IndexRoute = () => {
+// Persistent Authenticated App Layout - Keeps Sidebar, Nav, and Shell permanently mounted
+const AuthenticatedLayout = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) return <Loader fullPage />;
-  if (user) {
-    if (!user.hasPin) {
-      return <Navigate to="/security-setup" />;
+
+  if (!user) {
+    if (location.pathname === '/') {
+      return <LandingPage />;
     }
-    return <Layout><DashboardPage /></Layout>;
+    return <Navigate to="/login" replace />;
   }
-  return <LandingPage />;
+
+  if (!user.hasPin) {
+    return <Navigate to="/security-setup" replace />;
+  }
+
+  return <Layout />;
 };
 
 const AppRoutes = () => (
   <Routes>
+    {/* Public Standalone Routes */}
     <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
     <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
     <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
@@ -81,22 +77,39 @@ const AppRoutes = () => (
     <Route path="/pay/:customerId/:token" element={<PaymentCheckoutPage />} />
     <Route path="/pay/:customerId" element={<PaymentCheckoutPage />} />
     <Route path="/pay" element={<PaymentCheckoutPage />} />
-    <Route path="/" element={<IndexRoute />} />
-    <Route path="/customers" element={<ProtectedRoute><Layout><CustomersPage /></Layout></ProtectedRoute>} />
-    <Route path="/customers/:id" element={<ProtectedRoute><Layout><CustomerDetailPage /></Layout></ProtectedRoute>} />
-    <Route path="/transactions" element={<Navigate to="/history" />} />
-    <Route path="/cashbook" element={<ProtectedRoute><Layout><CashbookPage /></Layout></ProtectedRoute>} />
-    <Route path="/reminders" element={<ProtectedRoute><Layout><RemindersPage /></Layout></ProtectedRoute>} />
-    <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
-    <Route path="/history" element={<ProtectedRoute><Layout><PermanentHistoryPage /></Layout></ProtectedRoute>} />
-    <Route path="/blockchain" element={<ProtectedRoute><Layout><BlockchainPage /></Layout></ProtectedRoute>} />
-    <Route path="*" element={<Navigate to="/" />} />
+
+    {/* Persistent App Shell Layout - Sidebar & Navigation stay permanently mounted during navigation */}
+    <Route element={<AuthenticatedLayout />}>
+      <Route path="/" element={<DashboardPage />} />
+      <Route path="/customers" element={<CustomersPage />} />
+      <Route path="/customers/:id" element={<CustomerDetailPage />} />
+      <Route path="/transactions" element={<Navigate to="/history" replace />} />
+      <Route path="/cashbook" element={<CashbookPage />} />
+      <Route path="/reminders" element={<RemindersPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/history" element={<PermanentHistoryPage />} />
+      <Route path="/blockchain" element={<BlockchainPage />} />
+    </Route>
+
+    <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
 
 function App() {
   useEffect(() => {
     initSocket();
+
+    // Idle prefetch of primary pages so page switching is immediate
+    const timer = setTimeout(() => {
+      import('./pages/DashboardPage');
+      import('./pages/CustomersPage');
+      import('./pages/CashbookPage');
+      import('./pages/PermanentHistoryPage');
+      import('./pages/RemindersPage');
+      import('./pages/SettingsPage');
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (

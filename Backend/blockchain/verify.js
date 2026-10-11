@@ -50,16 +50,20 @@ async function verifyChain(ownerId, options = {}) {
     const verifiedBlocks = [];
     const failedBlocks = [];
 
+    // Batch load all associated transactions in 1 single query instead of N sequential roundtrips
+    const txIds = chain.map(b => b.transactionId).filter(Boolean);
+    const Transaction = require('../models/Transaction');
+    const transactions = txIds.length > 0 
+      ? await Transaction.find({ _id: { $in: txIds } }).select('amount type').lean()
+      : [];
+    const txMap = new Map(transactions.map(t => [t._id.toString(), t]));
+
     for (let i = 0; i < chain.length; i++) {
       const block = chain[i];
       let blockValid = true;
       let reason = '';
 
       // 1. Check current block hash and signature integrity
-      // For block data hashing, we need transaction parameters.
-      // Since some transaction details (amount, type) are needed for the hash formula,
-      // let's query the transaction if it is not embedded in the block.
-      // Wait, let's load transaction details to rebuild the hash input.
       if (block.index === 0) {
         // Genesis block is the anchor block. Check signature and previousHash link.
         const isSigValid = verifySignature(block.hash, block.signature, block.publicKey);
@@ -68,8 +72,7 @@ async function verifyChain(ownerId, options = {}) {
           reason = 'Genesis block integrity check failed (invalid signature or linkage)';
         }
       } else {
-        const Transaction = require('../models/Transaction');
-        const tx = await Transaction.findById(block.transactionId);
+        const tx = block.transactionId ? txMap.get(block.transactionId.toString()) : null;
         
         if (!tx) {
           blockValid = false;

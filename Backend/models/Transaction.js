@@ -111,6 +111,9 @@ const transactionSchema = new mongoose.Schema(
 // Index for queries
 transactionSchema.index({ customer: 1, date: -1 });
 transactionSchema.index({ owner: 1, date: -1 });
+transactionSchema.index({ owner: 1, type: 1, date: -1 });
+transactionSchema.index({ owner: 1, customer: 1, date: -1 });
+transactionSchema.index({ owner: 1, paymentStatus: 1, type: 1 });
 transactionSchema.index({ cashfreeOrderId: 1 }, { unique: true, partialFilterExpression: { cashfreeOrderId: { $type: 'string' } } });
 transactionSchema.index({ cashfreePaymentId: 1 }, { unique: true, partialFilterExpression: { cashfreePaymentId: { $type: 'string' } } });
 transactionSchema.index({ razorpayOrderId: 1 }, { unique: true, partialFilterExpression: { razorpayOrderId: { $type: 'string' } } });

@@ -21,6 +21,10 @@ export const initSocket = () => {
 
   socket.on('refresh_data', (data) => {
     console.log('Received real-time refresh signal:', data);
+    // Invalidate client API cache on real-time database updates
+    import('../api/axios').then(({ clearApiCache }) => {
+      clearApiCache();
+    });
     // Dispatch a custom window event that React components can listen to
     const event = new CustomEvent('socket_refresh', { detail: data });
     window.dispatchEvent(event);

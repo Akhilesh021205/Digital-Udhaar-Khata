@@ -288,6 +288,9 @@ customerSchema.post('save', function (doc) {
 
 // Index for faster queries by owner
 customerSchema.index({ owner: 1, name: 1 });
+customerSchema.index({ owner: 1, isDeleted: 1, createdAt: -1 });
+customerSchema.index({ owner: 1, isDeleted: 1, balance: 1 });
+customerSchema.index({ owner: 1, isDeleted: 1, riskLevel: 1 });
 
 const CustomerModel = mongoose.model('Customer', customerSchema);
 module.exports = CustomerModel;

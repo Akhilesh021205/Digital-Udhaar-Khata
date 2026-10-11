@@ -9,8 +9,12 @@ const API = axios.create({
   baseURL: apiBaseUrl,
 });
 
-// Fast in-memory API response cache
+// Fast in-memory API response cache for instant client navigation
 const apiCache = new Map();
+
+export const clearApiCache = () => {
+  apiCache.clear();
+};
 
 API.interceptors.request.use((config) => {
   const user = JSON.parse(localStorage.getItem('udhaar-user'));
@@ -20,13 +24,13 @@ API.interceptors.request.use((config) => {
 
   const method = config.method?.toLowerCase();
   
-  // Cache check for GET requests
+  // Cache check for GET requests (serves navigation in <1ms)
   if (method === 'get') {
     const cacheKey = config.url + JSON.stringify(config.params || {});
     const cached = apiCache.get(cacheKey);
     
     if (cached && Date.now() < cached.expiresAt) {
-      // Short-circuit the request and return cached response
+      // Short-circuit the request and return cached response instantly
       config.adapter = () => Promise.resolve({
         data: cached.data,
         status: 200,
@@ -37,7 +41,7 @@ API.interceptors.request.use((config) => {
       });
     }
   } else if (['post', 'put', 'delete'].includes(method)) {
-    // Invalidate cache immediately on write operations
+    // Invalidate cache immediately on all write operations
     apiCache.clear();
   }
 
@@ -48,12 +52,12 @@ API.interceptors.response.use(
   (response) => {
     const method = response.config.method?.toLowerCase();
     
-    // Save to cache on successful GET requests
+    // Save to cache on successful GET requests (60 seconds TTL)
     if (method === 'get') {
       const cacheKey = response.config.url + JSON.stringify(response.config.params || {});
       apiCache.set(cacheKey, {
         data: response.data,
-        expiresAt: Date.now() + 3000, // 3 seconds TTL for page navigation de-duplication
+        expiresAt: Date.now() + 60000, // 60 seconds TTL for instantaneous page navigation
       });
     }
     
