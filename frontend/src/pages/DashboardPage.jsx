@@ -857,8 +857,9 @@ const DashboardPage = () => {
           </div>
 
           {/* Bottom Secondary Widgets */}
-          {/* Desktop 3-Card Grid (hidden md:grid) */}
-          <div className="hidden md:grid md:grid-cols-3 gap-4 sm:gap-5">
+          {/* Bottom Secondary Widgets */}
+          {/* Desktop 2-Card Grid (hidden md:grid) */}
+          <div className="hidden md:grid md:grid-cols-2 gap-4 sm:gap-5">
             {/* Widget 1: Recent Transactions */}
             <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
               <div>
@@ -945,41 +946,6 @@ const DashboardPage = () => {
                 </div>
               </div>
             </div>
-
-            {/* Widget 3: Credit Insights */}
-            <div className="bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold text-deep-navy dark:text-white flex items-center gap-1.5">
-                    <HiOutlineShieldCheck className="text-emerald-500 text-base" />
-                    Credit Insights
-                  </h3>
-                </div>
-                <div className="space-y-2.5">
-                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-soft-gray/50 dark:border-slate-800">
-                    <span className="text-[10px] font-semibold text-slate-gray dark:text-slate-400 uppercase tracking-wider block">Store Score</span>
-                    <div className="flex items-baseline justify-between mt-1">
-                      <span className="text-base font-black text-deep-navy dark:text-white font-outfit">94 / 100</span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Optimal Risk</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between items-center text-slate-gray dark:text-slate-400">
-                      <span>Active Ledgers</span>
-                      <span className="font-bold text-deep-navy dark:text-white font-outfit">{customers.length}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-gray dark:text-slate-400">
-                      <span>On-Time Reminders</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 font-outfit">98.5%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-soft-gray/40 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                <span className="text-slate-gray dark:text-slate-400">Auto Backup</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">Active</span>
-              </div>
-            </div>
           </div>
 
           {/* Mobile Secondary Widget Tab (md:hidden) - compact single widget with tab switcher */}
@@ -1002,15 +968,6 @@ const DashboardPage = () => {
                 }`}
               >
                 Reports
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileWidgetTab('insights')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer transition-all ${
-                  mobileWidgetTab === 'insights' ? 'bg-pure-white dark:bg-slate-700 text-deep-navy dark:text-white shadow-xs' : 'text-slate-gray'
-                }`}
-              >
-                Insights
               </button>
             </div>
 
@@ -1062,19 +1019,6 @@ const DashboardPage = () => {
                       {Math.round((youWillGet / totalUdharVal) * 100)}%
                     </span>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {mobileWidgetTab === 'insights' && (
-              <div className="flex items-center justify-between gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-gray font-bold block uppercase">Store Score</span>
-                  <span className="text-sm font-black text-deep-navy dark:text-white block">94 / 100</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-gray font-bold block uppercase">On-Time Reminders</span>
-                  <span className="text-sm font-black text-emerald-600 block">98.5%</span>
                 </div>
               </div>
             )}

@@ -126,7 +126,7 @@ export default function PaymentCheckoutPage() {
             try {
               const verifyRes = await API.get(`/reminders/checkout/${paymentToken}/verify-payment/${order_id}`);
               if (verifyRes.data?.success && verifyRes.data?.status === 'PAID') {
-                toast.success('Payment verified and settled successfully!');
+                toast.success('Payment verified and Paid successfully!');
                 setIsPaid(true);
                 setAutoLaunchStatus('idle');
 
@@ -183,7 +183,7 @@ export default function PaymentCheckoutPage() {
     try {
       const verifyRes = await API.get(`/reminders/checkout/${paymentToken}/verify-payment/${orderIdToVerify}`);
       if (verifyRes.data?.success && verifyRes.data?.status === 'PAID') {
-        toast.success('Payment verified and settled successfully!');
+        toast.success('Payment verified and Paid successfully!');
         setIsPaid(true);
         const txData = verifyRes.data.data;
         const dateObj = txData?.date ? new Date(txData.date) : new Date();
@@ -241,7 +241,7 @@ export default function PaymentCheckoutPage() {
             }, 600);
           }
         } else if (isMounted) {
-          setError(response.data?.message || 'Invalid or expired payment link.');
+          setError(response.data?.message || 'Invalid or payment link.');
         }
       } catch (err) {
         if (isMounted) {
@@ -299,7 +299,7 @@ export default function PaymentCheckoutPage() {
             </p>
           </div>
           <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 text-left border border-slate-100">
-            Payment links expire after settlement or security timeout. Please contact the shopkeeper for a new link if needed.
+            Payment links expire after Paid or security timeout. Please contact the shopkeeper for a new link if needed.
           </div>
           <Link
             to="/"
@@ -343,7 +343,7 @@ export default function PaymentCheckoutPage() {
           </Link>
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
             <FaCheck size={9} />
-            <span>Payment Settled</span>
+            <span>Payment Done</span>
           </span>
         </div>
 
@@ -353,7 +353,7 @@ export default function PaymentCheckoutPage() {
             <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
               <FaCheckCircle size={32} className="text-emerald-500" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Payment Verified & Settled</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Payment Verified & Paid</h1>
             <p className="text-xs text-slate-500 font-medium">Your udhaar account balance has been updated.</p>
           </div>
 
@@ -375,7 +375,7 @@ export default function PaymentCheckoutPage() {
             </div>
             {activePaymentId && (
               <div className="flex justify-between items-center py-2.5">
-                <span className="text-slate-500 font-medium">Transaction Reference</span>
+                <span className="text-slate-500 font-medium">Transaction Ref ID</span>
                 <span className="font-mono text-[11px] text-slate-800 font-medium truncate max-w-[180px]">{activePaymentId}</span>
               </div>
             )}
@@ -460,23 +460,17 @@ export default function PaymentCheckoutPage() {
           </div>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{storeName}</h1>
-            <p className="text-xs text-slate-500 font-medium">Payment Request</p>
+            <p className="text-xs text-slate-500 font-medium">Pay Your Dues</p>
           </div>
         </div>
 
         {/* Visual Focus: Outstanding Balance */}
         <div className="text-center py-4 px-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-            Total Outstanding Balance
+            Total Balance
           </span>
-          <div className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+          <div className="text-4xl sm:text-5xl font-black text-slate-800">
             ₹{outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <div className="pt-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-              <span>Payment Due</span>
-            </span>
           </div>
         </div>
 
@@ -485,18 +479,6 @@ export default function PaymentCheckoutPage() {
           <div className="flex justify-between items-center py-2 border-b border-slate-100">
             <span className="text-slate-500 font-medium">Customer Name</span>
             <span className="text-slate-900 font-semibold">{customerName}</span>
-          </div>
-          {customerPhone && (
-            <div className="flex justify-between items-center py-2 border-b border-slate-100">
-              <span className="text-slate-500 font-medium">Registered Phone</span>
-              <span className="text-slate-900 font-mono font-medium">{customerPhone}</span>
-            </div>
-          )}
-          <div className="flex justify-between items-center py-2">
-            <span className="text-slate-500 font-medium">Statement Reference</span>
-            <span className="text-slate-700 font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded">
-              #{String(paymentToken).slice(-6).toUpperCase()}
-            </span>
           </div>
         </div>
 
@@ -518,7 +500,7 @@ export default function PaymentCheckoutPage() {
                 }}
                 className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer border-none bg-transparent p-0"
               >
-                {paymentMode === 'full' ? 'Pay custom amount' : 'Pay full balance'}
+                {paymentMode === 'full' ? 'Pay custom' : 'Pay full amount'}
               </button>
             )}
           </div>
@@ -539,7 +521,7 @@ export default function PaymentCheckoutPage() {
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>Quick:</span>
+                <span>Pay:</span>
                 <div className="flex gap-1.5">
                   {[0.25, 0.5, 0.75].map((pct) => (
                     <button
@@ -571,7 +553,7 @@ export default function PaymentCheckoutPage() {
             id="pay-now-button"
             onClick={() => launchCashfreeCheckout(currentPayAmount, false)}
             disabled={submitting || verifyingPayment}
-            className="w-full py-3.5 sm:py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-2xl font-bold text-base transition-all shadow-sm shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer border-none"
+            className="w-full py-3.5 sm:py-4 px-6 bg-red-900 hover:bg-red-600 active:scale-[0.99] text-white rounded-2xl font-bold text-base transition-all shadow-sm shadow-slate-900/20 flex items-center justify-center gap-2 cursor-pointer border-none"
           >
             {submitting ? (
               <>
@@ -580,22 +562,20 @@ export default function PaymentCheckoutPage() {
               </>
             ) : (
               <>
-                <FaLock size={13} className="text-emerald-200" />
                 <span>Pay ₹{currentPayAmount.toFixed(2)} Now</span>
               </>
             )}
           </button>
 
           <p className="text-[11px] text-slate-400 text-center font-medium flex items-center justify-center gap-1">
-            <FaShieldAlt size={10} className="text-emerald-600" />
-            <span>256-bit encrypted &bull; Secured by Cashfree Payments</span>
+            <span>Secured by Cashfree Payments</span>
           </p>
         </div>
       </div>
 
       {/* Global Minimal Footer */}
       <footer className="w-full max-w-md text-center py-4 text-[11px] text-slate-400 font-medium">
-        AI Digital Khata &bull; Official Customer Checkout
+        AI Digital Khata
       </footer>
     </div>
   );
