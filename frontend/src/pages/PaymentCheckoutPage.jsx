@@ -130,8 +130,8 @@ export default function PaymentCheckoutPage() {
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentTime, setPaymentTime] = useState('');
 
-  // Active Tab Menu for Fallback Options
-  const [activeTab, setActiveTab] = useState('razorpay'); // 'razorpay' | 'upi' | 'card'
+  // Active Tab Menu for Payment Options: 'upi' (default) or 'razorpay'
+  const [activeTab, setActiveTab] = useState('upi'); // 'upi' | 'razorpay'
 
   // Form States
   const [utr, setUtr] = useState('');
@@ -238,6 +238,12 @@ export default function PaymentCheckoutPage() {
           description: `Udhaar Clearance - ${data.customerName || 'Customer'}`,
           image: 'https://upload.wikimedia.org/wikipedia/commons/8/89/Razorpay_logo.svg',
           order_id: order_id,
+          method: {
+            upi: true,
+            card: true,
+            netbanking: true,
+            wallet: true,
+          },
           modal: {
             ondismiss: function () {
               console.log('Razorpay Checkout closed by user.');
@@ -437,12 +443,13 @@ export default function PaymentCheckoutPage() {
             setPaymentDate(dateStr);
             setPaymentTime(timeStr);
           } else if (fetchedData.balance > 0 && !autoLaunchAttemptedRef.current && !orderId) {
-            // AUTOMATIC CHECKOUT LAUNCH: When customer clicks Pay Now from email,
-            // open Razorpay Checkout automatically as soon as page and order are ready.
+            // Only auto-launch Razorpay modal if explicitly requested in URL (?gateway=razorpay)
             autoLaunchAttemptedRef.current = true;
-            setTimeout(() => {
-              launchRazorpayCheckout(fetchedData.balance, true);
-            }, 600);
+            if (queryParams.get('gateway') === 'razorpay') {
+              setTimeout(() => {
+                launchRazorpayCheckout(fetchedData.balance, true);
+              }, 600);
+            }
           }
         } else if (isMounted) {
           setError(response.data?.message || 'Invalid or expired payment checkout link.');
@@ -1039,178 +1046,259 @@ export default function PaymentCheckoutPage() {
           </div>
         </div>
 
-        {/* Right Column: Checkout Action Panel */}
+        {/* Right Column: Checkout Action Panel with Dual Tabs (UPI & Razorpay) */}
         <div className="w-full md:w-1/2 flex flex-col gap-6">
           <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/90 overflow-hidden flex flex-col justify-between flex-1">
-            <div className="h-1.5 w-full bg-gradient-to-r from-slate-900 via-blue-600 to-orange-500" />
+            <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-blue-600 to-orange-500" />
 
-            <div className="p-6 sm:p-7 space-y-6 flex-1 flex flex-col justify-between">
+            <div className="p-6 sm:p-7 space-y-5 flex-1 flex flex-col justify-between">
+              {/* Payment Method Selector Tabs */}
               <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-xs font-black text-emerald-700 uppercase tracking-wider block">
-                    Instant Bank Gateway &bull; Active
-                  </span>
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Razorpay Express Checkout</h2>
-                <p className="text-slate-600 text-xs sm:text-sm mt-1 leading-relaxed font-medium">
-                  Supports all Indian UPI Apps (GPay, PhonePe, Paytm, BHIM), Debit/Credit Cards, Net Banking & Wallets.
-                </p>
-              </div>
+                <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('upi')}
+                    className={`flex-1 py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                      activeTab === 'upi'
+                        ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
+                        : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                    }`}
+                  >
+                    <FaQrcode size={14} className={activeTab === 'upi' ? 'text-emerald-600' : 'text-slate-400'} />
+                    <span>UPI / QR Code</span>
+                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md uppercase">Zero Fee</span>
+                  </button>
 
-              {/* Status Banner when auto-launch was blocked or cancelled */}
-              {(autoLaunchStatus === 'blocked' || autoLaunchStatus === 'cancelled' || autoLaunchStatus === 'failed') && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-                  <FaBolt className="text-[#F97316] shrink-0 mt-0.5" size={15} />
-                  <div className="text-left text-xs text-amber-900 leading-relaxed">
-                    <strong className="font-bold block">
-                      {autoLaunchStatus === 'cancelled' ? 'Checkout window was closed.' : 'Automatic opening was prevented by your browser.'}
-                    </strong>
-                    Click the prominent <strong>Pay Now</strong> button below to open Razorpay Checkout with one click.
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('razorpay')}
+                    className={`flex-1 py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer border-none ${
+                      activeTab === 'razorpay'
+                        ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
+                        : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                    }`}
+                  >
+                    <FaCreditCard size={14} className={activeTab === 'razorpay' ? 'text-blue-600' : 'text-slate-400'} />
+                    <span>Cards & NetBanking</span>
+                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-extrabold rounded-md uppercase">Razorpay</span>
+                  </button>
                 </div>
-              )}
 
-              {/* Primary Prominent Razorpay Pay Button */}
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  id="razorpay-pay-now-button"
-                  onClick={() => launchRazorpayCheckout(currentPayAmount, false)}
-                  disabled={submitting || verifyingPayment}
-                  className="w-full py-4.5 px-6 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:from-slate-900 hover:to-slate-850 active:scale-[0.99] text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-slate-900/20 hover:shadow-2xl flex items-center justify-between gap-3 cursor-pointer border border-slate-800 group"
-                >
-                  {submitting ? (
-                    <div className="w-full flex items-center justify-center gap-3">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="font-extrabold">Opening Razorpay Checkout...</span>
+                {/* TAB 1: INSTANT UPI & QR CODE */}
+                {activeTab === 'upi' && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="text-xs font-black text-emerald-700 uppercase tracking-wider block">
+                          Instant UPI Settlement &bull; Direct to Merchant
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pay via Any UPI App or QR Code</h2>
+                      <p className="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed font-medium">
+                        Scan the dynamic QR code with Google Pay, PhonePe, Paytm, or BHIM. Pre-filled with ₹{currentPayAmount.toFixed(2)}.
+                      </p>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                          <FaLock size={13} />
+
+                    {/* Dynamic QR Code Card */}
+                    <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="p-2 bg-white rounded-2xl border-2 border-slate-200 shadow-sm shrink-0">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                            `upi://pay?pa=${upiId || '9849228937@axl'}&pn=${encodeURIComponent(storeName)}&am=${currentPayAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Udhaar Settlement')}`
+                          )}`}
+                          alt="Merchant UPI QR Code"
+                          className="w-36 h-36 sm:w-40 sm:h-40 object-contain rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Merchant UPI ID</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="font-mono text-sm font-black text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 truncate block">
+                              {upiId || '9849228937@axl'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleCopyUpi}
+                              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-colors cursor-pointer shrink-0"
+                              title="Copy UPI ID"
+                            >
+                              {copiedUpi ? <FaCheck size={11} className="text-emerald-600 inline mr-1" /> : <FaRegCopy size={11} className="inline mr-1" />}
+                              <span>{copiedUpi ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="text-left leading-tight">
-                          <div className="text-[11px] font-black text-slate-300 uppercase tracking-wider">Instant 1-Click Pay</div>
-                          <div className="text-base font-black text-white">Pay ₹{currentPayAmount.toFixed(2)} with Razorpay</div>
+
+                        <div className="pt-1">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Supported Apps</span>
+                          <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
+                            <PhonePeLogo />
+                            <GPayLogo />
+                            <PaytmLogo />
+                            <BhimUpiLogo />
+                          </div>
                         </div>
                       </div>
-                      <span className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-black tracking-wide flex items-center gap-1 transition-all group-hover:translate-x-0.5 shadow-sm">
-                        Pay Now &rarr;
-                      </span>
-                    </>
-                  )}
-                </button>
+                    </div>
 
-                {/* Accepted Payment Brand Icons */}
-                <div className="pt-2 text-center">
-                  <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2.5">
-                    Accepted Payment Methods &bull; Zero Surcharge
-                  </p>
-                  <div className="flex justify-center items-center gap-2 flex-wrap">
-                    <PhonePeLogo />
-                    <GPayLogo />
-                    <PaytmLogo />
-                    <BhimUpiLogo />
-                    <VisaLogo />
-                    <MastercardLogo />
-                    <RupayLogo />
+                    {/* 1-Tap Mobile Launch Link */}
+                    <div className="space-y-2">
+                      <a
+                        href={`upi://pay?pa=${encodeURIComponent(upiId || '9849228937@axl')}&pn=${encodeURIComponent(storeName)}&am=${currentPayAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Udhaar Settlement')}`}
+                        className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 hover:shadow-xl transition-all no-underline cursor-pointer"
+                      >
+                        <FaBolt size={14} className="text-emerald-200" />
+                        <span>Open in UPI App (GPay / PhonePe / Paytm) &rarr;</span>
+                      </a>
+                    </div>
+
+                    {/* Submit Proof & Verify */}
+                    <form onSubmit={handleConfirmPayment} className="pt-2 border-t border-slate-100 space-y-3">
+                      <div className="text-left">
+                        <span className="text-xs font-black text-slate-800 block">Confirm Your UPI Payment</span>
+                        <p className="text-[11px] text-slate-500 font-medium">After paying in your UPI app, upload your screenshot or enter the 12-digit UTR to update your ledger balance.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                            Screenshot (Optional)
+                          </label>
+                          {screenshotPreview ? (
+                            <div className="relative rounded-xl border border-emerald-300 bg-emerald-50/50 p-2 flex items-center gap-2">
+                              <img src={screenshotPreview} alt="Preview" className="w-10 h-10 object-cover rounded-lg" />
+                              <span className="text-xs font-bold text-emerald-800 truncate flex-1">Attached</span>
+                              <button
+                                type="button"
+                                onClick={() => setScreenshotPreview('')}
+                                className="text-xs text-rose-600 font-bold hover:underline cursor-pointer bg-transparent border-none p-1"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center justify-center border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/70 rounded-xl p-2.5 cursor-pointer text-center text-xs font-bold text-slate-700 transition-all">
+                              <input type="file" accept="image/*" onChange={handleScreenshotChange} className="hidden" />
+                              <span>Attach Screenshot</span>
+                            </label>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                            12-Digit UPI UTR
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={22}
+                            value={utr}
+                            onChange={(e) => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                            placeholder="e.g. 428192837192"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:outline-none focus:border-slate-400"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs cursor-pointer transition-all border-none shadow-md"
+                      >
+                        {submitting ? 'Confirming Payment...' : 'Confirm & Settle Udhaar Ledger'}
+                      </button>
+                    </form>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Secondary Fallback Option: Direct QR / Screenshot Upload */}
-              <div className="border-t border-slate-100 pt-4">
-                <details className="group" open={Boolean(screenshotPreview)}>
-                  <summary className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer list-none flex items-center justify-between py-1">
-                    <span className="flex items-center gap-1.5">
-                      <FaQrcode className="text-[#F97316]" size={12} />
-                      Alternative: Pay via Direct Store QR / Upload Screenshot
-                    </span>
-                    <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                  </summary>
+                {/* TAB 2: RAZORPAY GATEWAY */}
+                {activeTab === 'razorpay' && (
+                  <div className="space-y-5 animate-fadeIn">
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span className="text-xs font-black text-blue-700 uppercase tracking-wider block">
+                          Razorpay Card & NetBanking Gateway
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Razorpay Secure Checkout</h2>
+                      <p className="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed font-medium">
+                        Pay via Debit/Credit Cards (Visa, Mastercard, RuPay), Net Banking from all Indian banks, or Wallets.
+                      </p>
+                    </div>
 
-                  <form onSubmit={handleConfirmPayment} className="mt-3 space-y-3">
-                    {/* Direct UPI QR Code Preview if upiId is present */}
-                    {upiId && (
-                      <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-2xl flex items-center gap-3.5">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}&am=${currentPayAmount}&cu=INR`)}`}
-                          alt="Store UPI QR"
-                          className="w-16 h-16 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs shrink-0"
-                          loading="lazy"
-                        />
-                        <div className="text-left text-xs">
-                          <span className="font-extrabold text-slate-900 block">Scan to Pay via Any UPI App</span>
-                          <span className="text-xs text-slate-600 font-mono block mt-0.5">{upiId}</span>
-                          <span className="text-[11px] text-emerald-600 font-semibold block mt-0.5">Amount auto-set to ₹{currentPayAmount.toFixed(2)}</span>
+                    {/* Status Banner when auto-launch was blocked or cancelled */}
+                    {(autoLaunchStatus === 'blocked' || autoLaunchStatus === 'cancelled' || autoLaunchStatus === 'failed') && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                        <FaBolt className="text-[#F97316] shrink-0 mt-0.5" size={15} />
+                        <div className="text-left text-xs text-amber-900 leading-relaxed">
+                          <strong className="font-bold block">
+                            {autoLaunchStatus === 'cancelled' ? 'Checkout window was closed.' : 'Automatic opening was prevented by your browser.'}
+                          </strong>
+                          Click the button below to open Razorpay Checkout.
                         </div>
                       </div>
                     )}
 
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                        Upload Payment Screenshot
-                      </label>
-                      {screenshotPreview ? (
-                        <div className="relative rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-3 flex items-center gap-3">
-                          <img 
-                            src={screenshotPreview} 
-                            alt="Screenshot Preview" 
-                            className="w-14 h-14 object-cover rounded-xl border border-emerald-200 shadow-sm"
-                          />
-                          <div className="flex-1 min-w-0 text-left">
-                            <span className="text-xs font-bold text-emerald-800 block truncate">✓ Screenshot Attached</span>
-                            <span className="text-[11px] text-emerald-600 font-semibold block">Ready for verification</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setScreenshotPreview('')}
-                            className="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-600 rounded-lg text-xs font-bold transition-colors border-none cursor-pointer"
-                          >
-                            Remove
-                          </button>
+                    {/* Primary Prominent Razorpay Pay Button */}
+                    <button
+                      type="button"
+                      id="razorpay-pay-now-button"
+                      onClick={() => launchRazorpayCheckout(currentPayAmount, false)}
+                      disabled={submitting || verifyingPayment}
+                      className="w-full py-4.5 px-6 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:from-slate-900 hover:to-slate-850 active:scale-[0.99] text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-slate-900/20 hover:shadow-2xl flex items-center justify-between gap-3 cursor-pointer border border-slate-800 group"
+                    >
+                      {submitting ? (
+                        <div className="w-full flex items-center justify-center gap-3">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span className="font-extrabold">Opening Razorpay Checkout...</span>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-[#F97316] bg-slate-50/60 hover:bg-orange-50/30 rounded-2xl p-4 cursor-pointer transition-all text-center">
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleScreenshotChange} 
-                            className="hidden" 
-                          />
-                          <span className="text-xs font-bold text-slate-800 block">Click to attach screenshot</span>
-                          <span className="text-xs text-slate-500 font-semibold block mt-0.5">Supports PNG, JPG, WEBP</span>
-                        </label>
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                              <FaLock size={13} />
+                            </div>
+                            <div className="text-left leading-tight">
+                              <div className="text-[11px] font-black text-slate-300 uppercase tracking-wider">Instant 1-Click Pay</div>
+                              <div className="text-base font-black text-white">Pay ₹{currentPayAmount.toFixed(2)} with Razorpay</div>
+                            </div>
+                          </div>
+                          <span className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black tracking-wide flex items-center gap-1 transition-all group-hover:translate-x-0.5 shadow-sm">
+                            Pay Now &rarr;
+                          </span>
+                        </>
                       )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                        UPI Ref / UTR (Optional)
-                      </label>
-                      <input 
-                        type="text"
-                        maxLength={22}
-                        value={utr}
-                        onChange={(e) => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                        placeholder="12-digit UPI UTR"
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:outline-none focus:border-slate-400"
-                      />
-                    </div>
-
-                    <button 
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full py-3 bg-[#F97316] hover:bg-[#ea6c10] text-white rounded-xl font-bold text-xs cursor-pointer transition-all border-none shadow-sm"
-                    >
-                      {submitting ? 'Submitting...' : 'Submit Screenshot'}
                     </button>
-                  </form>
-                </details>
+
+                    {/* Accepted Payment Brand Icons */}
+                    <div className="pt-2 text-center">
+                      <p className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-2.5">
+                        Accepted Gateway Methods
+                      </p>
+                      <div className="flex justify-center items-center gap-2 flex-wrap">
+                        <VisaLogo />
+                        <MastercardLogo />
+                        <RupayLogo />
+                        <PhonePeLogo />
+                        <GPayLogo />
+                        <PaytmLogo />
+                        <BhimUpiLogo />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl text-left text-xs text-blue-900">
+                      <span className="font-bold block text-blue-950">Looking for UPI?</span>
+                      <p className="text-[11px] text-blue-800 mt-0.5 leading-relaxed font-medium">
+                        You can pay directly using the <strong>UPI / QR Code</strong> tab above. In Razorpay test mode, UPI is toggled in your Razorpay Dashboard under <em>Account & Settings &gt; Payment Methods</em>.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Bottom Trust Banner */}
               <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3.5">
                 <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 mt-0.5">
                   <FaShieldAlt size={14} />
@@ -1225,6 +1313,7 @@ export default function PaymentCheckoutPage() {
             </div>
           </div>
         </div>
+
       </main>
 
       {/* Global Trust Footer */}
