@@ -433,22 +433,46 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
 
-    const amount = requestedAmount ? parseFloat(requestedAmount) : parseFloat(customer.balance);
-    if (isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Valid payment amount is required.' });
+    // Always fetch authoritative balance from DB
+    const currentBalance = parseFloat(customer.balance || 0);
+    if (currentBalance <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer has no outstanding balance to pay (balance is ₹0.00).',
+      });
+    }
+
+    let payAmount = currentBalance;
+    if (requestedAmount !== undefined && requestedAmount !== null) {
+      const requested = parseFloat(requestedAmount);
+      if (isNaN(requested) || requested <= 0) {
+        return res.status(400).json({ success: false, message: 'Valid payment amount greater than ₹0 is required.' });
+      }
+      if (requested > currentBalance) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment amount (₹${requested.toFixed(2)}) cannot exceed customer's outstanding balance of ₹${currentBalance.toFixed(2)}.`,
+        });
+      }
+      payAmount = requested;
     }
 
     const orderId = `order_${String(customer._id).slice(-6)}_${Date.now()}`;
     const { appId, secretKey, isSandbox, baseUrl } = getCashfreeConfig();
 
+    let cleanPhone = customer.phone ? customer.phone.replace(/\D/g, '').slice(-10) : '';
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      cleanPhone = '9876543210';
+    }
+
     const payload = {
-      order_amount: amount,
+      order_amount: payAmount,
       order_currency: 'INR',
       order_id: orderId,
       customer_details: {
         customer_id: customer._id.toString(),
-        customer_email: customer.email || 'customer@digitaludhaar.com',
-        customer_phone: customer.phone ? customer.phone.replace(/\D/g, '').slice(-10) : '9999999999',
+        customer_email: customer.email && customer.email.includes('@') ? customer.email : 'customer@digitaludhaar.com',
+        customer_phone: cleanPhone,
         customer_name: customer.name || 'Valued Customer'
       },
       order_meta: {
@@ -456,7 +480,7 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
       }
     };
 
-    console.log('Creating Cashfree Order:', orderId, 'Amount:', amount);
+    console.log('Creating Cashfree Order:', orderId, 'Amount:', payAmount);
 
     const response = await axios.post(
       `${baseUrl}/orders`,
@@ -476,7 +500,10 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
       success: true,
       order_id: orderId,
       payment_session_id: response.data.payment_session_id,
-      isSandbox
+      isSandbox,
+      amount: payAmount,
+      customerName: customer.name,
+      balance: customer.balance,
     });
   } catch (error) {
     console.error('Error creating Cashfree order:', error.response?.data || error.message);
