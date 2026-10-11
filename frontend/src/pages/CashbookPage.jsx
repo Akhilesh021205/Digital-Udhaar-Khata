@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import API from '../api/axios';
+import API, { getCachedData } from '../api/axios';
 import Header from '../components/Layout/Header';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Modal from '../components/Common/Modal';
@@ -18,7 +18,10 @@ import {
 
 const CashbookPage = () => {
   const { t } = useLanguage();
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState(() => {
+    const cached = getCachedData('/cashbook', { period: 'today' });
+    return cached?.data || [];
+  });
   const [stats, setStats] = useState({
     cashInHand: 0,
     todayCashIn: 0,

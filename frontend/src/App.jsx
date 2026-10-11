@@ -11,6 +11,7 @@ import Layout from './components/Layout/Layout';
 import Loader from './components/Common/Loader';
 import { SecurityLockProvider } from './context/SecurityLockContext';
 import { initSocket } from './services/socket';
+import API from './api/axios';
 
 // Lazy load pages for lower initial bundle size
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -99,15 +100,30 @@ function App() {
   useEffect(() => {
     initSocket();
 
-    // Idle prefetch of primary pages so page switching is immediate
+    // Idle prefetch of primary page bundles and datasets so navigation is instantaneous
     const timer = setTimeout(() => {
+      // 1. Prefetch page bundles
       import('./pages/DashboardPage');
       import('./pages/CustomersPage');
       import('./pages/CashbookPage');
       import('./pages/PermanentHistoryPage');
       import('./pages/RemindersPage');
       import('./pages/SettingsPage');
-    }, 1000);
+
+      // 2. Prefetch core datasets in background
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('udhaar-user'));
+        if (storedUser?.token) {
+          API.get('/transactions/stats').catch(() => {});
+          API.get('/customers?sort=balance-high').catch(() => {});
+          API.get('/customers').catch(() => {});
+          API.get('/cashbook', { params: { period: 'today' } }).catch(() => {});
+          API.get('/history').catch(() => {});
+        }
+      } catch (e) {
+        // Safe fail
+      }
+    }, 500);
 
     return () => clearTimeout(timer);
   }, []);

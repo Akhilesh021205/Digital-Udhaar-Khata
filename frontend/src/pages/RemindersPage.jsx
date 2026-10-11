@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import API from '../api/axios';
+import API, { getCachedData } from '../api/axios';
 import Header from '../components/Layout/Header';
 import Loader from '../components/Common/Loader';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,8 +9,15 @@ import { FaWhatsapp, FaRegCopy, FaCheck } from 'react-icons/fa';
 
 const RemindersPage = () => {
   const { t } = useLanguage();
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState(() => {
+    const cached = getCachedData('/customers?sort=balance-high') || getCachedData('/customers');
+    const raw = cached?.data || [];
+    return raw.filter(c => c.balance > 0);
+  });
+  const [loading, setLoading] = useState(() => {
+    const cached = getCachedData('/customers?sort=balance-high') || getCachedData('/customers');
+    return !(cached?.data && cached.data.length > 0);
+  });
   const [sending, setSending] = useState({});
   const [bulkSending, setBulkSending] = useState(false);
 
@@ -100,7 +107,20 @@ const RemindersPage = () => {
     }
   };
 
-  if (loading) return <><Header title={t('reminders')} subtitle={t('sendPaymentReminders')} /><Loader fullPage /></>;
+  if (loading && customers.length === 0) {
+    return (
+      <div className="min-h-screen">
+        <Header title={t('reminders')} subtitle={t('sendPaymentReminders')} />
+        <div className="p-4 sm:p-6 lg:p-8 space-y-4 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="h-36 bg-soft-gray/40 dark:bg-slate-800 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

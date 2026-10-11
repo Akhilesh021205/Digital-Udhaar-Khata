@@ -11,6 +11,15 @@ const cache = require('../utils/cache');
 const getTransactions = async (req, res, next) => {
   try {
     const { type, customer, startDate, endDate, limit, status } = req.query;
+    const queryLimit = parseInt(limit) || 100;
+
+    // Check Cache (15s TTL)
+    const cacheKey = `txns_${req.user._id}_${type || ''}_${customer || ''}_${status || ''}_${startDate || ''}_${endDate || ''}_${queryLimit}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.status(200).json(cachedData);
+    }
+
     let query = { owner: req.user._id };
 
     if (type && ['credit', 'debit'].includes(type)) {
@@ -31,8 +40,6 @@ const getTransactions = async (req, res, next) => {
       if (endDate) query.date.$lte = new Date(endDate);
     }
 
-    const queryLimit = parseInt(limit) || 100;
-
     const transactions = await Transaction.find(query)
       .populate('customer', 'name phone')
       .sort({ date: -1 })
@@ -47,11 +54,15 @@ const getTransactions = async (req, res, next) => {
       return tx;
     });
 
-    res.status(200).json({
+    const payload = {
       success: true,
       count: processedTransactions.length,
       data: processedTransactions,
-    });
+    };
+
+    cache.set(cacheKey, payload, 15000);
+
+    res.status(200).json(payload);
   } catch (error) {
     next(error);
   }
@@ -93,8 +104,10 @@ const createTransaction = async (req, res, next) => {
     BlockchainService.createBlock(req.user._id, transaction._id, customerId, transaction.amount, transaction.type)
       .catch(err => console.error('Background blockchain block creation failed in createTransaction:', err));
 
-    // Invalidate stats cache since transaction was added
+    // Invalidate stats, txns, and customers cache
     cache.invalidatePrefix(`stats_${req.user._id}`);
+    cache.invalidatePrefix(`txns_${req.user._id}`);
+    cache.invalidatePrefix(`customers_${req.user._id}`);
 
     // Update customer balance
     if (type === 'credit') {
@@ -220,6 +233,11 @@ const settleTransaction = async (req, res, next) => {
       updateRiskLevel(customer._id).catch(() => {});
     }
 
+    // Invalidate stats, txns, and customers cache
+    cache.invalidatePrefix(`stats_${req.user._id}`);
+    cache.invalidatePrefix(`txns_${req.user._id}`);
+    cache.invalidatePrefix(`customers_${req.user._id}`);
+
     socketService.emitRefresh('transactions');
 
     res.status(200).json({
@@ -293,8 +311,10 @@ const deleteTransaction = async (req, res, next) => {
     BlockchainService.createBlock(req.user._id, transaction._id, transaction.customer, transaction.amount, 'CANCEL')
       .catch(err => console.error('Background blockchain block creation failed in deleteTransaction:', err));
 
-    // Invalidate stats cache
+    // Invalidate stats, txns, and customers cache
     cache.invalidatePrefix(`stats_${req.user._id}`);
+    cache.invalidatePrefix(`txns_${req.user._id}`);
+    cache.invalidatePrefix(`customers_${req.user._id}`);
 
     socketService.emitRefresh('transactions');
 

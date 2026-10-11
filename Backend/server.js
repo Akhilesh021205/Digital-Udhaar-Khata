@@ -49,7 +49,8 @@ app.use(cors({
 
     return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true
+  credentials: true,
+  maxAge: 86400 // Cache browser CORS preflight requests for 24h to avoid preflight overhead on navigation
 }));
 app.use(express.json({
   limit: '10mb',

@@ -1,13 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export const useSocketSync = (callback, types = []) => {
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
+  const typesRef = useRef(types);
+  typesRef.current = types;
+
   useEffect(() => {
     const handleRefresh = (event) => {
-      const { type } = event.detail;
+      const { type } = event.detail || {};
+      const currentTypes = typesRef.current;
       // If no specific types are listed, refresh on all. Otherwise, refresh only if type matches.
-      if (types.length === 0 || types.includes(type)) {
-        console.log(`Socket triggered refresh for type: ${type}`);
-        callback(type);
+      if (!currentTypes || currentTypes.length === 0 || currentTypes.includes(type)) {
+        callbackRef.current?.(type);
       }
     };
 
@@ -16,5 +22,6 @@ export const useSocketSync = (callback, types = []) => {
     return () => {
       window.removeEventListener('socket_refresh', handleRefresh);
     };
-  }, [callback, types]);
+  }, []);
 };
+

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
-import API from '../api/axios';
+import API, { getCachedData } from '../api/axios';
 import { getDeterministicPrediction, getCustomerBadges } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
@@ -100,10 +100,14 @@ const DashboardPage = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(() => getCachedData('/transactions/stats')?.data || null);
+  const [transactions, setTransactions] = useState(() => getCachedData('/transactions?limit=5')?.data || []);
+  const [customers, setCustomers] = useState(() => getCachedData('/customers?sort=balance-high')?.data || []);
+  const [loading, setLoading] = useState(() => {
+    const hasStats = !!getCachedData('/transactions/stats');
+    const hasCust = !!getCachedData('/customers?sort=balance-high');
+    return !(hasStats && hasCust);
+  });
   const [showTxnModal, setShowTxnModal] = useState(false);
   const [txnForm, setTxnForm] = useState({ customer: '', type: 'credit', amount: '', description: '', date: new Date().toISOString().split('T')[0], paymentMode: 'cash' });
   const [submitting, setSubmitting] = useState(false);
@@ -289,11 +293,14 @@ const DashboardPage = () => {
         API.get('/transactions?limit=5'),
         API.get('/customers?sort=balance-high'),
       ]);
-      setStats(statsRes.data?.data || {});
-      setTransactions(txnRes.data?.data || []);
-      setCustomers(custRes.data?.data || []);
-    } catch (err) { toast.error('Failed to load dashboard'); }
-    finally { setLoading(false); }
+      if (statsRes.data?.data) setStats(statsRes.data.data);
+      if (txnRes.data?.data) setTransactions(txnRes.data.data);
+      if (custRes.data?.data) setCustomers(custRes.data.data);
+    } catch (err) {
+      if (!stats) toast.error('Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -410,10 +417,20 @@ const DashboardPage = () => {
     setShowTxnModal(true);
   };
 
-  if (loading) return (
-    <div>
-      <Header title={t('dashboard')} subtitle={t('overviewOfStore')} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <Loader fullPage />
+  if (loading && !stats) return (
+    <div className="min-h-screen">
+      <Header title={t('dashboard')} subtitle={t('overviewOfStore')} />
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 animate-pulse">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-28 bg-soft-gray/40 dark:bg-slate-800 rounded-2xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-80 bg-soft-gray/40 dark:bg-slate-800 rounded-2xl" />
+          <div className="h-80 bg-soft-gray/40 dark:bg-slate-800 rounded-2xl" />
+        </div>
+      </div>
     </div>
   );
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import API from '../api/axios';
+import API, { getCachedData } from '../api/axios';
 import Header from '../components/Layout/Header';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Loader from '../components/Common/Loader';
@@ -21,8 +21,8 @@ import {
 
 const PermanentHistoryPage = () => {
   const { t } = useLanguage();
-  const [historyLogs, setHistoryLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [historyLogs, setHistoryLogs] = useState(() => getCachedData('/history')?.data || []);
+  const [loading, setLoading] = useState(() => !getCachedData('/history'));
   const [search, setSearch] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -172,7 +172,7 @@ const PermanentHistoryPage = () => {
         </div>
       </div>
 
-      {loading ? (
+      {loading && historyLogs.length === 0 ? (
         <Loader />
       ) : filteredLogs.length === 0 ? (
         <div className="bg-pure-white border border-soft-gray rounded-2xl p-16 text-center shadow-sm space-y-4 max-w-xl mx-auto">

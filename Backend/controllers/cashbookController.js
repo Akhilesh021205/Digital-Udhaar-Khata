@@ -1,6 +1,7 @@
 const CashbookEntry = require('../models/CashbookEntry');
 const { generateCashbookStatement } = require('../services/pdfService');
 const socketService = require('../services/socketService');
+const cache = require('../utils/cache');
 
 // @desc    Get all cashbook entries and statistics
 // @route   GET /api/cashbook
@@ -8,6 +9,13 @@ const getCashbookEntries = async (req, res, next) => {
   try {
     const { period, paymentMode, search, startDate, endDate } = req.query;
     const ownerId = req.user._id;
+
+    // Check Cache (15s TTL)
+    const cacheKey = `cashbook_${ownerId}_${period || ''}_${paymentMode || ''}_${search || ''}_${startDate || ''}_${endDate || ''}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.status(200).json(cachedData);
+    }
 
     // Base query for current owner
     let query = { owner: ownerId };
@@ -99,7 +107,7 @@ const getCashbookEntries = async (req, res, next) => {
       else filteredOut += e.amount;
     });
 
-    res.status(200).json({
+    const responsePayload = {
       success: true,
       count: entries.length,
       data: entries,
@@ -110,7 +118,11 @@ const getCashbookEntries = async (req, res, next) => {
         filteredIn,
         filteredOut,
       },
-    });
+    };
+
+    cache.set(cacheKey, responsePayload, 15000);
+
+    res.status(200).json(responsePayload);
   } catch (error) {
     next(error);
   }
@@ -132,6 +144,8 @@ const createCashbookEntry = async (req, res, next) => {
       date: date || Date.now(),
     });
 
+    // Invalidate cashbook cache for this owner
+    cache.invalidatePrefix(`cashbook_${req.user._id}`);
     socketService.emitRefresh('cashbook');
 
     res.status(201).json({
@@ -161,6 +175,8 @@ const deleteCashbookEntry = async (req, res, next) => {
 
     await CashbookEntry.findByIdAndDelete(entry._id);
 
+    // Invalidate cashbook cache for this owner
+    cache.invalidatePrefix(`cashbook_${req.user._id}`);
     socketService.emitRefresh('cashbook');
 
     res.status(200).json({

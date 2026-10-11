@@ -1,5 +1,7 @@
 import { io } from 'socket.io-client';
 import { Capacitor } from '@capacitor/core';
+import { clearApiCache } from '../api/axios';
+import { toast } from 'react-toastify';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL 
   || (Capacitor.isNativePlatform() || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
@@ -22,9 +24,7 @@ export const initSocket = () => {
   socket.on('refresh_data', (data) => {
     console.log('Received real-time refresh signal:', data);
     // Invalidate client API cache on real-time database updates
-    import('../api/axios').then(({ clearApiCache }) => {
-      clearApiCache();
-    });
+    clearApiCache();
     // Dispatch a custom window event that React components can listen to
     const event = new CustomEvent('socket_refresh', { detail: data });
     window.dispatchEvent(event);
@@ -32,10 +32,8 @@ export const initSocket = () => {
 
   socket.on('payment_screenshot_received', (data) => {
     console.log('Payment screenshot received:', data);
-    import('react-toastify').then(({ toast }) => {
-      toast.info(`Payment Screenshot Received from ${data.customerName || 'Customer'} (₹${data.amount})!`, {
-        autoClose: 10000,
-      });
+    toast.info(`Payment Screenshot Received from ${data.customerName || 'Customer'} (₹${data.amount})!`, {
+      autoClose: 10000,
     });
     const event = new CustomEvent('socket_screenshot', { detail: data });
     window.dispatchEvent(event);

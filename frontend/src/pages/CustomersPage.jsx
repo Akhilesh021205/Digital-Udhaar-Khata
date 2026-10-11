@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import API from '../api/axios';
+import API, { getCachedData } from '../api/axios';
 import { getDeterministicPrediction, getCustomerBadges } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
@@ -77,8 +77,27 @@ const customerPresets = [
 const CustomersPage = () => {
   const { t, lang } = useLanguage();
   const { user } = useContext(AuthContext);
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState(() => {
+    const cached = getCachedData('/customers') || getCachedData('/customers?sort=balance-high');
+    const raw = cached?.data || [];
+    if (raw.length > 0) {
+      return raw.map(c => {
+        const prediction = getDeterministicPrediction(c);
+        const isSettledOrNew = c.balance === 0 || (c.totalTransactions || 0) === 0;
+        return {
+          ...c,
+          duePrediction: isSettledOrNew ? prediction.duePrediction : (c.duePrediction || prediction.duePrediction),
+          creditScore: c.creditScore || prediction.creditScore,
+          riskLevel: c.riskLevel || prediction.riskLevel
+        };
+      });
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    const cached = getCachedData('/customers') || getCachedData('/customers?sort=balance-high');
+    return !(cached?.data && cached.data.length > 0);
+  });
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -315,7 +334,21 @@ const CustomersPage = () => {
     }
   };
 
-  if (loading) return <><Header title={t('customers')} subtitle={t('manageCustomers')} /><Loader fullPage /></>;
+  if (loading && customers.length === 0) {
+    return (
+      <div className="min-h-screen">
+        <Header title={t('customers')} subtitle={t('manageCustomers')} />
+        <div className="p-4 sm:p-6 lg:p-8 space-y-4 animate-pulse">
+          <div className="h-12 bg-soft-gray/40 dark:bg-slate-800 rounded-xl w-full max-w-md" />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="h-36 bg-soft-gray/40 dark:bg-slate-800 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const customerList = Array.isArray(customers) ? customers : [];
 
