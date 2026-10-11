@@ -7,8 +7,18 @@ import { Capacitor } from '@capacitor/core';
 import { BiometricService } from '../services/biometricService';
 import Header from '../components/Layout/Header';
 import { toast } from 'react-toastify';
-import { HiPlus, HiEye, HiEyeOff, HiOutlineX } from 'react-icons/hi';
-import { HiOutlineFingerPrint } from 'react-icons/hi';
+import { 
+  HiPlus, HiEye, HiEyeOff, HiOutlineX, 
+  HiOutlineFingerPrint,
+  HiOutlineShieldCheck,
+  HiOutlineMicrophone,
+  HiOutlineBookOpen,
+  HiOutlineBell,
+  HiOutlineDatabase,
+  HiOutlineSparkles,
+  HiOutlineCheckCircle
+} from 'react-icons/hi';
+import Logo from '../components/Common/Logo';
 import { FaQrcode } from 'react-icons/fa';
 import { 
   FiCloud, 
@@ -194,6 +204,39 @@ const presets = [
   { label: 'Male Merchant', value: svgToBase64(maleSvg) },
   { label: 'Female Merchant', value: svgToBase64(femaleSvg) },
   { label: 'Ledger Book', value: svgToBase64(ledgerSvg) }
+];
+
+const versionFeatures = [
+  {
+    title: 'Biometric & PIN Security',
+    desc: '4-Digit PIN lock, WebAuthn Fingerprint, AI Face ID, and 1-minute inactivity protection.',
+    icon: <HiOutlineShieldCheck className="text-emerald-500 text-lg shrink-0 mt-0.5" />
+  },
+  {
+    title: 'AI Voice Ledger Entries',
+    desc: 'Hands-free voice entry supporting Hindi, Telugu, and English.',
+    icon: <HiOutlineMicrophone className="text-rose-500 text-lg shrink-0 mt-0.5" />
+  },
+  {
+    title: 'Real-time Udhar & Jama Ledger',
+    desc: 'Instant balance tracking with automated risk prediction (Trusted, Delay, Risky).',
+    icon: <HiOutlineBookOpen className="text-indigo-500 text-lg shrink-0 mt-0.5" />
+  },
+  {
+    title: '1-Tap WhatsApp & Email Reminders',
+    desc: 'Direct payment reminder messages sent via WhatsApp web and Email.',
+    icon: <HiOutlineBell className="text-amber-500 text-lg shrink-0 mt-0.5" />
+  },
+  {
+    title: 'Encrypted Cloud & Auto Backup',
+    desc: 'Secure data synchronization with automated database backup.',
+    icon: <HiOutlineDatabase className="text-blue-500 text-lg shrink-0 mt-0.5" />
+  },
+  {
+    title: 'Adaptive Light & Dark Mode',
+    desc: 'Seamless theme switching optimized for all lighting conditions.',
+    icon: <HiOutlineSparkles className="text-purple-500 text-lg shrink-0 mt-0.5" />
+  }
 ];
 
 const SettingsPage = () => {
@@ -1656,6 +1699,61 @@ const SettingsPage = () => {
               )}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* 8. App Version & Features Information (Placed inside Settings at last) */}
+      <div className="mt-8 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-soft-gray/60 dark:border-slate-800">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-center p-2 shadow-xs shrink-0">
+              <Logo />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-base sm:text-lg font-bold text-deep-navy dark:text-white leading-tight font-outfit m-0">
+                  AI Digital Khata
+                </h3>
+                <span className="text-[10px] bg-rose-600/10 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 font-extrabold px-2.5 py-0.5 rounded-full border border-rose-600/20">
+                  v2.0
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                  <HiOutlineCheckCircle className="text-xs" /> v2.0.4 (Latest)
+                </span>
+                <span className="text-[10px] text-slate-gray dark:text-slate-400 font-medium">
+                  • Secure & Reliable Digital Ledger
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-gray dark:text-slate-300 mt-4 mb-6 leading-relaxed font-medium">
+          AI Digital Khata v2.0 is an intelligent digital ledger designed for Indian small business owners and shopkeepers to manage customer balances, track cashbook transactions, and secure business records.
+        </p>
+
+        <div>
+          <span className="text-[11px] font-bold text-slate-gray dark:text-slate-400 uppercase tracking-wider block mb-3.5">
+            Included Features in v2.0
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {versionFeatures.map((feat, idx) => (
+              <div key={idx} className="flex items-start gap-3 p-4 bg-soft-white/70 dark:bg-slate-800/50 border border-soft-gray/60 dark:border-slate-800 rounded-2xl hover:border-orange/30 transition-all hover:shadow-xs">
+                {feat.icon}
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-deep-navy dark:text-white m-0 leading-tight">{feat.title}</h4>
+                  <p className="text-[11px] text-slate-gray dark:text-slate-400 mt-1 mb-0 leading-relaxed font-normal">{feat.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-7 pt-4 border-t border-soft-gray/50 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-gray/70 dark:text-slate-400">
+          <span>© 2026 AI Digital Khata. All rights reserved.</span>
+          <span className="font-mono font-medium">Version: 2.0.4 • Build: Stable Production</span>
         </div>
       </div>
 

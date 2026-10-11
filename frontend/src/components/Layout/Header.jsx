@@ -79,14 +79,6 @@ const Header = ({ title, subtitle, onToggleSidebar }) => {
     <>
       <header className="fixed top-0 right-0 left-0 md:left-64 h-18 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-light-cream/70 dark:bg-slate-900/80 backdrop-blur-md border-b border-soft-gray dark:border-slate-800 shadow-xs z-30 transition-all duration-300">
         <div className="flex items-center gap-3">
-          {/* Mobile sidebar toggle button */}
-          <button
-            onClick={toggleSidebar}
-            className="md:hidden p-2 rounded-xl text-slate-gray hover:text-deep-navy dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-none bg-none cursor-pointer"
-          >
-            <HiOutlineMenuAlt2 size={22} />
-          </button>
-
           <div>
             <h1 className="text-base lg:text-lg font-bold text-deep-navy dark:text-white leading-tight tracking-tight font-outfit">{title}</h1>
             {subtitle && (

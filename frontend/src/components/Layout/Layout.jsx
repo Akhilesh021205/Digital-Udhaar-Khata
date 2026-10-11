@@ -12,7 +12,7 @@ const Layout = ({ children }) => {
   return (
     <SidebarContext.Provider value={[sidebarOpen, setSidebarOpen]}>
       <div className="min-h-screen udhaar-page-bg text-deep-navy">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar />
         <main className="pt-18 md:pl-64 min-h-screen transition-all duration-300">
           {/* Full-width responsive container with optimal edge spacing */}
           <div className="p-3 pb-24 sm:p-5 sm:pb-28 lg:p-6 lg:pb-10 w-full max-w-[1800px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10">
