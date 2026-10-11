@@ -347,6 +347,92 @@ export default function PaymentCheckoutPage() {
     }
   };
 
+  // Launch Cashfree Checkout Modal (Supports UPI in Sandbox & Live)
+  const launchCashfreeCheckout = async (targetAmount = null) => {
+    if (!data) return;
+
+    const outstandingBalance = parseFloat(data.balance || 0);
+    if (outstandingBalance <= 0) {
+      toast.info('Your outstanding balance is already ₹0.00. No payment required.');
+      return;
+    }
+
+    const payVal = targetAmount !== null 
+      ? parseFloat(targetAmount) 
+      : (parseFloat(amountPaid) || outstandingBalance);
+
+    if (isNaN(payVal) || payVal <= 0) {
+      toast.error('Please enter a valid payment amount greater than ₹0.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await API.post(`/reminders/checkout/${paymentToken}/create-order`, {
+        amount: payVal,
+      });
+
+      if (response.data?.success && response.data?.payment_session_id) {
+        const { payment_session_id, order_id, isSandbox } = response.data;
+
+        if (!window.Cashfree) {
+          toast.error('Cashfree SDK is loading. Please try again.');
+          setSubmitting(false);
+          return;
+        }
+
+        const cashfree = window.Cashfree({
+          mode: isSandbox ? 'sandbox' : 'production',
+        });
+
+        cashfree.checkout({
+          paymentSessionId: payment_session_id,
+          redirectTarget: '_modal',
+        }).then(async (result) => {
+          if (result.error) {
+            console.warn('Cashfree payment modal error/dismissed:', result.error);
+            setSubmitting(false);
+          }
+          if (result.paymentDetails) {
+            setVerifyingPayment(true);
+            setVerifyingStatusMsg('Verifying Cashfree payment & updating ledger...');
+            try {
+              const verifyRes = await API.get(`/reminders/checkout/${paymentToken}/verify-payment/${order_id}`);
+              if (verifyRes.data?.success && verifyRes.data?.status === 'PAID') {
+                toast.success('✓ Cashfree payment verified & settled successfully!');
+                setIsPaid(true);
+                setPaymentStatus('SETTLED');
+                const txData = verifyRes.data.data;
+                if (txData) {
+                  if (txData.paymentId) setCashfreePaymentId(txData.paymentId);
+                  if (txData.utr) setUtr(txData.utr);
+                  if (txData.amount) setAmountPaid(txData.amount.toString());
+                  const dateObj = txData.date ? new Date(txData.date) : new Date();
+                  setReceiptNo(`RCP-${dateObj.getFullYear()}${(dateObj.getMonth() + 1).toString().padStart(2, '0')}${dateObj.getDate().toString().padStart(2, '0')}-${String(paymentToken).slice(-3).toUpperCase()}`);
+                  setPaymentDate(dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+                  setPaymentTime(dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }));
+                }
+              } else {
+                toast.info('Payment processed. Refreshing checkout status...');
+              }
+            } catch (vErr) {
+              console.warn('Cashfree verification check error:', vErr);
+            } finally {
+              setVerifyingPayment(false);
+              setSubmitting(false);
+            }
+          }
+        });
+      } else {
+        toast.error(response.data?.message || 'Failed to initialize Cashfree order.');
+        setSubmitting(false);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error connecting to Cashfree gateway.');
+      setSubmitting(false);
+    }
+  };
+
   // Fetch store checkout info & automatically launch Razorpay
   useEffect(() => {
     if (!paymentToken) {
@@ -1212,65 +1298,75 @@ export default function PaymentCheckoutPage() {
                   </div>
                 )}
 
-                {/* TAB 2: RAZORPAY GATEWAY */}
+                {/* TAB 2: GATEWAYS (CASHFREE & RAZORPAY) */}
                 {activeTab === 'razorpay' && (
-                  <div className="space-y-5 animate-fadeIn">
+                  <div className="space-y-4 animate-fadeIn">
                     <div className="text-left">
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                        <span className="text-xs font-black text-blue-700 uppercase tracking-wider block">
-                          Razorpay Card & NetBanking Gateway
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="text-xs font-black text-emerald-700 uppercase tracking-wider block">
+                          Online Payment Gateways &bull; Active
                         </span>
                       </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Razorpay Secure Checkout</h2>
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Select Online Gateway</h2>
                       <p className="text-slate-600 text-xs sm:text-sm mt-0.5 leading-relaxed font-medium">
-                        Pay via Debit/Credit Cards (Visa, Mastercard, RuPay), Net Banking from all Indian banks, or Wallets.
+                        Pay via UPI, Debit/Credit Cards (Visa, Mastercard, RuPay), or Net Banking from any bank.
                       </p>
                     </div>
 
-                    {/* Status Banner when auto-launch was blocked or cancelled */}
-                    {(autoLaunchStatus === 'blocked' || autoLaunchStatus === 'cancelled' || autoLaunchStatus === 'failed') && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-                        <FaBolt className="text-[#F97316] shrink-0 mt-0.5" size={15} />
-                        <div className="text-left text-xs text-amber-900 leading-relaxed">
-                          <strong className="font-bold block">
-                            {autoLaunchStatus === 'cancelled' ? 'Checkout window was closed.' : 'Automatic opening was prevented by your browser.'}
-                          </strong>
-                          Click the button below to open Razorpay Checkout.
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Primary Prominent Razorpay Pay Button */}
-                    <button
-                      type="button"
-                      id="razorpay-pay-now-button"
-                      onClick={() => launchRazorpayCheckout(currentPayAmount, false)}
-                      disabled={submitting || verifyingPayment}
-                      className="w-full py-4.5 px-6 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 hover:from-slate-900 hover:to-slate-850 active:scale-[0.99] text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-slate-900/20 hover:shadow-2xl flex items-center justify-between gap-3 cursor-pointer border border-slate-800 group"
-                    >
-                      {submitting ? (
-                        <div className="w-full flex items-center justify-center gap-3">
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span className="font-extrabold">Opening Razorpay Checkout...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                              <FaLock size={13} />
-                            </div>
-                            <div className="text-left leading-tight">
-                              <div className="text-[11px] font-black text-slate-300 uppercase tracking-wider">Instant 1-Click Pay</div>
-                              <div className="text-base font-black text-white">Pay ₹{currentPayAmount.toFixed(2)} with Razorpay</div>
-                            </div>
+                    {/* Cashfree Primary Button (Supports UPI in Sandbox & Live) */}
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        id="cashfree-pay-now-button"
+                        onClick={() => launchCashfreeCheckout(currentPayAmount)}
+                        disabled={submitting || verifyingPayment}
+                        className="w-full py-4.5 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-emerald-600/25 hover:shadow-2xl flex items-center justify-between gap-3 cursor-pointer border border-emerald-500/80 group"
+                      >
+                        {submitting ? (
+                          <div className="w-full flex items-center justify-center gap-3">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span className="font-extrabold">Opening Cashfree Checkout...</span>
                           </div>
-                          <span className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black tracking-wide flex items-center gap-1 transition-all group-hover:translate-x-0.5 shadow-sm">
-                            Pay Now &rarr;
-                          </span>
-                        </>
-                      )}
-                    </button>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                                <FaBolt size={14} />
+                              </div>
+                              <div className="text-left leading-tight">
+                                <div className="text-[11px] font-black text-emerald-100 uppercase tracking-wider">Cashfree Gateway (UPI & Cards)</div>
+                                <div className="text-base font-black text-white">Pay ₹{currentPayAmount.toFixed(2)} with Cashfree</div>
+                              </div>
+                            </div>
+                            <span className="px-3.5 py-2 bg-white text-emerald-800 rounded-xl text-xs font-black tracking-wide flex items-center gap-1 transition-all group-hover:translate-x-0.5 shadow-sm">
+                              Pay Now &rarr;
+                            </span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="flex items-center justify-center gap-3 py-1 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                        <span className="h-px bg-slate-200 flex-1"></span>
+                        <span>or</span>
+                        <span className="h-px bg-slate-200 flex-1"></span>
+                      </div>
+
+                      {/* Razorpay Gateway Button */}
+                      <button
+                        type="button"
+                        id="razorpay-pay-now-button"
+                        onClick={() => launchRazorpayCheckout(currentPayAmount, false)}
+                        disabled={submitting || verifyingPayment}
+                        className="w-full py-3.5 px-5 bg-slate-900 hover:bg-slate-850 active:scale-[0.99] text-white rounded-2xl font-bold text-sm transition-all shadow-md flex items-center justify-between gap-3 cursor-pointer border border-slate-700 group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <FaLock size={12} className="text-slate-400" />
+                          <span className="font-black">Pay with Razorpay (Cards & NetBanking)</span>
+                        </div>
+                        <span className="text-xs text-orange-400 font-black">₹{currentPayAmount.toFixed(2)} &rarr;</span>
+                      </button>
+                    </div>
 
                     {/* Accepted Payment Brand Icons */}
                     <div className="pt-2 text-center">
@@ -1286,13 +1382,6 @@ export default function PaymentCheckoutPage() {
                         <PaytmLogo />
                         <BhimUpiLogo />
                       </div>
-                    </div>
-
-                    <div className="p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl text-left text-xs text-blue-900">
-                      <span className="font-bold block text-blue-950">Looking for UPI?</span>
-                      <p className="text-[11px] text-blue-800 mt-0.5 leading-relaxed font-medium">
-                        You can pay directly using the <strong>UPI / QR Code</strong> tab above. In Razorpay test mode, UPI is toggled in your Razorpay Dashboard under <em>Account & Settings &gt; Payment Methods</em>.
-                      </p>
                     </div>
                   </div>
                 )}

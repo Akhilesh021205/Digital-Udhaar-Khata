@@ -419,7 +419,16 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
   try {
     const { customerId } = req.params;
     const { amount: requestedAmount } = req.body || {};
-    const customer = await Customer.findById(customerId).populate('owner');
+
+    const authResult = await resolveCustomerAndToken(customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 403).json({
+        success: false,
+        message: authResult.message,
+      });
+    }
+
+    const customer = await Customer.findById(authResult.customer._id).populate('owner');
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
@@ -429,7 +438,7 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Valid payment amount is required.' });
     }
 
-    const orderId = `order_${customerId}_${Date.now()}`;
+    const orderId = `order_${String(customer._id).slice(-6)}_${Date.now()}`;
     const { appId, secretKey, isSandbox, baseUrl } = getCashfreeConfig();
 
     const payload = {
@@ -482,7 +491,16 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
 router.get('/checkout/:customerId/verify-payment/:orderId', async (req, res, next) => {
   try {
     const { customerId, orderId } = req.params;
-    const customer = await Customer.findById(customerId);
+
+    const authResult = await resolveCustomerAndToken(customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 403).json({
+        success: false,
+        message: authResult.message,
+      });
+    }
+
+    const customer = await Customer.findById(authResult.customer._id);
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
@@ -491,7 +509,7 @@ router.get('/checkout/:customerId/verify-payment/:orderId', async (req, res, nex
 
     if (orderStatus === 'PAID' || (payment && payment.paymentStatus === 'SUCCESS')) {
       const result = await processVerifiedPayment({
-        customerId,
+        customerId: customer._id,
         orderId,
         paymentId: payment?.cfPaymentId,
         utr: payment?.utr,
