@@ -1,22 +1,38 @@
 import * as faceapi from 'face-api.js';
 
-const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+const LOCAL_MODEL_URL = '/models';
+const CDN_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
 
 let modelsLoaded = false;
 
-// Load face-api.js models from public CDN
+// Load face-api.js models from local bundle or high-speed CDN
 export const loadFaceApiModels = async () => {
   if (modelsLoaded) return true;
+  
+  // 1. Try local bundle first (instant <50ms)
   try {
     await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+      faceapi.nets.tinyFaceDetector.loadFromUri(LOCAL_MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(LOCAL_MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(LOCAL_MODEL_URL)
+    ]);
+    modelsLoaded = true;
+    return true;
+  } catch (localErr) {
+    console.warn("Could not load face-api models from local path, trying CDN fallback...", localErr);
+  }
+
+  // 2. High-speed jsDelivr CDN fallback
+  try {
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(CDN_FALLBACK_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(CDN_FALLBACK_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(CDN_FALLBACK_URL)
     ]);
     modelsLoaded = true;
     return true;
   } catch (err) {
-    console.error("Failed to load face-api.js models from CDN:", err);
+    console.error("Failed to load face-api.js models from all sources:", err);
     return false;
   }
 };

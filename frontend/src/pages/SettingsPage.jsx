@@ -663,7 +663,7 @@ const SettingsPage = () => {
   }, [user, deviceSupportsBio, verifyBiometricOnServer]);
 
   const startUnlockSimulation = useCallback(async () => {
-    const isFaceId = !user?.biometricCredentialId?.includes('fingerprint');
+    const isFaceId = Boolean(user?.biometricCredentialId?.startsWith('face-id-') || user?.biometricFaceTemplate);
     let stream = null;
 
     if (isFaceId) {
@@ -1254,7 +1254,10 @@ const SettingsPage = () => {
             name: user.email,
             displayName: user.name
           },
-          pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 },   // ES256 (Mobile / Mac / Standard)
+            { type: "public-key", alg: -257 }  // RS256 (Windows Hello / TPM)
+          ],
           authenticatorSelection: {
             authenticatorAttachment: "platform",
             userVerification: "required"
@@ -1767,7 +1770,7 @@ const SettingsPage = () => {
 
           <div className="inline-flex items-center gap-2 self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs">
             <HiOutlineShieldCheck className="text-emerald-500 text-base shrink-0" />
-            <span>Bank-Grade Encryption & AI Enabled</span>
+            <span>AI Enabled</span>
           </div>
         </div>
 
@@ -1778,13 +1781,13 @@ const SettingsPage = () => {
           </p>
           <div className="flex flex-wrap items-center gap-2 mt-3.5">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70">
-              <HiOutlineShieldCheck className="text-emerald-500 text-sm" /> 256-Bit SSL Protection
+              <HiOutlineShieldCheck className="text-emerald-500 text-sm" /> 
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70">
-              <HiOutlineDatabase className="text-blue-500 text-sm" /> Cloud Database Auto-Sync
+              <HiOutlineDatabase className="text-blue-500 text-sm" /> Cloud Sync
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/70">
-              <HiOutlineSparkles className="text-purple-500 text-sm" /> AI Risk Scoring Engine
+              <HiOutlineSparkles className="text-purple-500 text-sm" /> AI Enabled
             </span>
           </div>
         </div>
@@ -1796,7 +1799,7 @@ const SettingsPage = () => {
               Included Features in v2.0
             </span>
             <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-              6 Core Capabilities
+              
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
