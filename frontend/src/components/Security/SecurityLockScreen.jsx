@@ -239,24 +239,31 @@ const SecurityLockScreen = ({ onUnlock }) => {
   // Check support for WebAuthn platform authenticator and camera support
   useEffect(() => {
     const checkBiometricSupport = async () => {
-      if (window.PublicKeyCredential) {
+      if (typeof window !== 'undefined' && window.PublicKeyCredential) {
         try {
           const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
           setDeviceSupportsBio(available);
         } catch {
-          setDeviceSupportsBio(false);
+          setDeviceSupportsBio(true);
         }
+      } else if (Capacitor.isNativePlatform()) {
+        setDeviceSupportsBio(true);
       }
     };
 
     const checkCameraSupport = async () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoSupport = devices.some(device => device.kind === 'videoinput');
-          setHasCamera(videoSupport);
-        } catch {
-          setHasCamera(false);
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+        if (navigator.mediaDevices.getUserMedia) {
+          setHasCamera(true);
+        }
+        if (navigator.mediaDevices.enumerateDevices) {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoSupport = devices.some(device => device.kind === 'videoinput');
+            if (videoSupport) setHasCamera(true);
+          } catch {
+            // Keep true if getUserMedia exists
+          }
         }
       } else {
         setHasCamera(false);
@@ -559,7 +566,8 @@ const SecurityLockScreen = ({ onUnlock }) => {
       return;
     }
 
-    if (!deviceSupportsBio) {
+    const canUseBio = deviceSupportsBio || Capacitor.isNativePlatform() || (typeof window !== 'undefined' && !!window.PublicKeyCredential);
+    if (!canUseBio) {
       toast.error('Fingerprint sensor is not supported or not set up on this device. Please use Face ID or your 4-digit PIN.');
       return;
     }
@@ -571,8 +579,9 @@ const SecurityLockScreen = ({ onUnlock }) => {
 
   // Dedicated trigger for Face ID Unlock
   const triggerFaceIdUnlock = async () => {
-    if (!hasCamera) {
-      toast.error('Camera is not available for Face ID unlock. Please use Fingerprint or your 4-digit PIN.');
+    const isCameraSupported = hasCamera || (typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia);
+    if (!isCameraSupported) {
+      toast.error('Camera is not available on this device. Please use Fingerprint or your 4-digit PIN.');
       return;
     }
 
@@ -586,12 +595,12 @@ const SecurityLockScreen = ({ onUnlock }) => {
     setTimeout(() => startCameraScan(), 150);
   };
 
-  // Fallback selector
+  // Fallback selector - prioritize fingerprint on auto-prompt so no false camera toast is triggered
   const triggerBiometricSelection = async () => {
-    if (user?.biometricFaceTemplate || user?.biometricCredentialId?.startsWith('face-id-')) {
-      triggerFaceIdUnlock();
-    } else {
+    if (Capacitor.isNativePlatform() || deviceSupportsBio || (!user?.biometricFaceTemplate && !user?.biometricCredentialId?.startsWith('face-id-'))) {
       triggerFingerprintUnlock();
+    } else {
+      triggerFaceIdUnlock();
     }
   };
 
@@ -789,9 +798,15 @@ const SecurityLockScreen = ({ onUnlock }) => {
                      <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-deep-navy dark:text-white font-outfit">Identity Verified</h2>
+                <h2 className="text-xl font-bold text-deep-navy dark:text-white font-outfit">
+                  {activeScanType === 'fingerprint' 
+                    ? 'Fingerprint Verified!' 
+                    : activeScanType === 'face' 
+                      ? 'Face ID Verified!' 
+                      : 'Biometric Verified!'}
+                </h2>
                 <p className="text-xs text-slate-gray dark:text-slate-400 mt-2 leading-relaxed">
-                  Unlocking your account...
+                  Access Granted • Welcome back{user?.name ? `, ${user.name}` : ''}!
                 </p>
               </div>
             ) : (

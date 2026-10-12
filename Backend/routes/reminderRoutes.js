@@ -868,7 +868,10 @@ router.post('/generate-link/:customerId', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Customer not found.' });
     }
 
-    const { paymentUrl, rawToken, expiresAt } = await generatePaymentLink(customer._id, req.user._id);
+    const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+    const baseUrl = clientOrigin && !clientOrigin.includes('localhost') ? clientOrigin : undefined;
+
+    const { paymentUrl, rawToken, expiresAt } = await generatePaymentLink(customer._id, req.user._id, { baseUrl });
 
     res.status(200).json({
       success: true,

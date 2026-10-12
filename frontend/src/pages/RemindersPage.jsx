@@ -56,7 +56,9 @@ const RemindersPage = () => {
     setCopying(p => ({ ...p, [customer._id]: true }));
     try {
       const { data } = await API.post(`/reminders/generate-link/${customer._id}`);
-      const link = data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`;
+      const link = data?.data?.token
+        ? `${window.location.origin}/pay/${data.data.token}`
+        : (data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`);
       await navigator.clipboard.writeText(link);
       setCopiedId(customer._id);
       setTimeout(() => setCopiedId(null), 2500);
@@ -74,7 +76,9 @@ const RemindersPage = () => {
       let link = '';
       try {
         const { data } = await API.post(`/reminders/generate-link/${customer._id}`);
-        link = data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`;
+        link = data?.data?.token
+          ? `${window.location.origin}/pay/${data.data.token}`
+          : (data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`);
       } catch {
         link = `${window.location.origin}/pay/${customer._id}`;
       }

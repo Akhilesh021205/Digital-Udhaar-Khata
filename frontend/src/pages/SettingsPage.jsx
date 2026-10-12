@@ -2132,12 +2132,12 @@ const SettingsPage = () => {
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 font-outfit">Identity Verified</h2>
+                <h2 className="text-lg font-bold text-slate-900 font-outfit">{biometricType === 'face' ? 'Face ID Verified!' : 'Fingerprint Verified!'}</h2>
                 <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  Access granted. Identity confirmed!
+                  Access Granted • Unlocked Successfully!
                 </p>
                 <div className="w-full mt-6 text-green-600 font-semibold text-sm py-2 flex items-center justify-center gap-2 animate-bounce">
-                  <span>Unlocking field...</span>
+                  <span>Unlocking...</span>
                 </div>
               </>
             ) : simulating ? (

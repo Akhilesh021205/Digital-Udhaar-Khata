@@ -28,7 +28,7 @@ const generatePaymentLink = async (customerId, ownerId, options = {}) => {
     status: 'ACTIVE',
   });
 
-  const frontendUrl = getFrontendUrl();
+  const frontendUrl = getFrontendUrl(options.baseUrl);
   const paymentUrl = `${frontendUrl}/pay/${rawToken}`;
 
   return {

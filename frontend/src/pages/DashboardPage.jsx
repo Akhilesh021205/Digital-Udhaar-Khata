@@ -275,7 +275,9 @@ const DashboardPage = () => {
     let paymentUrl = '';
     try {
       const { data } = await API.post(`/reminders/generate-link/${customer._id}`);
-      paymentUrl = data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`;
+      paymentUrl = data?.data?.token
+        ? `${window.location.origin}/pay/${data.data.token}`
+        : (data?.data?.paymentUrl || `${window.location.origin}/pay/${customer._id}`);
     } catch {
       paymentUrl = `${window.location.origin}/pay/${customer._id}`;
     }

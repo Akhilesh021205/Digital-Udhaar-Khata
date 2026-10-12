@@ -78,6 +78,9 @@ const AppRoutes = () => (
     <Route path="/pay/:customerId/:token" element={<PaymentCheckoutPage />} />
     <Route path="/pay/:customerId" element={<PaymentCheckoutPage />} />
     <Route path="/pay" element={<PaymentCheckoutPage />} />
+    <Route path="/payment/:customerId/:token" element={<PaymentCheckoutPage />} />
+    <Route path="/payment/:customerId" element={<PaymentCheckoutPage />} />
+    <Route path="/payment" element={<PaymentCheckoutPage />} />
 
     {/* Persistent App Shell Layout - Sidebar & Navigation stay permanently mounted during navigation */}
     <Route element={<AuthenticatedLayout />}>
