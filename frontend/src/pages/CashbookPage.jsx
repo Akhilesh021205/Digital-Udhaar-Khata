@@ -29,7 +29,7 @@ const CashbookPage = () => {
     filteredIn: 0,
     filteredOut: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !getCachedData('/cashbook', { period: 'today' }));
 
   // Filters State
   const [period, setPeriod] = useState('today');

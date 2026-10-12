@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import API from '../api/axios';
+import API, { getCachedCustomer, getCachedData } from '../api/axios';
 import { getDeterministicPrediction, getCustomerBadges } from '../utils/prediction';
 import { useSocketSync } from '../hooks/useSocketSync';
 import Header from '../components/Layout/Header';
@@ -90,9 +90,25 @@ const CustomerDetailPage = () => {
   const { t, lang } = useLanguage();
   const chatEndRef = useRef(null);
   const { user } = useContext(AuthContext);
-  const [customer, setCustomer] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [customer, setCustomer] = useState(() => {
+    const cached = getCachedCustomer(id);
+    if (cached) {
+      const prediction = getDeterministicPrediction(cached);
+      const isSettledOrNew = cached.balance === 0 || (cached.totalTransactions || 0) === 0;
+      return {
+        ...cached,
+        duePrediction: isSettledOrNew ? prediction.duePrediction : (cached.duePrediction || prediction.duePrediction),
+        creditScore: cached.creditScore || prediction.creditScore,
+        riskLevel: cached.riskLevel || prediction.riskLevel
+      };
+    }
+    return null;
+  });
+  const [transactions, setTransactions] = useState(() => {
+    const cached = getCachedData(`/transactions?customer=${id}&limit=200`) || getCachedData(`/transactions?customer=${id}`);
+    return cached?.data || [];
+  });
+  const [loading, setLoading] = useState(() => !getCachedCustomer(id));
 
   // Voice Entry configuration
   const speechLang = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
@@ -452,8 +468,7 @@ const CustomerDetailPage = () => {
         riskLevel: custData.riskLevel || prediction.riskLevel
       };
       setCustomer(enrichedCust);
-      setQrAmount(enrichedCust.balance > 0 ? enrichedCust.balance : 0);
-      setTransactions(txnRes.data.data);
+      setTransactions(txnRes.data?.data || []);
     } catch (err) { toast.error('Failed to load customer'); }
     finally { setLoading(false); }
   };
@@ -654,7 +669,7 @@ const CustomerDetailPage = () => {
     return groups;
   };
 
-  if (loading) return <><Header title={t('loading')} /><Loader fullPage /></>;
+  if (loading && !customer) return <><Header title={t('loading')} /><Loader fullPage /></>;
   if (!customer) return <><Header title="Not Found" /><div className="bg-pure-white border border-soft-gray rounded-2xl p-12 text-center shadow-sm max-w-lg mx-auto mt-12"><h3>Customer not found</h3></div></>;
 
   const riskBadgeClasses = {

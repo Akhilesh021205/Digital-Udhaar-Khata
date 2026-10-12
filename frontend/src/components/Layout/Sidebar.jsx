@@ -22,6 +22,15 @@ const Sidebar = () => {
     { to: '/settings', icon: <HiOutlineCog size={19} />, label: t('settings') || 'Settings' },
   ];
 
+  const prefetchRoute = (to) => {
+    if (to === '/') import('../../pages/DashboardPage');
+    else if (to === '/customers') import('../../pages/CustomersPage');
+    else if (to === '/cashbook') import('../../pages/CashbookPage');
+    else if (to === '/reminders') import('../../pages/RemindersPage');
+    else if (to === '/history') import('../../pages/PermanentHistoryPage');
+    else if (to === '/settings') import('../../pages/SettingsPage');
+  };
+
   return (
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 p-5 bg-pure-white dark:bg-slate-900 border-r border-soft-gray dark:border-slate-800 flex-col z-40">
       {/* Brand Header */}
@@ -43,6 +52,8 @@ const Sidebar = () => {
             key={link.to}
             to={link.to}
             end={link.to === '/'}
+            onMouseEnter={() => prefetchRoute(link.to)}
+            onTouchStart={() => prefetchRoute(link.to)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${isActive
                 ? 'text-white bg-rose-600 shadow-md shadow-rose-600/25 scale-[1.01]'

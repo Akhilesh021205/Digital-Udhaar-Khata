@@ -1,4 +1,11 @@
-import * as faceapi from 'face-api.js';
+// Dynamically load face-api.js only when biometric detection is invoked
+let faceapiInstance = null;
+const getFaceApi = async () => {
+  if (!faceapiInstance) {
+    faceapiInstance = await import('face-api.js');
+  }
+  return faceapiInstance;
+};
 
 const LOCAL_MODEL_URL = '/models';
 const CDN_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
@@ -9,30 +16,37 @@ let modelsLoaded = false;
 export const loadFaceApiModels = async () => {
   if (modelsLoaded) return true;
   
-  // 1. Try local bundle first (instant <50ms)
   try {
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(LOCAL_MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(LOCAL_MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(LOCAL_MODEL_URL)
-    ]);
-    modelsLoaded = true;
-    return true;
-  } catch (localErr) {
-    console.warn("Could not load face-api models from local path, trying CDN fallback...", localErr);
-  }
+    const faceapi = await getFaceApi();
 
-  // 2. High-speed jsDelivr CDN fallback
-  try {
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(CDN_FALLBACK_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(CDN_FALLBACK_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(CDN_FALLBACK_URL)
-    ]);
-    modelsLoaded = true;
-    return true;
+    // 1. Try local bundle first (instant <50ms)
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(LOCAL_MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(LOCAL_MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(LOCAL_MODEL_URL)
+      ]);
+      modelsLoaded = true;
+      return true;
+    } catch (localErr) {
+      console.warn("Could not load face-api models from local path, trying CDN fallback...", localErr);
+    }
+
+    // 2. High-speed jsDelivr CDN fallback
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(CDN_FALLBACK_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(CDN_FALLBACK_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(CDN_FALLBACK_URL)
+      ]);
+      modelsLoaded = true;
+      return true;
+    } catch (err) {
+      console.error("Failed to load face-api.js models from all sources:", err);
+      return false;
+    }
   } catch (err) {
-    console.error("Failed to load face-api.js models from all sources:", err);
+    console.error("Failed to dynamically import face-api.js:", err);
     return false;
   }
 };
@@ -41,6 +55,7 @@ export const loadFaceApiModels = async () => {
 export const detectFaceInVideo = async (videoEl) => {
   if (!videoEl || videoEl.paused || videoEl.ended) return null;
   try {
+    const faceapi = await getFaceApi();
     const detection = await faceapi.detectSingleFace(
       videoEl,
       new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 })

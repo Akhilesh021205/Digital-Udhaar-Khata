@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../api/axios';
+import API, { getCachedData } from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { Capacitor } from '@capacitor/core';
@@ -278,11 +278,11 @@ const SettingsPage = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // New features states
-  const [trashedCustomers, setTrashedCustomers] = useState([]);
-  const [loadingTrash, setLoadingTrash] = useState(false);
-  const [loginActivities, setLoginActivities] = useState([]);
-  const [loadingActivities, setLoadingActivities] = useState(false);
+  // New features states - cached for 0ms hydration
+  const [trashedCustomers, setTrashedCustomers] = useState(() => getCachedData('/customers/trash')?.data || []);
+  const [loadingTrash, setLoadingTrash] = useState(() => !getCachedData('/customers/trash'));
+  const [loginActivities, setLoginActivities] = useState(() => getCachedData('/auth/login-activities')?.data || []);
+  const [loadingActivities, setLoadingActivities] = useState(() => !getCachedData('/auth/login-activities'));
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [processingActivity, setProcessingActivity] = useState(false);
@@ -294,8 +294,8 @@ const SettingsPage = () => {
   // Cloud backup states
   const [backingUpCloud, setBackingUpCloud] = useState(false);
   const [restoringCloud, setRestoringCloud] = useState(false);
-  const [cloudBackupInfo, setCloudBackupInfo] = useState(null);
-  const [loadingCloudBackup, setLoadingCloudBackup] = useState(false);
+  const [cloudBackupInfo, setCloudBackupInfo] = useState(() => getCachedData('/backup/status')?.backupInfo || null);
+  const [loadingCloudBackup, setLoadingCloudBackup] = useState(() => !getCachedData('/backup/status'));
 
   // Custom confirmation modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -1359,11 +1359,47 @@ const SettingsPage = () => {
   return (
     <>
       <Header title={t('settings')} subtitle={t('manageProfile')} />
+
+      {/* Quick Access Feature Navigation Bar */}
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => document.getElementById('profile-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-3 py-1.5 rounded-full text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-red-500 hover:text-red-600 transition-all shadow-2xs cursor-pointer shrink-0"
+          >
+            Store Profile
+          </button>
+          <button
+            type="button"
+            onClick={() => document.getElementById('security-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-3 py-1.5 rounded-full text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-red-500 hover:text-red-600 transition-all shadow-2xs cursor-pointer shrink-0"
+          >
+            Security & Biometrics
+          </button>
+          <button
+            type="button"
+            onClick={() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-3 py-1.5 rounded-full text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-red-500 hover:text-red-600 transition-all shadow-2xs cursor-pointer shrink-0"
+          >
+            Cloud Backup
+          </button>
+          <button
+            type="button"
+            onClick={() => document.getElementById('app-features-details')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-gradient-to-r from-red-600/10 to-amber-500/10 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800/80 hover:scale-105 transition-all shadow-2xs cursor-pointer shrink-0 flex items-center gap-1.5"
+          >
+            <HiOutlineSparkles className="text-sm" />
+            <span>App Features & Details (v2.0)</span>
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
         {/* Left Column: Profile, Security, UPI & Trash Bin */}
         <div className="lg:col-span-6 space-y-6">
           {/* 1. Profile Card */}
-          <div className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
+          <div id="profile-section" className="bg-pure-white border border-soft-gray rounded-2xl p-7 shadow-sm">
             <h3 className="text-lg font-bold text-deep-navy mb-5 mt-0">{t('storeProfile')}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Profile Picture Section */}
@@ -1827,7 +1863,7 @@ const SettingsPage = () => {
       </div>
 
       {/* 8. App Version & Features Information (Placed inside Settings at last) */}
-      <div className="relative mt-10 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-9 shadow-md shadow-slate-200/40 dark:shadow-black/20">
+      <div id="app-features-details" className="relative mt-10 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-9 shadow-md shadow-slate-200/40 dark:shadow-black/20">
         {/* Subtle decorative accent line on top */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500" />
         

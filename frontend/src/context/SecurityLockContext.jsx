@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import SecurityLockScreen from '../components/Security/SecurityLockScreen';
+
+const SecurityLockScreen = lazy(() => import('../components/Security/SecurityLockScreen'));
 
 const SecurityLockContext = createContext();
 
@@ -163,7 +164,9 @@ export const SecurityLockProvider = ({ children }) => {
         {children}
       </div>
       {isLocked && (
-        <SecurityLockScreen onUnlock={handleUnlock} />
+        <Suspense fallback={null}>
+          <SecurityLockScreen onUnlock={handleUnlock} />
+        </Suspense>
       )}
     </SecurityLockContext.Provider>
   );

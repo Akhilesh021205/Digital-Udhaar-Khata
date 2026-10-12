@@ -100,32 +100,47 @@ function App() {
   useEffect(() => {
     initSocket();
 
-    // Idle prefetch of primary page bundles and datasets so navigation is instantaneous
-    const timer = setTimeout(() => {
-      // 1. Prefetch page bundles
+    // 1. Instant prefetch of primary page bundles so client navigation is 0ms
+    const prefetchPages = () => {
       import('./pages/DashboardPage');
       import('./pages/CustomersPage');
       import('./pages/CashbookPage');
       import('./pages/PermanentHistoryPage');
       import('./pages/RemindersPage');
       import('./pages/SettingsPage');
+      import('./pages/CustomerDetailPage');
+    };
 
-      // 2. Prefetch core datasets in background
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(prefetchPages, { timeout: 1000 });
+    } else {
+      setTimeout(prefetchPages, 100);
+    }
+
+    // 2. Warm up Render backend and keep it awake during active session (every 8 mins)
+    const keepAliveInterval = setInterval(() => {
       try {
-        const storedUser = JSON.parse(localStorage.getItem('udhaar-user'));
-        if (storedUser?.token) {
-          API.get('/transactions/stats').catch(() => {});
-          API.get('/customers?sort=balance-high').catch(() => {});
-          API.get('/customers').catch(() => {});
-          API.get('/cashbook', { params: { period: 'today' } }).catch(() => {});
-          API.get('/history').catch(() => {});
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          fetch('https://digital-udhaar-khata.onrender.com/api/health', { mode: 'cors', cache: 'no-store' }).catch(() => {});
         }
-      } catch (e) {
-        // Safe fail
-      }
-    }, 500);
+      } catch (e) {}
+    }, 8 * 60 * 1000);
 
-    return () => clearTimeout(timer);
+    // 3. Prefetch core datasets in background for instant hydration
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('udhaar-user'));
+      if (storedUser?.token) {
+        API.get('/transactions/stats').catch(() => {});
+        API.get('/customers?sort=balance-high').catch(() => {});
+        API.get('/customers').catch(() => {});
+        API.get('/cashbook', { params: { period: 'today' } }).catch(() => {});
+        API.get('/history').catch(() => {});
+      }
+    } catch (e) {
+      // Safe fail
+    }
+
+    return () => clearInterval(keepAliveInterval);
   }, []);
 
   return (
