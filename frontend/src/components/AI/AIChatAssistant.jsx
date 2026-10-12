@@ -237,14 +237,14 @@ const AIChatAssistant = () => {
 
       if (isBullet) {
         return (
-          <li key={lineIdx} className="ml-5 list-disc text-xs sm:text-sm leading-relaxed my-1 text-slate-700 dark:text-slate-300">
+          <li key={lineIdx} className="ml-4 sm:ml-5 list-disc text-xs sm:text-sm leading-relaxed my-0.5 sm:my-1 text-slate-700 dark:text-slate-300">
             {renderedLine}
           </li>
         );
       }
 
       return (
-        <p key={lineIdx} className="text-xs sm:text-sm leading-relaxed my-1 text-slate-700 dark:text-slate-300">
+        <p key={lineIdx} className="text-xs sm:text-sm leading-relaxed my-0.5 sm:my-1 text-slate-700 dark:text-slate-300">
           {renderedLine}
         </p>
       );
@@ -261,18 +261,18 @@ const AIChatAssistant = () => {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button (Elevated above mobile bottom navigation) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-13 h-13 lg:w-14 lg:h-14 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 hover:from-rose-600 hover:to-red-600 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 border-none cursor-pointer group active:scale-95"
+        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 hover:from-rose-600 hover:to-red-600 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 border-none cursor-pointer group active:scale-95 touch-manipulation"
         title="Open KhataGPT Assistant"
         id="ai-chat-btn"
       >
         {isOpen ? (
-          <X className="w-6 h-6 animate-in spin-in-90 duration-200" />
+          <X className="w-5 h-5 sm:w-6 sm:h-6 animate-in spin-in-90 duration-200" />
         ) : (
           <div className="relative flex items-center justify-center">
-            <Bot className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            <Bot className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300"></span>
@@ -281,11 +281,11 @@ const AIChatAssistant = () => {
         )}
       </button>
 
-      {/* Full-Screen Immersive Chat Canvas Overlay */}
+      {/* Full-Screen Immersive Chat Canvas Overlay (Optimized with 100dvh for mobile address bars) */}
       {isOpen && (
         <div 
-          className={`fixed inset-0 z-50 flex flex-col bg-slate-50 dark:bg-slate-950 transition-all duration-300 ${
-            isFullscreen ? 'p-0' : 'p-3 sm:p-6 md:p-8 bg-slate-950/60 backdrop-blur-md'
+          className={`fixed inset-0 z-50 flex flex-col bg-slate-50 dark:bg-slate-950 transition-all duration-300 h-dvh max-h-dvh overflow-hidden ${
+            isFullscreen ? 'p-0' : 'p-0 sm:p-6 md:p-8 bg-slate-950/60 backdrop-blur-md'
           }`}
         >
           {/* Main Chat Container Box */}
@@ -293,164 +293,165 @@ const AIChatAssistant = () => {
             className={`relative w-full h-full bg-white dark:bg-slate-900 flex flex-col overflow-hidden transition-all duration-300 ${
               isFullscreen 
                 ? 'rounded-none shadow-none border-none' 
-                : 'max-w-5xl mx-auto rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800'
+                : 'max-w-5xl mx-auto sm:rounded-3xl shadow-2xl border-0 sm:border border-slate-200/80 dark:border-slate-800'
             }`}
           >
             {/* Ambient Background Glow Effect */}
             <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-gradient-to-r from-red-500/10 via-rose-500/5 to-amber-500/10 blur-3xl rounded-full" />
             
-            {/* Top Navigation & Status Bar */}
-            <header className="relative px-4 sm:px-6 py-3.5 sm:py-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 z-10 shrink-0">
+            {/* Top Navigation & Status Bar (Mobile-optimized padding & spacing) */}
+            <header className="relative px-3 sm:px-6 py-2.5 sm:py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 z-10 shrink-0">
               
               {/* Left Side: Exit/Back Button + Branding */}
-              <div className="flex items-center gap-3 min-w-0">
-                {/* Prominent Exit Button (Always accessible) */}
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                {/* Mobile & Desktop Exit Button */}
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:hover:bg-red-950/50 dark:hover:text-red-400 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs group shrink-0 active:scale-95"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:hover:bg-red-950/50 dark:hover:text-red-400 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs group shrink-0 active:scale-95"
                   title="Exit Khata AI (Esc)"
                 >
                   <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
                   <span className="hidden sm:inline">Exit</span>
-                  <span className="sm:hidden">Back</span>
+                  <span className="sm:hidden font-medium">Exit</span>
                   <kbd className="hidden md:inline-block text-[10px] px-1 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-400 font-mono">Esc</kbd>
                 </button>
 
                 {/* AI Avatar */}
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-600/20 shrink-0">
-                  <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-600/20 shrink-0">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
 
                 {/* Brand & Store Name */}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-outfit m-0 leading-tight">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h2 className="text-sm sm:text-lg font-extrabold text-slate-900 dark:text-white font-outfit m-0 leading-tight">
                       KhataGPT
                     </h2>
-                    <span className="text-[10px] bg-gradient-to-r from-red-600 to-rose-600 text-white font-black px-2 py-0.5 rounded-full shadow-2xs tracking-wider uppercase">
+                    <span className="text-[9px] sm:text-[10px] bg-gradient-to-r from-red-600 to-rose-600 text-white font-black px-1.5 py-0.5 rounded-full shadow-2xs tracking-wider uppercase">
                       AI v2.0
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
-                    <Store className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{user?.storeName ? user.storeName : 'Digital Udhaar Khata'}</span>
+                  <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
+                    <Store className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span className="truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">
+                      {user?.storeName ? user.storeName : 'Digital Udhaar Khata'}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Right Side: Action Toolbar */}
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 {/* Clear Chat / New Chat Button */}
                 <button
                   type="button"
                   onClick={handleClearChat}
-                  className="p-2 sm:px-3 sm:py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  className="p-2 sm:px-3 sm:py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                   title="Clear Conversation & Start New Chat"
                 >
                   <RotateCcw className="w-4 h-4 text-slate-500" />
                   <span className="hidden sm:inline">New Chat</span>
                 </button>
 
-                {/* Fullscreen / Windowed View Toggle */}
+                {/* Fullscreen / Windowed View Toggle (Desktop only) */}
                 <button
                   type="button"
                   onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-pointer shadow-2xs"
+                  className="hidden sm:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-pointer shadow-2xs"
                   title={isFullscreen ? "Windowed Mode" : "Full Screen Mode"}
                 >
                   {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
 
-                {/* Primary Exit Button */}
+                {/* Secondary Quick Close Button */}
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white dark:bg-red-950/40 dark:hover:bg-red-600 dark:text-red-400 text-xs font-bold transition-all cursor-pointer border border-red-200/80 dark:border-red-800/80 shadow-2xs active:scale-95"
-                  title="Exit KhataGPT (Esc)"
+                  className="p-2 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white dark:bg-red-950/40 dark:hover:bg-red-600 dark:text-red-400 text-xs font-bold transition-all cursor-pointer border border-red-200/80 dark:border-red-800/80 shadow-2xs active:scale-95"
+                  title="Exit KhataGPT"
                 >
                   <X className="w-4 h-4" />
-                  <span className="hidden sm:inline">Exit</span>
                 </button>
               </div>
             </header>
 
             {/* Centered Scrollable Conversation Canvas */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-              <div className="max-w-4xl w-full mx-auto space-y-6">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 overscroll-contain">
+              <div className="max-w-4xl w-full mx-auto space-y-4 sm:space-y-6">
                 
-                {/* Starter Capability Cards (Only visible when starting or on welcome) */}
+                {/* Starter Capability Cards (2x2 grid on mobile for optimal thumb reach) */}
                 {messages.length <= 1 && (
-                  <div className="mb-8 p-5 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-50 via-rose-50/20 to-amber-50/20 dark:from-slate-900 dark:via-rose-950/10 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm animate-in fade-in duration-300">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 uppercase tracking-wider">
+                  <div className="mb-4 sm:mb-8 p-4 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-50 via-rose-50/20 to-amber-50/20 dark:from-slate-900 dark:via-rose-950/10 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 uppercase tracking-wider">
                         Khata Intelligence
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <span className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
                         Instant Insights
                       </span>
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-outfit m-0">
+                    <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white font-outfit m-0">
                       What would you like to explore today?
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 mb-5 leading-relaxed font-normal">
-                      Click any card below or speak naturally in your language to query dues, totals, or record ledger entries.
+                    <p className="text-[11px] sm:text-sm text-slate-600 dark:text-slate-400 mt-1 mb-3.5 sm:mb-5 leading-relaxed font-normal">
+                      Tap any card or speak naturally to query balances, cash totals, or record ledger entries.
                     </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                       <button
                         type="button"
                         onClick={() => handleSendMessage("Who has highest due?")}
-                        className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-red-400 hover:shadow-md dark:hover:border-red-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
+                        className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-red-400 hover:shadow-md dark:hover:border-red-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs active:scale-98"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <DollarSign className="w-4 h-4" />
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                          <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Highest Dues</div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Find who owes the most</div>
+                          <div className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white leading-tight">Highest Dues</div>
+                          <div className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">Find top debt</div>
                         </div>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleSendMessage("Show this month collection")}
-                        className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400 hover:shadow-md dark:hover:border-emerald-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
+                        className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400 hover:shadow-md dark:hover:border-emerald-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs active:scale-98"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <TrendingUp className="w-4 h-4" />
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                          <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Total Collection</div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Monthly cashflow summary</div>
+                          <div className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white leading-tight">Collection</div>
+                          <div className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">Monthly cashflow</div>
                         </div>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleSendMessage("Who are the risky customers?")}
-                        className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-400 hover:shadow-md dark:hover:border-amber-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
+                        className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-400 hover:shadow-md dark:hover:border-amber-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs active:scale-98"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <AlertTriangle className="w-4 h-4" />
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                          <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Risk Predictions</div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Customers delaying payments</div>
+                          <div className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white leading-tight">Risky Accounts</div>
+                          <div className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">Delayed payments</div>
                         </div>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleSendMessage(`How much udhar does ${firstCustomerName || 'Ravi'} have?`)}
-                        className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-400 hover:shadow-md dark:hover:border-indigo-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
+                        className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-400 hover:shadow-md dark:hover:border-indigo-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs active:scale-98"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <Clock className="w-4 h-4" />
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Customer Balance</div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Specific customer check</div>
+                          <div className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white leading-tight">Balance Check</div>
+                          <div className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">Customer dues</div>
                         </div>
                       </button>
                     </div>
@@ -466,7 +467,7 @@ const AIChatAssistant = () => {
                       className={`flex flex-col ${isAI ? 'items-start' : 'items-end'} animate-in fade-in duration-200`}
                     >
                       {/* Message Content Container */}
-                      <div className={`relative max-w-full sm:max-w-[85%] md:max-w-[80%] rounded-2xl p-4 sm:p-5 transition-all ${
+                      <div className={`relative max-w-[90%] sm:max-w-[85%] md:max-w-[80%] rounded-2xl p-3.5 sm:p-5 transition-all ${
                         isAI 
                           ? 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-tl-xs shadow-sm shadow-slate-200/40 dark:shadow-black/20' 
                           : 'bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-tr-xs shadow-md shadow-rose-600/20'
@@ -474,29 +475,29 @@ const AIChatAssistant = () => {
                         
                         {/* AI Author Header */}
                         {isAI && (
-                          <div className="flex items-center justify-between gap-3 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
-                            <div className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-lg bg-red-600/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
-                                <Bot className="w-3.5 h-3.5" />
+                          <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-md sm:rounded-lg bg-red-600/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+                                <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               </span>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white font-outfit">
+                              <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white font-outfit">
                                 KhataGPT
                               </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleCopyMessage(msg.id, msg.text)}
-                              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-none p-1 rounded-md"
+                              className="text-[10px] sm:text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-none p-1 rounded-md active:scale-95"
                               title="Copy Response"
                             >
                               {copiedId === msg.id ? (
                                 <>
-                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
                                   <span className="text-emerald-500 font-semibold">Copied</span>
                                 </>
                               ) : (
                                 <>
-                                  <Copy className="w-3.5 h-3.5" />
+                                  <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                   <span>Copy</span>
                                 </>
                               )}
@@ -516,7 +517,7 @@ const AIChatAssistant = () => {
                         )}
 
                         {/* Timestamp */}
-                        <div className={`text-[10px] font-medium mt-2 flex items-center gap-1 ${
+                        <div className={`text-[9px] sm:text-[10px] font-medium mt-1.5 flex items-center gap-1 ${
                           isAI ? 'text-slate-400 dark:text-slate-500' : 'text-white/80 justify-end'
                         }`}>
                           <span>
@@ -525,18 +526,18 @@ const AIChatAssistant = () => {
                         </div>
                       </div>
 
-                      {/* Suggestions (AI Only) */}
+                      {/* Suggestions (AI Only, scrollable/wrapped cleanly for mobile) */}
                       {isAI && msg.suggestions && msg.suggestions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3 max-w-[95%]">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2.5 max-w-full">
                           {msg.suggestions.map((suggestion, idx) => (
                             <button
                               key={idx}
                               type="button"
                               onClick={() => handleSuggestionClick(suggestion)}
-                              className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-2xs inline-flex items-center gap-1.5 hover:-translate-y-0.5 hover:border-red-300 dark:hover:border-red-800"
+                              className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-[11px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer shadow-2xs inline-flex items-center gap-1.5 active:scale-95 hover:border-red-300 dark:hover:border-red-800 text-left"
                             >
-                              <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                              <span>{suggestion}</span>
+                              <Lightbulb className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 shrink-0" />
+                              <span className="truncate max-w-[220px] xs:max-w-none">{suggestion}</span>
                             </button>
                           ))}
                         </div>
@@ -548,17 +549,17 @@ const AIChatAssistant = () => {
                 {/* Thinking / Loading State */}
                 {loading && (
                   <div className="flex items-start animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-xs p-4 sm:p-5 shadow-sm shadow-slate-200/40 dark:shadow-black/20 flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-xl bg-red-600/10 text-red-600 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-4 h-4 animate-spin" />
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-xs p-3.5 sm:p-5 shadow-sm shadow-slate-200/40 dark:shadow-black/20 flex items-center gap-2.5 sm:gap-3">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-red-600/10 text-red-600 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mt-1">
+                        <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mt-1">
                           {lang === 'hi' ? 'खाता रिकॉर्ड्स का विश्लेषण कर रहा हूँ...' : lang === 'te' ? 'లెడ్జర్ రికార్డులను పరిశీలిస్తున్నాను...' : 'Analyzing ledger records...'}
                         </span>
                       </div>
@@ -570,44 +571,44 @@ const AIChatAssistant = () => {
               </div>
             </div>
 
-            {/* Bottom Input Console */}
-            <footer className="relative p-4 sm:p-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 shrink-0">
-              <div className="max-w-4xl w-full mx-auto space-y-3">
+            {/* Bottom Input Console (Padded for mobile bottom gesture safe area) */}
+            <footer className="relative p-2.5 sm:p-4 md:p-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 shrink-0">
+              <div className="max-w-4xl w-full mx-auto space-y-2 sm:space-y-3">
                 
                 {/* Active Voice Listening Banner */}
                 {isListening && (
-                  <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 shadow-xs animate-pulse">
+                  <div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 shadow-xs animate-pulse">
                     <div className="flex items-center gap-2">
-                      <span className="relative flex h-2.5 w-2.5">
+                      <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-600"></span>
                       </span>
-                      <span className="text-xs font-extrabold text-red-600 dark:text-red-400 tracking-wide uppercase">
+                      <span className="text-[11px] sm:text-xs font-extrabold text-red-600 dark:text-red-400 tracking-wide uppercase">
                         {speechLang === 'hi-IN' ? 'सुन रहा हूँ... बोलिए' : speechLang === 'te-IN' ? 'వింటున్నాను... మాట్లాడండి' : 'Listening... Speak your ledger query'}
                       </span>
                     </div>
                     
                     {/* Sound Waves */}
-                    <div className="flex items-center gap-0.5 h-4 shrink-0">
+                    <div className="flex items-center gap-0.5 h-3.5 sm:h-4 shrink-0">
                       <span className="w-1 rounded-full bg-red-600 animate-bounce h-2" style={{ animationDelay: '0.1s' }} />
-                      <span className="w-1 rounded-full bg-red-600 animate-bounce h-3.5" style={{ animationDelay: '0.3s' }} />
+                      <span className="w-1 rounded-full bg-red-600 animate-bounce h-3 sm:h-3.5" style={{ animationDelay: '0.3s' }} />
                       <span className="w-1 rounded-full bg-red-600 animate-bounce h-2" style={{ animationDelay: '0.2s' }} />
-                      <span className="w-1 rounded-full bg-red-600 animate-bounce h-4" style={{ animationDelay: '0.4s' }} />
+                      <span className="w-1 rounded-full bg-red-600 animate-bounce h-3.5 sm:h-4" style={{ animationDelay: '0.4s' }} />
                     </div>
                   </div>
                 )}
 
-                {/* Speech Language Selector Pill Bar */}
+                {/* Speech Language Selector Pill Bar (Clean horizontal scroll for mobile) */}
                 {isSpeechSupported && (
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 select-none flex-wrap gap-2">
-                    <span className="font-semibold text-[11px] sm:text-xs">
-                      Speech Input Language:
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 select-none gap-2 flex-wrap sm:flex-nowrap">
+                    <span className="font-semibold text-[10px] sm:text-xs shrink-0">
+                      Speech Language:
                     </span>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1 sm:gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => setSpeechLangOverride('en-IN')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                        className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-[10px] sm:text-xs font-bold cursor-pointer transition-all active:scale-95 ${
                           speechLang === 'en-IN' 
                             ? 'bg-red-600 text-white shadow-xs scale-105' 
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -618,39 +619,39 @@ const AIChatAssistant = () => {
                       <button
                         type="button"
                         onClick={() => setSpeechLangOverride('hi-IN')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                        className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-[10px] sm:text-xs font-bold cursor-pointer transition-all active:scale-95 ${
                           speechLang === 'hi-IN' 
                             ? 'bg-red-600 text-white shadow-xs scale-105' 
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                       >
-                        हिन्दी (Hindi)
+                        हिन्दी
                       </button>
                       <button
                         type="button"
                         onClick={() => setSpeechLangOverride('te-IN')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                        className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-[10px] sm:text-xs font-bold cursor-pointer transition-all active:scale-95 ${
                           speechLang === 'te-IN' 
                             ? 'bg-red-600 text-white shadow-xs scale-105' 
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                       >
-                        తెలుగు (Telugu)
+                        తెలుగు
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Floating Input Field Bar */}
-                <div className="relative flex items-center gap-2 p-1.5 sm:p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-sm focus-within:border-red-500/50 focus-within:ring-4 focus-within:ring-red-500/10 transition-all">
+                {/* Floating Input Field Bar (Touch optimized) */}
+                <div className="relative flex items-center gap-1.5 sm:gap-2 p-1 sm:p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl sm:rounded-2xl shadow-sm focus-within:border-red-500/50 focus-within:ring-2 sm:focus-within:ring-4 focus-within:ring-red-500/10 transition-all">
                   <input
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder={isListening ? (lang === 'hi' ? 'बोलिए...' : lang === 'te' ? 'మాట్లాడండి...' : 'Listening...') : "Ask about customer debts, collection totals, or type 'Ravi took 500 rupees udhar'..."}
+                    placeholder={isListening ? (lang === 'hi' ? 'बोलिए...' : lang === 'te' ? 'మాట్లాడండి...' : 'Listening...') : "Ask balance, collection, or enter dues..."}
                     disabled={loading || isListening}
-                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-none text-xs sm:text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-white font-medium"
+                    className="flex-1 px-2.5 sm:px-4 py-2 sm:py-3 bg-transparent border-none text-xs sm:text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-white font-medium"
                   />
                   
                   {/* Microphone Button */}
@@ -659,14 +660,14 @@ const AIChatAssistant = () => {
                       type="button"
                       onClick={toggleMic}
                       disabled={loading}
-                      className={`p-2.5 sm:p-3 rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shrink-0 ${
+                      className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shrink-0 w-8 h-8 sm:w-10 sm:h-10 active:scale-95 ${
                         isListening 
                           ? 'bg-red-600 text-white animate-pulse shadow-md' 
                           : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-600 shadow-2xs'
                       }`}
                       title={isListening ? "Stop Listening" : "Voice Input (Telugu / Hindi / English)"}
                     >
-                      <Mic className="w-5 h-5" />
+                      <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   )}
 
@@ -675,22 +676,22 @@ const AIChatAssistant = () => {
                     type="button"
                     onClick={() => handleSendMessage()}
                     disabled={loading || isListening || !inputValue.trim()}
-                    className="p-2.5 sm:p-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-rose-600 hover:to-red-600 disabled:from-slate-200 disabled:to-slate-200 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none hover:scale-105 active:scale-95 shrink-0"
+                    className="p-2 sm:p-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-rose-600 hover:to-red-600 disabled:from-slate-200 disabled:to-slate-200 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white rounded-lg sm:rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none hover:scale-105 active:scale-95 shrink-0 w-8 h-8 sm:w-10 sm:h-10"
                     title="Send Message"
                   >
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
 
                 {/* Footer Micro Disclaimer with quick Exit reminder */}
-                <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-1">
-                  <span>KhataGPT analyzes your shop ledger records securely in real time</span>
+                <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 px-1">
+                  <span className="truncate max-w-[200px] xs:max-w-none">KhataGPT analyzes ledger records in real time</span>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="hover:text-red-500 underline transition-colors cursor-pointer bg-transparent border-none p-0"
+                    className="hover:text-red-500 underline transition-colors cursor-pointer bg-transparent border-none p-0 shrink-0 ml-2"
                   >
-                    Exit assistant (Esc)
+                    Exit (Esc)
                   </button>
                 </div>
               </div>
