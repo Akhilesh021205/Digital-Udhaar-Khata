@@ -582,6 +582,7 @@ You MUST respond ONLY with a JSON object in this format:
         return res.status(200).json({
           success: true,
           response: responseText,
+          reply: responseText,
           suggestions: suggestionsList
         });
       } catch (groqErr) {

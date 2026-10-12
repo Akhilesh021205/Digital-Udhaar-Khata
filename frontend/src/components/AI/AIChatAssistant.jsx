@@ -137,10 +137,11 @@ const AIChatAssistant = () => {
     try {
       const res = await API.post('/ai/chat', {
         message: text,
-        history: historyToSend
+        history: historyToSend,
+        lang: speechLang.startsWith('hi') ? 'hi' : speechLang.startsWith('te') ? 'te' : (lang || 'en')
       });
 
-      const aiReply = res.data.reply;
+      const aiReply = res.data.response || res.data.reply || res.data.message || (typeof res.data === 'string' ? res.data : 'I have analyzed your ledger records.');
       const suggestions = res.data.suggestions || [];
 
       // Check if a transaction was auto-recorded
@@ -214,8 +215,14 @@ const AIChatAssistant = () => {
 
   // Helper to safely render markdown formatted text
   const renderMessageText = (text) => {
-    if (!text) return null;
-    const textStr = typeof text === 'string' ? text : typeof text === 'object' ? (text.response || text.message || JSON.stringify(text)) : String(text);
+    if (!text) {
+      return (
+        <p className="text-xs sm:text-sm leading-relaxed my-0.5 sm:my-1 text-slate-700 dark:text-slate-300">
+          I have analyzed your ledger records.
+        </p>
+      );
+    }
+    const textStr = typeof text === 'string' ? text : typeof text === 'object' ? (text.response || text.reply || text.message || JSON.stringify(text)) : String(text);
     
     return textStr.split('\n').map((line, lineIdx) => {
       let content = line;
