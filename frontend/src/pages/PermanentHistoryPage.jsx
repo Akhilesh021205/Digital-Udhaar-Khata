@@ -16,7 +16,8 @@ import {
   HiOutlinePhotograph,
   HiOutlineEye,
   HiOutlineX,
-  HiOutlinePhone
+  HiOutlinePhone,
+  HiOutlineDownload
 } from 'react-icons/hi';
 
 const PermanentHistoryPage = () => {
@@ -63,12 +64,83 @@ const PermanentHistoryPage = () => {
   const editCount = historyLogs.filter(log => log.action === 'UPDATE').length;
   const deleteCount = historyLogs.filter(log => log.action === 'DELETE' || log.action === 'CUSTOMER_DELETED').length;
 
+  const handleExportExcel = () => {
+    try {
+      const csvHeader = ['Timestamp', 'Action', 'Target Name', 'Target Phone', 'Amount (INR)', 'Details'].join(',');
+      const rows = (filteredLogs || []).map(log => [
+        `"${new Date(log.timestamp || log.createdAt).toLocaleString('en-IN')}"`,
+        `"${log.action || ''}"`,
+        `"${(log.targetName || log.name || '').replace(/"/g, '""')}"`,
+        `"${log.targetPhone || log.phone || ''}"`,
+        log.amount || 0,
+        `"${(log.details || log.description || '').replace(/"/g, '""')}"`
+      ].join(','));
+
+      const csvContent = [csvHeader, ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `transaction_history_audit_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Excel history downloaded successfully!");
+    } catch {
+      toast.error('Failed to export history');
+    }
+  };
+
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   return (
     <>
       <Header 
         title="Transaction History" 
         subtitle="Undeletable audit record of all customers and transactions" 
       />
+
+      {/* Top Action Bar with PDF & Excel Download Buttons (Desktop & Mobile) */}
+      <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 p-3 sm:p-4 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-orange/10 dark:bg-orange/20 text-orange flex items-center justify-center shrink-0">
+            <HiOutlineClock size={18} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xs sm:text-base font-extrabold text-deep-navy dark:text-white m-0 leading-tight font-outfit truncate">
+              Transaction History Statements
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-gray dark:text-slate-400 m-0 leading-tight mt-0.5 truncate">
+              Export undeletable audit logs
+            </p>
+          </div>
+        </div>
+
+        {/* Top PDF & Excel Buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-pure-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 border border-soft-gray dark:border-slate-700 hover:border-red-300 dark:hover:border-red-800 text-deep-navy dark:text-white hover:text-red-600 font-bold rounded-xl text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer" 
+            onClick={handleExportPDF}
+            title="Download PDF Audit Report"
+          >
+            <HiOutlineDownload size={14} className="text-red-600 shrink-0" />
+            <span>PDF</span>
+          </button>
+          <button 
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-pure-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-soft-gray dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-800 text-deep-navy dark:text-white hover:text-emerald-600 font-bold rounded-xl text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer" 
+            onClick={handleExportExcel}
+            title="Download Excel History"
+          >
+            <HiOutlineDownload size={14} className="text-emerald-600 shrink-0" />
+            <span>Excel</span>
+          </button>
+        </div>
+      </div>
 
       {/* Audit Stats Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">

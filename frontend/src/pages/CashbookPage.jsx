@@ -278,6 +278,45 @@ const CashbookPage = () => {
         onToggleSidebar={() => {}}
       />
 
+      {/* Top Action Bar with PDF & Excel Download Buttons (Prominent on both Mobile and Desktop) */}
+      <div className="flex items-center justify-between gap-3 mb-5 bg-pure-white dark:bg-slate-900 border border-soft-gray dark:border-slate-800 p-3 sm:p-4 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-orange/10 dark:bg-orange/20 text-orange flex items-center justify-center shrink-0">
+            <HiOutlineBookOpen size={18} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xs sm:text-base font-extrabold text-deep-navy dark:text-white m-0 leading-tight font-outfit truncate">
+              {t('cashbook')} Statements
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-gray dark:text-slate-400 m-0 leading-tight mt-0.5 truncate">
+              Download reports & records
+            </p>
+          </div>
+        </div>
+
+        {/* Top PDF & Excel Buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-pure-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 border border-soft-gray dark:border-slate-700 hover:border-red-300 dark:hover:border-red-800 text-deep-navy dark:text-white hover:text-red-600 font-bold rounded-xl text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer" 
+            onClick={handleDownloadReport}
+            title="Download Cashbook PDF Report"
+          >
+            <HiOutlineDownload size={15} className="text-red-600 shrink-0" />
+            <span>PDF</span>
+          </button>
+          <button 
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-pure-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-soft-gray dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-800 text-deep-navy dark:text-white hover:text-emerald-600 font-bold rounded-xl text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer" 
+            onClick={handleDownloadExcel}
+            title="Download Cashbook Excel Statement"
+          >
+            <HiOutlineDownload size={15} className="text-emerald-600 shrink-0" />
+            <span>Excel</span>
+          </button>
+        </div>
+      </div>
+
       {/* Hero Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className={`border rounded-2xl p-6 shadow-sm flex flex-col justify-center transition-all ${
@@ -418,9 +457,9 @@ const CashbookPage = () => {
 
       {/* Main Ledger Content */}
       <div className="bg-pure-white border border-soft-gray rounded-2xl p-6 shadow-sm mb-24">
-        <div className="flex justify-between items-center mb-5 flex-wrap gap-4">
+        <div className="flex items-center justify-between mb-4 sm:mb-5 gap-2">
           <h3 className="text-base font-bold text-deep-navy mb-0">{t('transactionHistory')}</h3>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button 
               className="inline-flex items-center gap-1.5 px-3 py-2 border border-soft-gray hover:bg-slate-gray/5 text-slate-gray font-bold rounded-xl text-xs transition-colors cursor-pointer bg-transparent" 
               onClick={handleDownloadReport}

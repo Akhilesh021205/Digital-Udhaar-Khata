@@ -22,7 +22,7 @@ import {
   HiOutlineX, HiOutlineClock, HiOutlineMail, HiOutlineCamera, HiOutlineXCircle,
   HiOutlineMap, HiOutlineExternalLink, HiOutlineSearch,
   HiOutlineSwitchVertical, HiOutlinePhotograph, HiOutlineDocumentText,
-  HiOutlineQrcode, HiOutlineChevronDown, HiOutlineChevronUp
+  HiOutlineQrcode, HiOutlineChevronDown, HiOutlineChevronUp, HiOutlineDownload
 } from 'react-icons/hi';
 import { FaWhatsapp, FaSms, FaMobileAlt, FaPhone } from 'react-icons/fa';
 import { useSpeechToText } from '../hooks/useSpeechToText';
@@ -611,6 +611,35 @@ const CustomerDetailPage = () => {
     }
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const csvHeader = ['Date', 'Customer', 'Phone', 'Type', 'Amount (INR)', 'Payment Mode', 'Remarks'].join(',');
+      const rows = (transactions || []).map(t => [
+        `"${new Date(t.date || t.createdAt).toLocaleDateString('en-IN')}"`,
+        `"${(customer?.name || '').replace(/"/g, '""')}"`,
+        `"${customer?.phone || ''}"`,
+        `"${t.type === 'give' ? 'Debit (You Gave)' : 'Credit (You Got)'}"`,
+        t.amount,
+        `"${t.paymentMode || 'cash'}"`,
+        `"${(t.description || t.remarks || '').replace(/"/g, '""')}"`
+      ].join(','));
+
+      const csvContent = [csvHeader, ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(customer?.name || 'customer').replace(/\s+/g, '_')}_statement_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Excel statement downloaded successfully!");
+    } catch (err) {
+      toast.error('Failed to export Excel statement');
+    }
+  };
+
   const handleViewPDF = async () => {
     try {
       const response = await API.get(`/reminder/statement/${id}`, { responseType: 'blob' });
@@ -729,11 +758,20 @@ const CustomerDetailPage = () => {
           <button
             type="button"
             onClick={handleDownloadPDF}
-            className="px-2.5 py-1.5 bg-soft-white hover:bg-slate-gray/10 text-slate-gray hover:text-deep-navy border border-soft-gray font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1.5 bg-soft-white hover:bg-red-50 text-slate-gray hover:text-red-600 border border-soft-gray font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
             title="Download PDF Statement"
           >
-            <HiOutlineDocumentDownload size={13} />
-            <span className="hidden sm:inline">PDF</span>
+            <HiOutlineDocumentDownload size={14} className="text-red-600" />
+            <span>PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadExcel}
+            className="px-2.5 py-1.5 bg-soft-white hover:bg-emerald-50 text-slate-gray hover:text-emerald-600 border border-soft-gray font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+            title="Download Excel Statement"
+          >
+            <HiOutlineDownload size={14} className="text-emerald-600" />
+            <span>Excel</span>
           </button>
         </div>
       </div>
@@ -1126,16 +1164,36 @@ const CustomerDetailPage = () => {
                 </div>
               </div>
 
-              {/* Sort Toggle */}
-              <button
-                type="button"
-                onClick={() => setTxnSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                className="py-1.5 px-2.5 bg-soft-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-gray hover:text-deep-navy dark:text-slate-300 border border-soft-gray dark:border-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
-                title={`Sort: ${txnSortOrder === 'desc' ? 'Newest First' : 'Oldest First'}`}
-              >
-                <HiOutlineSwitchVertical size={14} className="text-orange" />
-                <span className="text-[11px]">{txnSortOrder === 'desc' ? 'Newest First' : 'Oldest First'}</span>
-              </button>
+              {/* Actions & Sort Toggle */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="py-1 px-2 sm:px-2.5 bg-soft-white dark:bg-slate-800 hover:bg-red-50 text-slate-gray hover:text-red-600 border border-soft-gray dark:border-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                  title="Download PDF Statement"
+                >
+                  <HiOutlineDocumentDownload size={13} className="text-red-600" />
+                  <span>PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadExcel}
+                  className="py-1 px-2 sm:px-2.5 bg-soft-white dark:bg-slate-800 hover:bg-emerald-50 text-slate-gray hover:text-emerald-600 border border-soft-gray dark:border-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                  title="Download Excel Statement"
+                >
+                  <HiOutlineDownload size={13} className="text-emerald-600" />
+                  <span>Excel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTxnSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                  className="py-1 px-2 sm:px-2.5 bg-soft-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-gray hover:text-deep-navy dark:text-slate-300 border border-soft-gray dark:border-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                  title={`Sort: ${txnSortOrder === 'desc' ? 'Newest First' : 'Oldest First'}`}
+                >
+                  <HiOutlineSwitchVertical size={13} className="text-orange" />
+                  <span className="text-[11px] hidden sm:inline">{txnSortOrder === 'desc' ? 'Newest First' : 'Oldest First'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Filter Chips & Search Bar */}
