@@ -4,18 +4,24 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useSpeechToText } from '../../hooks/useSpeechToText';
 import { 
-  HiOutlineChatAlt2, 
-  HiOutlineX, 
-  HiOutlinePaperAirplane, 
-  HiOutlineMicrophone, 
-  HiOutlineSparkles, 
-  HiOutlineLightBulb,
-  HiOutlineClipboardCopy,
-  HiOutlineCheck,
-  HiOutlineRefresh,
-  HiOutlineArrowsExpand
-} from 'react-icons/hi';
-import { FiTrendingUp, FiAlertTriangle, FiDollarSign, FiClock } from 'react-icons/fi';
+  Bot, 
+  Store, 
+  ArrowLeft, 
+  X, 
+  Maximize2, 
+  Minimize2, 
+  RotateCcw, 
+  Send, 
+  Mic, 
+  Copy, 
+  Check, 
+  Lightbulb, 
+  Sparkles,
+  TrendingUp,
+  AlertTriangle,
+  DollarSign,
+  Clock
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const AIChatAssistant = () => {
@@ -30,6 +36,17 @@ const AIChatAssistant = () => {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const chatEndRef = useRef(null);
+
+  // Global Escape key listener to exit AI freely from anywhere
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   // Fetch a customer name for personalized starter suggestions
   useEffect(() => {
@@ -47,13 +64,13 @@ const AIChatAssistant = () => {
     fetchFirstCustomer();
   }, [isOpen]);
 
-  // Initial welcome message
+  // Initial welcome message (clean, professional, emoji-free)
   useEffect(() => {
     setMessages([
       {
         id: 'welcome',
         sender: 'ai',
-        text: `Hello ${user?.name ? user.name : 'Merchant'}! I am **KhataGPT** 🤖\n\nI have real-time access to your ledger, customers, cashbook, and transactions for **${user?.storeName || 'your store'}**.\n\nYou can ask me questions or speak in Hindi/Telugu/English:`,
+        text: `Hello ${user?.name ? user.name : 'Merchant'}! I am **KhataGPT**.\n\nI have real-time access to your ledger, customers, cashbook, and transactions for **${user?.storeName || 'your store'}**.\n\nYou can ask me questions or speak in Hindi, Telugu, or English:`,
         suggestions: [
           `How much udhar does ${firstCustomerName || 'customer'} have?`,
           'Show this month collection',
@@ -118,34 +135,34 @@ const AIChatAssistant = () => {
     setLoading(true);
 
     try {
-      const { data } = await API.post('/ai/chat', { 
+      const res = await API.post('/ai/chat', {
         message: text,
-        history: historyToSend,
-        lang: lang
+        history: historyToSend
       });
 
-      const responseText = data?.response || data?.message || (typeof data === 'string' ? data : 'I processed your ledger query.');
+      const aiReply = res.data.reply;
+      const suggestions = res.data.suggestions || [];
+
+      // Check if a transaction was auto-recorded
+      if (res.data.transactionRecorded) {
+        toast.success(`Entry Recorded: ₹${res.data.transactionRecorded.amount}`);
+      }
+
       const aiMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: responseText,
-        suggestions: Array.isArray(data?.suggestions) ? data.suggestions : [],
+        text: aiReply,
+        suggestions,
         time: new Date()
       };
-      
+
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
-      console.error('KhataGPT chat error:', err);
-      const fallbackError = err.response?.data?.message || 'Sorry, I am having trouble connecting right now. Please try again in a moment.';
       const errorMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: fallbackError,
-        suggestions: [
-          `How much udhar does ${firstCustomerName || 'customer'} have?`,
-          'Show this month collection',
-          'Who has highest due?'
-        ],
+        text: 'Sorry, I encountered an issue connecting to the AI ledger engine. Please check your network or try again shortly.',
+        suggestions: ['Show current balances', 'View recent transactions'],
         time: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -248,14 +265,14 @@ const AIChatAssistant = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-13 h-13 lg:w-14 lg:h-14 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 hover:from-rose-600 hover:to-red-600 text-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 border-none cursor-pointer group active:scale-95"
-        title="Open KhataGPT Full Screen"
+        title="Open KhataGPT Assistant"
         id="ai-chat-btn"
       >
         {isOpen ? (
-          <HiOutlineX className="w-6 h-6 animate-in spin-in-90 duration-200" />
+          <X className="w-6 h-6 animate-in spin-in-90 duration-200" />
         ) : (
           <div className="relative flex items-center justify-center">
-            <HiOutlineSparkles className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            <Bot className="w-6 h-6 group-hover:scale-110 transition-transform" />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300"></span>
@@ -283,11 +300,29 @@ const AIChatAssistant = () => {
             <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-gradient-to-r from-red-500/10 via-rose-500/5 to-amber-500/10 blur-3xl rounded-full" />
             
             {/* Top Navigation & Status Bar */}
-            <header className="relative px-4 sm:px-6 py-3.5 sm:py-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-4 z-10 shrink-0">
+            <header className="relative px-4 sm:px-6 py-3.5 sm:py-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 z-10 shrink-0">
+              
+              {/* Left Side: Exit/Back Button + Branding */}
               <div className="flex items-center gap-3 min-w-0">
+                {/* Prominent Exit Button (Always accessible) */}
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:hover:bg-red-950/50 dark:hover:text-red-400 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs group shrink-0 active:scale-95"
+                  title="Exit Khata AI (Esc)"
+                >
+                  <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
+                  <span className="hidden sm:inline">Exit</span>
+                  <span className="sm:hidden">Back</span>
+                  <kbd className="hidden md:inline-block text-[10px] px-1 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-400 font-mono">Esc</kbd>
+                </button>
+
+                {/* AI Avatar */}
                 <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-600/20 shrink-0">
-                  <HiOutlineSparkles className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
+                  <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
+
+                {/* Brand & Store Name */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-outfit m-0 leading-tight">
@@ -296,27 +331,24 @@ const AIChatAssistant = () => {
                     <span className="text-[10px] bg-gradient-to-r from-red-600 to-rose-600 text-white font-black px-2 py-0.5 rounded-full shadow-2xs tracking-wider uppercase">
                       AI v2.0
                     </span>
-                    <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                      Online
-                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 m-0 truncate font-medium">
-                    {user?.storeName ? `🏪 Store: ${user.storeName}` : 'AI Ledger & Business Intelligence Assistant'}
-                  </p>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
+                    <Store className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{user?.storeName ? user.storeName : 'Digital Udhaar Khata'}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Action Toolbar */}
+              {/* Right Side: Action Toolbar */}
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {/* Clear Chat Button */}
+                {/* Clear Chat / New Chat Button */}
                 <button
                   type="button"
                   onClick={handleClearChat}
                   className="p-2 sm:px-3 sm:py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                  title="Clear Conversation"
+                  title="Clear Conversation & Start New Chat"
                 >
-                  <HiOutlineRefresh className="w-4 h-4 text-slate-500" />
+                  <RotateCcw className="w-4 h-4 text-slate-500" />
                   <span className="hidden sm:inline">New Chat</span>
                 </button>
 
@@ -327,17 +359,18 @@ const AIChatAssistant = () => {
                   className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 transition-all cursor-pointer shadow-2xs"
                   title={isFullscreen ? "Windowed Mode" : "Full Screen Mode"}
                 >
-                  <HiOutlineArrowsExpand className="w-4 h-4" />
+                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
 
-                {/* Close Button */}
+                {/* Primary Exit Button */}
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:hover:bg-red-950/50 dark:hover:text-red-400 text-slate-600 dark:text-slate-300 transition-all cursor-pointer border border-transparent shadow-2xs"
-                  title="Close Assistant"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white dark:bg-red-950/40 dark:hover:bg-red-600 dark:text-red-400 text-xs font-bold transition-all cursor-pointer border border-red-200/80 dark:border-red-800/80 shadow-2xs active:scale-95"
+                  title="Exit KhataGPT (Esc)"
                 >
-                  <HiOutlineX className="w-5 h-5" />
+                  <X className="w-4 h-4" />
+                  <span className="hidden sm:inline">Exit</span>
                 </button>
               </div>
             </header>
@@ -371,7 +404,7 @@ const AIChatAssistant = () => {
                         className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-red-400 hover:shadow-md dark:hover:border-red-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
                       >
                         <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <FiDollarSign className="w-4 h-4" />
+                          <DollarSign className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Highest Dues</div>
@@ -385,7 +418,7 @@ const AIChatAssistant = () => {
                         className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400 hover:shadow-md dark:hover:border-emerald-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
                       >
                         <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <FiTrendingUp className="w-4 h-4" />
+                          <TrendingUp className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Total Collection</div>
@@ -399,7 +432,7 @@ const AIChatAssistant = () => {
                         className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-400 hover:shadow-md dark:hover:border-amber-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
                       >
                         <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <FiAlertTriangle className="w-4 h-4" />
+                          <AlertTriangle className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Risk Predictions</div>
@@ -413,7 +446,7 @@ const AIChatAssistant = () => {
                         className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-400 hover:shadow-md dark:hover:border-indigo-500/50 transition-all text-left cursor-pointer group flex flex-col justify-between shadow-2xs"
                       >
                         <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                          <FiClock className="w-4 h-4" />
+                          <Clock className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Customer Balance</div>
@@ -444,7 +477,7 @@ const AIChatAssistant = () => {
                           <div className="flex items-center justify-between gap-3 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
                             <div className="flex items-center gap-2">
                               <span className="w-5 h-5 rounded-lg bg-red-600/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
-                                <HiOutlineSparkles className="w-3 h-3" />
+                                <Bot className="w-3.5 h-3.5" />
                               </span>
                               <span className="text-xs font-bold text-slate-900 dark:text-white font-outfit">
                                 KhataGPT
@@ -458,12 +491,12 @@ const AIChatAssistant = () => {
                             >
                               {copiedId === msg.id ? (
                                 <>
-                                  <HiOutlineCheck className="w-3.5 h-3.5 text-emerald-500" />
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
                                   <span className="text-emerald-500 font-semibold">Copied</span>
                                 </>
                               ) : (
                                 <>
-                                  <HiOutlineClipboardCopy className="w-3.5 h-3.5" />
+                                  <Copy className="w-3.5 h-3.5" />
                                   <span>Copy</span>
                                 </>
                               )}
@@ -502,7 +535,7 @@ const AIChatAssistant = () => {
                               onClick={() => handleSuggestionClick(suggestion)}
                               className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-2xs inline-flex items-center gap-1.5 hover:-translate-y-0.5 hover:border-red-300 dark:hover:border-red-800"
                             >
-                              <HiOutlineLightBulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                               <span>{suggestion}</span>
                             </button>
                           ))}
@@ -517,7 +550,7 @@ const AIChatAssistant = () => {
                   <div className="flex items-start animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-xs p-4 sm:p-5 shadow-sm shadow-slate-200/40 dark:shadow-black/20 flex items-center gap-3">
                       <div className="w-7 h-7 rounded-xl bg-red-600/10 text-red-600 flex items-center justify-center shrink-0">
-                        <HiOutlineSparkles className="w-4 h-4 animate-spin" />
+                        <Sparkles className="w-4 h-4 animate-spin" />
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
@@ -538,15 +571,15 @@ const AIChatAssistant = () => {
             </div>
 
             {/* Bottom Input Console */}
-            <footer className="relative p-4 sm:p-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 shrink-0 z-10">
+            <footer className="relative p-4 sm:p-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 shrink-0">
               <div className="max-w-4xl w-full mx-auto space-y-3">
                 
-                {/* Voice Listening Bar */}
+                {/* Active Voice Listening Banner */}
                 {isListening && (
-                  <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-gradient-to-r from-red-600/10 via-rose-600/10 to-amber-500/10 border border-red-500/20 rounded-2xl animate-pulse">
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 shadow-xs animate-pulse">
+                    <div className="flex items-center gap-2">
                       <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
                       </span>
                       <span className="text-xs font-extrabold text-red-600 dark:text-red-400 tracking-wide uppercase">
@@ -633,7 +666,7 @@ const AIChatAssistant = () => {
                       }`}
                       title={isListening ? "Stop Listening" : "Voice Input (Telugu / Hindi / English)"}
                     >
-                      {isListening ? <HiOutlineX className="w-5 h-5" /> : <HiOutlineMicrophone className="w-5 h-5" />}
+                      <Mic className="w-5 h-5" />
                     </button>
                   )}
 
@@ -645,13 +678,20 @@ const AIChatAssistant = () => {
                     className="p-2.5 sm:p-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-rose-600 hover:to-red-600 disabled:from-slate-200 disabled:to-slate-200 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white rounded-xl border-none cursor-pointer transition-all flex items-center justify-center shadow-md hover:shadow-lg disabled:shadow-none hover:scale-105 active:scale-95 shrink-0"
                     title="Send Message"
                   >
-                    <HiOutlinePaperAirplane className="w-5 h-5 rotate-45" />
+                    <Send className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Footer Micro Disclaimer */}
-                <div className="text-center text-[10px] text-slate-400 dark:text-slate-500">
-                  KhataGPT analyzes your shop ledger records securely in real time • Powered by Groq AI
+                {/* Footer Micro Disclaimer with quick Exit reminder */}
+                <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-1">
+                  <span>KhataGPT analyzes your shop ledger records securely in real time</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="hover:text-red-500 underline transition-colors cursor-pointer bg-transparent border-none p-0"
+                  >
+                    Exit assistant (Esc)
+                  </button>
                 </div>
               </div>
             </footer>
