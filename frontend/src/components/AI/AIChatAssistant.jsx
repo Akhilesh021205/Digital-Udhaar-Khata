@@ -683,16 +683,9 @@ const AIChatAssistant = () => {
                   </button>
                 </div>
 
-                {/* Footer Micro Disclaimer with quick Exit reminder */}
-                <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 px-1">
-                  <span className="truncate max-w-[200px] xs:max-w-none">KhataGPT analyzes ledger records in real time</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="hover:text-red-500 underline transition-colors cursor-pointer bg-transparent border-none p-0 shrink-0 ml-2"
-                  >
-                    Exit (Esc)
-                  </button>
+                {/* Footer Micro Disclaimer */}
+                <div className="text-center text-[10px] text-slate-400 dark:text-slate-500 px-1">
+                  KhataGPT analyzes records securely in real time
                 </div>
               </div>
             </footer>
