@@ -34,9 +34,9 @@ const AIChatAssistant = () => {
       {
         id: 'welcome',
         sender: 'ai',
-        text: 'Hello! I am KathaAI. \n\nYou can ask me questions about your ledger, like:',
+        text: 'Hello! I am KhataGPT 🤖\n\nYou can ask me anything about your ledger, like:',
         suggestions: [
-          `How much udhar does customer have?`,
+          `How much udhar does ${firstCustomerName || 'customer'} have?`,
           'Show this month collection',
           'Who has highest due?',
           'Who are the risky customers?'
@@ -58,21 +58,9 @@ const AIChatAssistant = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    const checkServer = async () => {
-      try {
-        await API.get('/transactions/stats');
-        setIsOnline(true);
-      } catch (err) {
-        setIsOnline(false);
-      }
-    };
-    checkServer();
-    const interval = setInterval(checkServer, 10000);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
     };
   }, []);
 
@@ -136,24 +124,24 @@ const AIChatAssistant = () => {
         history: historyToSend,
         lang: lang
       });
-      setIsOnline(true);
-      
+      const responseText = data?.response || data?.message || (typeof data === 'string' ? data : 'I processed your query.');
       const aiMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: data.response,
-        suggestions: data.suggestions || [],
+        text: responseText,
+        suggestions: Array.isArray(data?.suggestions) ? data.suggestions : [],
         time: new Date()
       };
       
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
-      setIsOnline(false);
-      toast.error('KathaGPT is currently offline');
+      console.error('KhataGPT error:', err);
+      const fallbackText = err.response?.data?.message || 'Sorry, I am having trouble connecting right now. Please try again.';
       const errorMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: 'Sorry, I am having trouble connecting right now. Please try again later.',
+        text: fallbackText,
+        suggestions: [`How much udhar does ${firstCustomerName || 'customer'} have?`, "Show this month collection", "Who has highest due?"],
         time: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -172,9 +160,11 @@ const AIChatAssistant = () => {
     handleSendMessage(suggestion);
   };
 
-  // Helper to parse double asterisks and bullet points
+  // Helper to parse double asterisks and bullet points safely
   const renderMessageText = (text) => {
-    return text.split('\n').map((line, lineIdx) => {
+    if (!text) return null;
+    const textStr = typeof text === 'string' ? text : (typeof text === 'object' ? (text.response || text.message || JSON.stringify(text)) : String(text));
+    return textStr.split('\n').map((line, lineIdx) => {
       let content = line;
       
       // Check for bullet points
@@ -222,7 +212,7 @@ const AIChatAssistant = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-tr from-orange to-orange-hover hover:from-orange-hover hover:to-orange text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 border-none cursor-pointer group"
-        title="KathaGPT"
+        title="KhataGPT"
         id="ai-chat-btn"
       >
         {isOpen ? (
@@ -250,7 +240,7 @@ const AIChatAssistant = () => {
                 </div>
                 <div>
                   <span className="text-sm font-bold m-0 text-white font-outfit tracking-wide leading-none block" style={{ color: '#ffffff' }}>
-                    KathaGPT
+                    KhataGPT
                   </span>
                   <span className="text-[10px] text-zinc-400 font-semibold mt-1 block">AI Ledger Assistant</span>
                 </div>

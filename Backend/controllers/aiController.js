@@ -246,7 +246,7 @@ You MUST respond ONLY with a JSON object in this format: { "isReminder": boolean
         const groqResponse = await axios.post(
           'https://api.groq.com/openai/v1/chat/completions',
           {
-            model: 'llama-3.1-8b-instant',
+            model: 'openai/gpt-oss-20b',
             messages: [
               { role: 'system', content: voicePrompt },
               { role: 'user', content: text }
@@ -549,7 +549,7 @@ You MUST respond ONLY with a JSON object in this format:
         const groqResponse = await axios.post(
           'https://api.groq.com/openai/v1/chat/completions',
           {
-            model: 'llama-3.1-8b-instant',
+            model: 'openai/gpt-oss-20b',
             messages: groqMessages,
             response_format: { type: 'json_object' },
             temperature: 0.2
@@ -559,15 +559,30 @@ You MUST respond ONLY with a JSON object in this format:
               'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
               'Content-Type': 'application/json'
             },
-            timeout: 7000
+            timeout: 10000
           }
         );
 
-        const parsed = JSON.parse(groqResponse.data.choices[0].message.content);
+        let parsed;
+        try {
+          parsed = JSON.parse(groqResponse.data.choices[0].message.content);
+        } catch (jsonErr) {
+          parsed = { response: groqResponse.data.choices[0].message.content, suggestions: [] };
+        }
+
+        let responseText = parsed.response || parsed.reply || parsed.answer || parsed.message;
+        if (!responseText && typeof parsed === 'string') responseText = parsed;
+        if (!responseText) responseText = typeof parsed === 'object' ? JSON.stringify(parsed) : 'I processed your request.';
+
+        let suggestionsList = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+        if (suggestionsList.length === 0) {
+          suggestionsList = ["Who has highest due?", "Show this month collection", "Risky customers"];
+        }
+
         return res.status(200).json({
           success: true,
-          response: parsed.response,
-          suggestions: parsed.suggestions || []
+          response: responseText,
+          suggestions: suggestionsList
         });
       } catch (groqErr) {
         console.error('Groq chat error, falling back to local:', groqErr.message);

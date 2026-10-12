@@ -4,7 +4,6 @@ import {
   HiOutlineHome, 
   HiOutlineUsers, 
   HiOutlineCog, 
-  HiOutlineBell, 
   HiOutlineBookOpen, 
   HiOutlineClock
 } from 'react-icons/hi';
@@ -17,7 +16,6 @@ const Sidebar = () => {
     { to: '/', icon: <HiOutlineHome size={19} />, label: t('dashboard') || 'Dashboard' },
     { to: '/customers', icon: <HiOutlineUsers size={19} />, label: t('customers') || 'Customers' },
     { to: '/cashbook', icon: <HiOutlineBookOpen size={19} />, label: t('cashbook') || 'Cashbook' },
-    { to: '/reminders', icon: <HiOutlineBell size={19} />, label: t('reminders') || 'Reminders' },
     { to: '/history', icon: <HiOutlineClock size={19} />, label: t('transactionHistory') || 'History' },
     { to: '/settings', icon: <HiOutlineCog size={19} />, label: t('settings') || 'Settings' },
   ];
@@ -26,7 +24,6 @@ const Sidebar = () => {
     if (to === '/') import('../../pages/DashboardPage');
     else if (to === '/customers') import('../../pages/CustomersPage');
     else if (to === '/cashbook') import('../../pages/CashbookPage');
-    else if (to === '/reminders') import('../../pages/RemindersPage');
     else if (to === '/history') import('../../pages/PermanentHistoryPage');
     else if (to === '/settings') import('../../pages/SettingsPage');
   };
