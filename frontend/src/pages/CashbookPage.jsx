@@ -656,15 +656,15 @@ const CashbookPage = () => {
       </div>
 
       {/* Floating Action Buttons */}
-      <div className="fixed bottom-20 lg:bottom-6 right-6 flex gap-3 z-30 shadow-lg p-2 bg-pure-white/80 backdrop-blur-md rounded-2xl border border-soft-gray">
+      <div className="fixed bottom-20 lg:bottom-6 left-4 sm:left-auto sm:right-24 flex gap-2 sm:gap-3 z-30 shadow-xl p-1.5 sm:p-2 bg-pure-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-soft-gray dark:border-slate-800">
         <button
-          className="inline-flex items-center gap-2 px-5 py-3 bg-green-get hover:bg-green-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-md"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-green-get hover:bg-green-hover text-white rounded-xl text-xs sm:text-sm font-bold border-none cursor-pointer transition-all shadow-md active:scale-95"
           onClick={() => handleOpenAddModal('in')}
         >
           <HiOutlineArrowDown size={16} /> {t('addCashIn')}
         </button>
         <button
-          className="inline-flex items-center gap-2 px-5 py-3 bg-red-give hover:bg-red-hover text-white rounded-xl text-sm font-bold border-none cursor-pointer transition-all shadow-md"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-red-give hover:bg-red-hover text-white rounded-xl text-xs sm:text-sm font-bold border-none cursor-pointer transition-all shadow-md active:scale-95"
           onClick={() => handleOpenAddModal('out')}
         >
           <HiOutlineArrowUp size={16} /> {t('addCashOut')}

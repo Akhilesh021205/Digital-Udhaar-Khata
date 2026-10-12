@@ -1194,7 +1194,7 @@ const DashboardPage = () => {
 
       {isSupported && (
         <button
-          className={`fixed bottom-20 right-6 lg:bottom-6 lg:right-6 w-12 h-12 lg:w-13 lg:h-13 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
+          className={`fixed bottom-20 right-18 sm:right-20 lg:bottom-6 lg:right-24 w-12 h-12 lg:w-13 lg:h-13 bg-orange text-white rounded-full flex items-center justify-center shadow-lg border-none cursor-pointer hover:bg-orange-hover hover:scale-105 transition-all z-40 ${
             listening ? 'ring-4 ring-rose-600/30 bg-rose-600 animate-pulse' : ''
           }`}
           onClick={handleVoice}
