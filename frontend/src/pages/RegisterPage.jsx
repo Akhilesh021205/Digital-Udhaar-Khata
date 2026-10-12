@@ -223,16 +223,16 @@ const RegisterPage = () => {
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   return (
-    <div className="min-h-screen flex items-center justify-center udhaar-page-bg p-4 sm:p-6 lg:p-10 relative overflow-hidden py-8 sm:py-12">
+    <div className="min-h-screen flex items-center justify-center udhaar-page-bg p-3 sm:p-6 lg:p-10 relative overflow-x-hidden py-3 sm:py-10">
       {/* Decorative Ambient Background Glows */}
       <div className="pointer-events-none absolute -top-20 -left-20 w-96 h-96 bg-[#DC2626]/10 rounded-full blur-3xl -z-10" />
       <div className="pointer-events-none absolute -bottom-20 -right-20 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl -z-10" />
 
       {/* Side-by-Side Responsive Card */}
-      <div className="w-full max-w-5xl bg-pure-white border border-soft-gray rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10">
+      <div className="w-full max-w-5xl bg-pure-white border border-soft-gray rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10">
         
-        {/* LEFT COLUMN: Feature Highlights Showcase */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] p-6 sm:p-8 lg:p-10 text-white flex flex-col justify-between relative overflow-hidden">
+        {/* LEFT COLUMN: Feature Highlights Showcase (Visible on Desktop, hidden on mobile so form is at top) */}
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] p-6 sm:p-8 lg:p-10 text-white flex-col justify-between relative overflow-hidden">
           <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 bg-[#DC2626]/25 rounded-full blur-3xl" />
           <div className="pointer-events-none absolute -left-16 -bottom-16 w-64 h-64 bg-rose-600/15 rounded-full blur-3xl" />
 
@@ -302,46 +302,56 @@ const RegisterPage = () => {
         </div>
 
         {/* RIGHT COLUMN: Registration Form */}
-        <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-between bg-pure-white">
+        <div className="lg:col-span-7 p-3.5 sm:p-8 lg:p-10 flex flex-col justify-between bg-pure-white">
           <div>
+            {/* Mobile Header Branding (Hidden on desktop since left column has it) */}
+            <div className="lg:hidden flex items-center justify-center gap-2 mb-2 cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-8 h-8 flex items-center justify-center p-1 text-white">
+                <Logo />
+              </div>
+              <span className="font-extrabold text-base text-slate-900 tracking-tight font-jakarta">
+                AI Digital Khata
+              </span>
+            </div>
+
             {/* Header */}
-            <div className="text-left mb-6">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-1 font-jakarta tracking-tight">
+            <div className="text-left mb-2 sm:mb-6">
+              <h1 className="text-lg sm:text-3xl font-extrabold text-slate-900 mb-0.5 sm:mb-1 font-jakarta tracking-tight">
                 Create Account
               </h1>
-              <p className="text-xs sm:text-sm font-medium text-slate-500">Fill in your details to start managing your store</p>
+              <p className="text-[11px] sm:text-sm font-medium text-slate-500">Fill in your details to start managing your store</p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-5 text-[#DC2626] text-sm text-center font-semibold animate-pulse shadow-xs">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-2.5 sm:p-3.5 mb-2.5 sm:mb-5 text-[#DC2626] text-xs sm:text-sm text-center font-semibold animate-pulse shadow-xs">
                 {error}
               </div>
             )}
 
             {/* Registration Form */}
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-2 sm:space-y-4" onSubmit={handleSubmit}>
               
               {/* Profile Picture Selector */}
-              <div className="flex flex-col gap-1.5 mb-2 text-left">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <div className="flex flex-col gap-1 mb-1 sm:mb-2 text-left">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Profile Picture
                 </label>
-                <div className="flex items-center gap-3.5 p-3 bg-slate-50/80 border border-slate-200 rounded-2xl w-full">
+                <div className="flex items-center gap-2.5 sm:gap-3.5 p-2 sm:p-3 bg-slate-50/80 border border-slate-200 rounded-xl sm:rounded-2xl w-full">
                   {/* Avatar Preview */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0">
+                  <div className="relative w-11 h-11 sm:w-16 sm:h-16 shrink-0">
                     <div
-                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border-2 border-[#DC2626] flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
+                      className="w-11 h-11 sm:w-16 sm:h-16 rounded-full bg-white border-2 border-[#DC2626] flex items-center justify-center overflow-hidden cursor-pointer shadow-sm hover:scale-105 transition-transform"
                       onClick={() => fileInputRef.current.click()}
                     >
                       {form.avatar ? (
                         <img src={form.avatar} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xs font-semibold text-slate-500">Upload</span>
+                        <span className="text-[10px] sm:text-xs font-semibold text-slate-500">Upload</span>
                       )}
                     </div>
                     {/* Plus badge */}
-                    <div className="absolute bottom-0 right-0 bg-[#DC2626] w-5 h-5 rounded-full flex items-center justify-center text-white border-2 border-white pointer-events-none shadow-xs">
-                      <HiPlus size={12} />
+                    <div className="absolute bottom-0 right-0 bg-[#DC2626] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-white border-2 border-white pointer-events-none shadow-xs">
+                      <HiPlus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </div>
                     <input
                       type="file"
@@ -353,11 +363,11 @@ const RegisterPage = () => {
                   </div>
 
                   {/* Presets Selection */}
-                  <div className="flex flex-col gap-1.5 w-full min-w-0">
-                    <span className="text-[11px] text-slate-600 font-semibold">
-                      Select preset avatar or click photo to upload:
+                  <div className="flex flex-col gap-0.5 sm:gap-1.5 w-full min-w-0">
+                    <span className="text-[10px] sm:text-[11px] text-slate-600 font-semibold truncate">
+                      Select preset avatar or click photo:
                     </span>
-                    <div className="flex gap-2 items-center overflow-x-auto pb-1 max-w-full scrollbar-none">
+                    <div className="flex gap-1.5 sm:gap-2 items-center overflow-x-auto pb-0.5 max-w-full scrollbar-none">
                       {presets.map((p, idx) => {
                         const isSelected = form.avatar === p.value;
                         return (
@@ -365,7 +375,7 @@ const RegisterPage = () => {
                             key={idx}
                             type="button"
                             onClick={() => setForm({ ...form, avatar: p.value })}
-                            className={`w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-full border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${
+                            className={`w-7 h-7 sm:w-9 sm:h-9 shrink-0 rounded-full border cursor-pointer flex items-center justify-center overflow-hidden p-0 transition-all ${
                               isSelected
                                 ? 'border-2 border-[#DC2626] scale-105 ring-2 ring-[#DC2626]/20 shadow-xs'
                                 : 'border-slate-200 hover:scale-105 hover:border-slate-300'
@@ -380,14 +390,14 @@ const RegisterPage = () => {
                 </div>
               </div>
 
-              {/* Grid 2 Columns for Desktop */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 text-left">
+              {/* Grid 2 Columns for Desktop and Mobile (side-by-side eliminates vertical scroll) */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-4 text-left">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Your Name
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                    <span className="hidden sm:inline">Your </span>Name
                   </label>
                   <input
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
+                    className="w-full px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
                     placeholder="Rajesh Kumar"
                     required
                     value={form.name}
@@ -396,12 +406,12 @@ const RegisterPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
                     Store Name
                   </label>
                   <input
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
-                    placeholder="Kumar General Store"
+                    className="w-full px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
+                    placeholder="Kumar Store"
                     required
                     value={form.storeName}
                     onChange={update('storeName')}
@@ -409,15 +419,15 @@ const RegisterPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 text-left">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4 text-left">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Email Address
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                    <span className="hidden sm:inline">Email Address</span><span className="sm:hidden">Email</span>
                   </label>
                   <input
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
+                    className="w-full px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="you@mail.com"
                     required
                     value={form.email}
                     onChange={update('email')}
@@ -425,11 +435,11 @@ const RegisterPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Phone Number
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 truncate">
+                    <span className="hidden sm:inline">Phone Number</span><span className="sm:hidden">Phone</span>
                   </label>
                   <input
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
+                    className="w-full px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:bg-white focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 outline-none transition-all"
                     placeholder="+91 9876543210"
                     value={form.phone}
                     onChange={update('phone')}
@@ -437,13 +447,13 @@ const RegisterPage = () => {
                 </div>
               </div>
 
-              <div className="text-left space-y-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <div className="text-left space-y-1 sm:space-y-2">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Password
                 </label>
                 <div className="relative">
                   <input
-                    className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:bg-white outline-none transition-all pr-12 ${
+                    className={`w-full px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50 border rounded-lg sm:rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:bg-white outline-none transition-all pr-9 sm:pr-12 ${
                       form.password.length > 0 && passwordRules.every(r => r.test(form.password))
                         ? 'border-emerald-500 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
                         : 'border-slate-200 focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20'
@@ -458,15 +468,15 @@ const RegisterPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer p-1 flex items-center justify-center hover:text-slate-700 transition-colors"
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer p-1 flex items-center justify-center hover:text-slate-700 transition-colors"
                   >
-                    {showPassword ? <HiOutlineEyeOff size={18} /> : <HiOutlineEye size={18} />}
+                    {showPassword ? <HiOutlineEyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <HiOutlineEye className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
                 </div>
 
-                {/* Password Requirements Checklist & Ticks */}
-                <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl space-y-2.5">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
+                {/* Password Requirements: Compact Chips on Mobile, Full Checklist on Desktop */}
+                <div className="p-2 sm:p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl sm:rounded-2xl space-y-1 sm:space-y-2.5">
+                  <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
                     <span className="text-slate-600 uppercase tracking-wider">Password Requirements:</span>
                     <span className={
                       form.password.length === 0 ? 'text-slate-400 font-semibold' :
@@ -482,7 +492,7 @@ const RegisterPage = () => {
                   </div>
 
                   {/* Visual Strength Progress Line */}
-                  <div className="w-full h-1.5 bg-slate-200/70 rounded-full overflow-hidden flex">
+                  <div className="w-full h-1 sm:h-1.5 bg-slate-200/70 rounded-full overflow-hidden flex">
                     <div
                       className={`h-full transition-all duration-300 ${
                         passwordRules.filter(r => r.test(form.password)).length <= 2 ? 'bg-red-500' :
@@ -493,8 +503,33 @@ const RegisterPage = () => {
                     />
                   </div>
 
-                  {/* Checklist Items with Dynamic Live Ticks */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 border-t border-slate-200/60">
+                  {/* Mobile Compact Chips (Single compact row to eliminate mobile vertical scroll) */}
+                  <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-200/60 sm:hidden">
+                    {passwordRules.map((rule) => {
+                      const isPassed = rule.test(form.password);
+                      const shortLabel =
+                        rule.id === 'length' ? '8+ Chars' :
+                        rule.id === 'uppercase' ? 'A-Z' :
+                        rule.id === 'lowercase' ? 'a-z' :
+                        rule.id === 'number' ? '0-9' : 'Special';
+                      return (
+                        <span
+                          key={rule.id}
+                          className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-semibold transition-colors ${
+                            isPassed
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          }`}
+                        >
+                          {isPassed ? <HiCheck className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" /> : '•'}
+                          {shortLabel}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Full Checklist Items with Dynamic Live Ticks */}
+                  <div className="hidden sm:grid sm:grid-cols-2 gap-1.5 pt-1 border-t border-slate-200/60">
                     {passwordRules.map((rule) => {
                       const isPassed = rule.test(form.password);
                       return (
@@ -522,7 +557,7 @@ const RegisterPage = () => {
               </div>
 
               <button
-                className="w-full py-3.5 px-6 font-extrabold text-sm rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white transition-all shadow-md hover:shadow-lg active:scale-[0.99] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-3 font-jakarta tracking-wide"
+                className="w-full py-2.5 sm:py-3.5 px-4 font-extrabold text-xs sm:text-sm rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white transition-all shadow-md hover:shadow-lg active:scale-[0.99] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2 sm:mt-3 font-jakarta tracking-wide"
                 type="submit"
                 disabled={loading}
               >
@@ -531,9 +566,9 @@ const RegisterPage = () => {
             </form>
 
             {/* Divider */}
-            <div className="flex items-center gap-3 my-4">
+            <div className="flex items-center gap-3 my-2 sm:my-4">
               <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">or</span>
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider">or</span>
               <div className="flex-1 h-px bg-slate-200" />
             </div>
 
@@ -541,10 +576,10 @@ const RegisterPage = () => {
             <button
               type="button"
               onClick={handleGoogleClick}
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-5 bg-white border border-slate-200 rounded-xl text-slate-800 text-sm font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-xs cursor-pointer"
+              className="w-full flex items-center justify-center gap-2.5 py-2 sm:py-2.5 px-4 bg-white border border-slate-200 rounded-xl text-slate-800 text-xs sm:text-sm font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-xs cursor-pointer"
             >
               {/* Official Google G Logo */}
-              <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <svg width="16" height="16" className="sm:w-[18px] sm:h-[18px]" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
                 <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
@@ -555,7 +590,7 @@ const RegisterPage = () => {
             </button>
           </div>
 
-          <div className="text-center mt-5 text-xs sm:text-sm text-slate-500 font-medium">
+          <div className="text-center mt-2.5 sm:mt-5 text-xs sm:text-sm text-slate-500 font-medium">
             Already have an account? <Link to="/login" className="text-[#DC2626] font-extrabold hover:underline ml-1">Sign in</Link>
           </div>
         </div>
