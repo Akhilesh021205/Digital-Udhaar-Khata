@@ -161,7 +161,7 @@ const SecuritySetupPage = () => {
       setStep('success');
       
       setTimeout(() => {
-        navigate('/');
+        navigate('/dashboard');
       }, 2200);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save security settings');

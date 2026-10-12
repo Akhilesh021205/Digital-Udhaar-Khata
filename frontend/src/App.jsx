@@ -34,28 +34,24 @@ const PaymentCheckoutPage = lazy(() => import('./pages/PaymentCheckoutPage'));
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Loader fullPage />;
-  return user ? <Navigate to="/" replace /> : children;
+  return user ? <Navigate to="/dashboard" replace /> : children;
 };
 
 const SecuritySetupRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Loader fullPage />;
-  if (!user) return <Navigate to="/" replace />;
-  if (user.hasPin) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.hasPin) return <Navigate to="/dashboard" replace />;
   return children;
 };
 
 // Persistent Authenticated App Layout - Keeps Sidebar, Nav, and Shell permanently mounted
 const AuthenticatedLayout = () => {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) return <Loader fullPage />;
 
   if (!user) {
-    if (location.pathname === '/') {
-      return <LandingPage />;
-    }
     return <Navigate to="/login" replace />;
   }
 
@@ -68,7 +64,10 @@ const AuthenticatedLayout = () => {
 
 const AppRoutes = () => (
   <Routes>
-    {/* Public Standalone Routes */}
+    {/* Public Standalone Landing Page - ALWAYS rendered at root '/' */}
+    <Route path="/" element={<LandingPage />} />
+
+    {/* Public Standalone Auth Routes */}
     <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
     <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
     <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
@@ -84,7 +83,7 @@ const AppRoutes = () => (
 
     {/* Persistent App Shell Layout - Sidebar & Navigation stay permanently mounted during navigation */}
     <Route element={<AuthenticatedLayout />}>
-      <Route path="/" element={<DashboardPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/customers" element={<CustomersPage />} />
       <Route path="/customers/:id" element={<CustomerDetailPage />} />
       <Route path="/transactions" element={<Navigate to="/history" replace />} />

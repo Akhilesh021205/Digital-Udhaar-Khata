@@ -13,7 +13,7 @@ const Sidebar = () => {
   const { t } = useLanguage();
 
   const links = [
-    { to: '/', icon: <HiOutlineHome size={19} />, label: t('dashboard') || 'Dashboard' },
+    { to: '/dashboard', icon: <HiOutlineHome size={19} />, label: t('dashboard') || 'Dashboard' },
     { to: '/customers', icon: <HiOutlineUsers size={19} />, label: t('customers') || 'Customers' },
     { to: '/cashbook', icon: <HiOutlineBookOpen size={19} />, label: t('cashbook') || 'Cashbook' },
     { to: '/history', icon: <HiOutlineClock size={19} />, label: t('transactionHistory') || 'History' },
@@ -21,7 +21,7 @@ const Sidebar = () => {
   ];
 
   const prefetchRoute = (to) => {
-    if (to === '/') import('../../pages/DashboardPage');
+    if (to === '/dashboard') import('../../pages/DashboardPage');
     else if (to === '/customers') import('../../pages/CustomersPage');
     else if (to === '/cashbook') import('../../pages/CashbookPage');
     else if (to === '/history') import('../../pages/PermanentHistoryPage');
@@ -48,7 +48,7 @@ const Sidebar = () => {
           <NavLink
             key={link.to}
             to={link.to}
-            end={link.to === '/'}
+            end={link.to === '/dashboard'}
             onMouseEnter={() => prefetchRoute(link.to)}
             onTouchStart={() => prefetchRoute(link.to)}
             className={({ isActive }) =>

@@ -140,7 +140,7 @@ const RegisterPage = () => {
       setLoading(true);
       try {
         await googleSignIn(tokenResponse.access_token);
-        navigate('/');
+        navigate('/dashboard');
       } catch (err) {
         setError(err.response?.data?.message || 'Google Sign-In failed');
       } finally {
@@ -171,7 +171,7 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       await mockGoogleSignIn(mockAccount.email, mockAccount.name, mockAccount.avatar);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Simulated Google Sign-In failed');
     } finally {
@@ -201,7 +201,7 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       await register(form);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {

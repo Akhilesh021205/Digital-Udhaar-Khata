@@ -55,7 +55,7 @@ const LoginPage = () => {
       const verified = await BiometricService.authenticate();
       if (verified) {
         await biometricLogin();
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       console.warn("Biometric login failed or canceled:", err);
@@ -71,7 +71,7 @@ const LoginPage = () => {
       setLoading(true);
       try {
         await googleSignIn(tokenResponse.access_token);
-        navigate('/');
+        navigate('/dashboard');
       } catch (err) {
         setError(err.response?.data?.message || 'Google Sign-In failed');
       } finally {
@@ -102,7 +102,7 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await mockGoogleSignIn(mockAccount.email, mockAccount.name, mockAccount.avatar);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Google Sign-In failed');
     } finally {
@@ -116,7 +116,7 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {

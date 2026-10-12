@@ -6,7 +6,7 @@ const MobileBottomNav = () => {
   const { t } = useLanguage();
 
   const tabs = [
-    { to: '/', icon: HiOutlineHome, label: t('dashboard') || 'Home', end: true },
+    { to: '/dashboard', icon: HiOutlineHome, label: t('dashboard') || 'Home', end: true },
     { to: '/customers', icon: HiOutlineUsers, label: t('customers') || 'Customers' },
     { to: '/cashbook', icon: HiOutlineBookOpen, label: t('cashbook') || 'Cashbook' },
     { to: '/history', icon: HiOutlineClock, label: 'History' },
@@ -14,7 +14,7 @@ const MobileBottomNav = () => {
   ];
 
   const prefetchRoute = (to) => {
-    if (to === '/') import('../../pages/DashboardPage');
+    if (to === '/dashboard') import('../../pages/DashboardPage');
     else if (to === '/customers') import('../../pages/CustomersPage');
     else if (to === '/cashbook') import('../../pages/CashbookPage');
     else if (to === '/history') import('../../pages/PermanentHistoryPage');

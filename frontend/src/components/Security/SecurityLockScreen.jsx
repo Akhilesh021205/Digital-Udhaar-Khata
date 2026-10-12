@@ -103,8 +103,8 @@ const SecurityLockScreen = ({ onUnlock }) => {
 
   // Real-time Biometrics states
   const [showBiometricModal, setShowBiometricModal] = useState(false);
-  const [activeScanType, setActiveScanType] = useState('face'); // 'face' | 'fingerprint'
-  const [biometricStatus, setBiometricStatus] = useState('Waiting for Face');
+  const [activeScanType, setActiveScanType] = useState('fingerprint'); // 'face' | 'fingerprint'
+  const [biometricStatus, setBiometricStatus] = useState('Waiting for Biometric');
   const [livenessVerified, setLivenessVerified] = useState(false);
   const [matchScore, setMatchScore] = useState(0);
   const [deviceSupportsBio, setDeviceSupportsBio] = useState(false);
@@ -274,15 +274,15 @@ const SecurityLockScreen = ({ onUnlock }) => {
     checkCameraSupport();
   }, []);
 
-  // Auto-trigger biometric fingerprint prompt immediately when Security PIN screen appears asking for PIN
+  // Only auto-trigger biometric fingerprint on native mobile devices (Capacitor) where system fingerprint dialog is non-intrusive
   useEffect(() => {
-    const autoPromptTimer = setTimeout(() => {
-      if (user?.isBiometricEnabled) {
-        triggerBiometricSelection();
-      }
-    }, 400);
+    if (Capacitor.isNativePlatform() && user?.isBiometricEnabled) {
+      const autoPromptTimer = setTimeout(() => {
+        triggerFingerprintUnlock();
+      }, 400);
 
-    return () => clearTimeout(autoPromptTimer);
+      return () => clearTimeout(autoPromptTimer);
+    }
   }, [user?.isBiometricEnabled]);
 
   const verifyPin = useCallback(async (enteredPin) => {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const SecurityLockScreen = lazy(() => import('../components/Security/SecurityLockScreen'));
@@ -152,11 +153,25 @@ export const SecurityLockProvider = ({ children }) => {
     }
   }, [user]);
 
+  const location = useLocation();
+
   if (loading) {
     return null;
   }
 
-  const isLocked = user && user.hasPin && !unlocked;
+  // Only lock protected app routes (Dashboard, Customers, Cashbook, History, Settings, Blockchain, etc.)
+  // Never block the public Landing Page ('/') or auth/pay routes
+  const isProtectedPath = Boolean(
+    location.pathname.startsWith('/dashboard') ||
+    location.pathname.startsWith('/customers') ||
+    location.pathname.startsWith('/cashbook') ||
+    location.pathname.startsWith('/reminders') ||
+    location.pathname.startsWith('/settings') ||
+    location.pathname.startsWith('/history') ||
+    location.pathname.startsWith('/blockchain')
+  );
+
+  const isLocked = Boolean(user && user.hasPin && !unlocked && isProtectedPath);
 
   return (
     <SecurityLockContext.Provider value={{ unlocked, setUnlocked: handleUnlock }}>

@@ -6,16 +6,12 @@ import {
   HiOutlineBadgeCheck,
   HiOutlineBell,
   HiOutlineBookOpen,
-  HiOutlineChartBar,
   HiOutlineCheck,
-  HiOutlineCheckCircle,
   HiOutlineCloudUpload,
   HiOutlineDocumentText,
   HiOutlineLockClosed,
   HiOutlineMoon,
-  HiOutlinePaperAirplane,
   HiOutlinePhone,
-  HiOutlinePlay,
   HiOutlineSearch,
   HiOutlineShieldCheck,
   HiOutlineSparkles,
@@ -23,15 +19,19 @@ import {
   HiOutlineSun,
   HiOutlineTrendingUp,
   HiOutlineUserAdd,
+  HiOutlineMicrophone,
+  HiOutlineQrcode,
 } from 'react-icons/hi';
 import Logo from '../components/Common/Logo';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../hooks/useAuth';
 
 const LandingPage = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [tiltStyle, setTiltStyle] = useState({});
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
 
   const handleGetStarted = (e) => {
     e.preventDefault();
@@ -53,11 +53,11 @@ const LandingPage = () => {
           }
         });
       },
-      { threshold: 0.18 }
+      { threshold: 0.15 }
     );
 
     revealItems.forEach((item, index) => {
-      item.style.transitionDelay = `${Math.min(index % 4, 3) * 90}ms`;
+      item.style.transitionDelay = `${Math.min(index % 4, 3) * 80}ms`;
       observer.observe(item);
     });
 
@@ -65,7 +65,7 @@ const LandingPage = () => {
   }, []);
 
   const handleTilt = (event) => {
-    if (window.matchMedia('(max-width: 768px)').matches) return;
+    if (window.matchMedia('(max-width: 1024px)').matches) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width - 0.5;
@@ -81,130 +81,59 @@ const LandingPage = () => {
   const rupee = '\u20B9';
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#fff9f5] text-[#101525] transition-colors duration-300 dark:bg-[#0f1523] dark:text-[#f8fafc]">
+    <div className="min-h-screen overflow-x-hidden bg-[#fff9f5] text-[#101525] transition-colors duration-300 dark:bg-[#0f1523] dark:text-[#f8fafc]">
       <style>
         {`
           @keyframes uk-rise {
-            from { opacity: 0; transform: translateY(32px); }
+            from { opacity: 0; transform: translateY(24px); }
             to { opacity: 1; transform: translateY(0); }
           }
 
           @keyframes uk-float-large {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-14px); }
-          }
-
-          @keyframes uk-float-small {
-            0%, 100% { transform: translateY(0) rotate(-6deg); }
-            50% { transform: translateY(12px) rotate(-4deg); }
-          }
-
-          @keyframes uk-grow {
-            from { transform: scaleY(0.05); }
-            to { transform: scaleY(1); }
+            50% { transform: translateY(-12px); }
           }
 
           @keyframes uk-pulse-soft {
-            0%, 100% { box-shadow: 0 0 0 8px rgba(185, 28, 28, 0.12); }
-            50% { box-shadow: 0 0 0 14px rgba(185, 28, 28, 0); }
+            0%, 100% { box-shadow: 0 0 0 6px rgba(185, 28, 28, 0.15); }
+            50% { box-shadow: 0 0 0 12px rgba(185, 28, 28, 0); }
           }
 
-          @keyframes uk-drift {
-            0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-            50% { transform: translate3d(12px, -16px, 0) rotate(8deg); }
+          @keyframes uk-shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
           }
 
-          @keyframes uk-slide-card {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(18px); }
-          }
-
-          @keyframes uk-morph {
-            0%, 100% { border-radius: 38% 62% 58% 42%; transform: rotate(0deg); }
-            50% { border-radius: 58% 42% 36% 64%; transform: rotate(8deg); }
-          }
-
-          .uk-rise { animation: uk-rise 950ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-          .uk-float-large { animation: uk-float-large 7s ease-in-out infinite; }
-          .uk-float-small {
-            animation: uk-float-small 6s ease-in-out infinite;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          }
-          .uk-float-small:hover {
-            animation: none !important;
-            transform: translateY(-10px) rotate(-8deg) !important;
-            box-shadow: 0 35px 65px rgba(16, 21, 37, 0.28) !important;
-          }
-          .uk-grow { animation: uk-grow 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: bottom; }
-          .uk-pulse-soft { animation: uk-pulse-soft 2.6s ease-in-out infinite; }
-          .uk-drift { animation: uk-drift 7s ease-in-out infinite; }
-          .uk-slide-card { animation: uk-slide-card 7s ease-in-out infinite; }
-          .uk-morph { animation: uk-morph 9s ease-in-out infinite; }
-          .uk-reveal { opacity: 0; transform: translateY(22px); transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1); }
+          .uk-rise { animation: uk-rise 800ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+          .uk-float-large { animation: uk-float-large 6s ease-in-out infinite; }
+          .uk-pulse-soft { animation: uk-pulse-soft 2.4s ease-in-out infinite; }
+          .uk-reveal { opacity: 0; transform: translateY(18px); transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1); }
           .uk-reveal.uk-visible { opacity: 1; transform: translateY(0); }
 
-          @keyframes uk-card-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-7px); }
+          .uk-card-hover {
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
           }
-          .uk-float-card {
-            animation: uk-card-float 6s ease-in-out infinite;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          }
-          .uk-float-card:nth-child(2n) {
-            animation-delay: 1.5s;
-            animation-duration: 6.5s;
-          }
-          .uk-float-card:nth-child(3n) {
-            animation-delay: 3s;
-            animation-duration: 5.5s;
-          }
-          .uk-float-card:hover {
-            animation: none !important;
-            transform: translateY(-10px) !important;
-            box-shadow: 0 20px 40px rgba(16, 21, 37, 0.12) !important;
-          }
-          .uk-float-card-red:hover { box-shadow: 0 16px 36px rgba(185, 28, 28, 0.18) !important; border-color: rgba(185, 28, 28, 0.4) !important; }
-          .uk-float-card-green:hover { box-shadow: 0 16px 36px rgba(3, 166, 106, 0.18) !important; border-color: rgba(3, 166, 106, 0.4) !important; }
-          .uk-float-card-blue:hover { box-shadow: 0 16px 36px rgba(40, 88, 232, 0.18) !important; border-color: rgba(40, 88, 232, 0.4) !important; }
-
-          @media (prefers-reduced-motion: reduce) {
-            .uk-rise,
-            .uk-float-large,
-            .uk-float-small,
-            .uk-grow,
-            .uk-pulse-soft,
-            .uk-drift,
-            .uk-slide-card,
-            .uk-morph {
-              animation-duration: 1ms !important;
-              animation-iteration-count: 1 !important;
-            }
-            .uk-reveal {
-              opacity: 1;
-              transform: none;
-            }
+          .uk-card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 35px -10px rgba(185, 28, 28, 0.12);
           }
         `}
       </style>
 
-      {/* Background Radial Glow */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#fff9f5] via-white to-white dark:from-[#0f1523] dark:to-[#0f1523]" />
-
       {/* TOP HEADER NAVIGATION */}
-      <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-white/80 backdrop-blur-xl transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/80">
-        <div className="w-full max-w-[1600px] mx-auto flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-6 px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/10 bg-white/90 backdrop-blur-xl transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/90">
+        <div className="w-full max-w-[1500px] mx-auto flex h-16 sm:h-20 items-center justify-between gap-3 px-4 sm:px-8 md:px-12 lg:px-16">
           
           {/* Logo Branding */}
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex cursor-pointer items-center gap-1.5 sm:gap-3 border-0 bg-transparent p-0"
+            className="flex cursor-pointer items-center gap-2 sm:gap-3 border-0 bg-transparent p-0 text-left"
           >
             <span className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
               <Logo />
             </span>
-            <div className="text-left">
+            <div>
               <span className="font-outfit text-base sm:text-xl font-black tracking-wide text-[#101525] dark:text-white block leading-tight">
                 AI Digital Khata
               </span>
@@ -218,163 +147,323 @@ const LandingPage = () => {
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={toggleTheme}
-              className="grid h-9 w-9 sm:h-11 sm:w-11 cursor-pointer place-items-center rounded-full border border-black/10 bg-white text-[#463cff] shadow-[0_4px_12px_rgba(16,21,37,0.06)] sm:shadow-[0_8px_24px_rgba(16,21,37,0.10)] transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-slate-900"
+              className="grid h-9 w-9 sm:h-10 sm:w-10 cursor-pointer place-items-center rounded-full border border-black/10 bg-white text-[#463cff] shadow-sm transition-all hover:scale-105 active:scale-95 dark:border-white/10 dark:bg-slate-900"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               type="button"
+              aria-label="Toggle Theme"
             >
-              {theme === 'dark' ? <HiOutlineSun className="text-amber-400" size={16} /> : <HiOutlineMoon size={16} />}
+              {theme === 'dark' ? <HiOutlineSun className="text-amber-400" size={17} /> : <HiOutlineMoon size={17} />}
             </button>
 
-            <button
-              className="cursor-pointer rounded-lg sm:rounded-xl border-0 bg-gradient-to-br from-[#B91C1C] to-[#991B1B] hover:from-[#991B1B] hover:to-[#7F1D1D] px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-black text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
-              onClick={() => navigate('/login')}
-              type="button"
-            >
-              Log In
-            </button>
+            {user ? (
+              <button
+                className="cursor-pointer flex items-center gap-1.5 rounded-xl border-0 bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:from-[#991B1B] hover:to-[#7F1D1D] px-3.5 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black text-white shadow-md shadow-red-600/20 transition-all hover:scale-105 active:scale-95"
+                onClick={() => navigate('/dashboard')}
+                type="button"
+              >
+                <span>Dashboard</span>
+                <HiOutlineArrowRight size={14} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  className="cursor-pointer rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95"
+                  onClick={() => navigate('/login')}
+                  type="button"
+                >
+                  Log In
+                </button>
+                <button
+                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:from-[#991B1B] hover:to-[#7F1D1D] px-3.5 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black text-white shadow-md shadow-red-600/20 transition-all hover:scale-105 active:scale-95"
+                  onClick={() => navigate('/register')}
+                  type="button"
+                >
+                  Start Free
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* HERO SECTION */}
-      <main className="overflow-x-hidden">
-        <section className="w-full max-w-[1600px] mx-auto grid min-h-[680px] grid-cols-1 items-center gap-8 lg:gap-12 px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 pb-10 pt-24 sm:pt-28 lg:grid-cols-12">
+      <main className="overflow-x-hidden pt-16 sm:pt-20">
+        <section className="w-full max-w-[1500px] mx-auto grid min-h-[640px] grid-cols-1 items-center gap-8 lg:gap-12 px-4 sm:px-8 md:px-12 lg:px-16 pt-8 sm:pt-14 pb-12 lg:grid-cols-12">
           
-          {/* Left Column Text Content */}
-          <div className="uk-rise text-left lg:col-span-6 xl:col-span-5">
-            <h1 className="font-outfit max-w-2xl text-4xl sm:text-5xl lg:text-7xl font-black leading-tight sm:leading-[0.98] tracking-normal text-[#101525] dark:text-white">
+          {/* Left Column Content */}
+          <div className="uk-rise text-left lg:col-span-6 xl:col-span-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/40 px-3 py-1 mb-4 text-[11px] sm:text-xs font-bold text-red-700 dark:text-red-300">
+              <span className="flex h-2 w-2 rounded-full bg-red-600 animate-ping" />
+              <span>India's Smartest AI Digital Ledger</span>
+            </div>
+
+            <h1 className="font-outfit text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-[#101525] dark:text-white">
               Udhaar ka hisaab,
               <span className="block text-[#B91C1C]">ab bilkul easy.</span>
             </h1>
 
-            <p className="mt-3 sm:mt-4 max-w-2xl text-base sm:text-lg lg:text-xl font-bold leading-relaxed text-[#2b3242] dark:text-slate-100">
-              Track credit, collect faster, and know exactly who owes what without searching notebooks or WhatsApp chats.
+            <p className="mt-3 sm:mt-4 text-base sm:text-lg font-bold leading-relaxed text-[#2b3242] dark:text-slate-100">
+              Track customer credit, collect 3x faster via WhatsApp reminders, and settle payments effortlessly.
             </p>
 
-            <p className="mt-2.5 sm:mt-3 max-w-xl text-xs sm:text-sm lg:text-base font-medium leading-relaxed sm:leading-7 text-[#667085] dark:text-slate-300">
-              AI Digital Khata gives your business a simple digital register with payment reminders, daily reports, secure backups, and a smooth desktop experience.
+            <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-[#667085] dark:text-slate-400">
+              Built for Kirana shops, supermarkets, wholesale dealers, and service providers. No more bulky bahi-khatas or forgotten debts.
             </p>
 
-            {/* Quick Registration Bar */}
-            <form onSubmit={handleGetStarted} className="mt-6 flex flex-col sm:flex-row items-center gap-2.5 max-w-md">
-              <div className="flex items-center w-full rounded-xl border border-black/15 bg-white dark:bg-slate-900 dark:border-white/15 px-3.5 py-2.5 shadow-sm">
-                <span className="text-xs font-bold text-slate-400 mr-2 border-r border-slate-200 dark:border-slate-700 pr-2">+91</span>
-                <input
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 dark:text-white outline-none"
-                />
+            {/* Registration / Dashboard Action */}
+            {user ? (
+              <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-md">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:from-[#991B1B] hover:to-[#7F1D1D] px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-red-600/30 transition-all hover:scale-105 active:scale-95"
+                >
+                  <span>Open My Khata Dashboard</span>
+                  <HiOutlineArrowRight size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/customers')}
+                  className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-5 py-3.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95"
+                >
+                  <span>Customers</span>
+                </button>
               </div>
-              <button
-                type="submit"
-                className="w-full sm:w-auto cursor-pointer whitespace-nowrap rounded-xl bg-[#B91C1C] hover:bg-[#991B1B] px-5 py-3 text-xs sm:text-sm font-black text-white shadow-md transition-all active:scale-95"
-              >
-                Get Started →
-              </button>
-            </form>
+            ) : (
+              <form onSubmit={handleGetStarted} className="mt-6 flex flex-col sm:flex-row items-center gap-2.5 max-w-md">
+                <div className="flex items-center w-full rounded-xl border border-black/15 bg-white dark:bg-slate-900 dark:border-white/15 px-3.5 py-3 shadow-sm">
+                  <span className="text-xs font-bold text-slate-400 mr-2 border-r border-slate-200 dark:border-slate-700 pr-2">+91</span>
+                  <input
+                    type="tel"
+                    placeholder="Enter 10-digit mobile number"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 dark:text-white outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto cursor-pointer whitespace-nowrap rounded-xl bg-[#B91C1C] hover:bg-[#991B1B] px-6 py-3.5 text-xs sm:text-sm font-black text-white shadow-md shadow-red-600/25 transition-all hover:scale-105 active:scale-95"
+                >
+                  Get Started →
+                </button>
+              </form>
+            )}
 
-            <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-black">
-              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#03a66a]/20 bg-[#03a66a]/10 px-3 py-1.5 text-[#067a52] dark:text-emerald-300">
-                <HiOutlineShieldCheck size={14} /> Safe records
+            {/* Trust Badges */}
+            <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-bold">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-emerald-700 dark:text-emerald-300">
+                <HiOutlineShieldCheck size={15} /> 100% Safe & Backed Up
               </span>
-              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#B91C1C]/20 bg-[#FEF2F2] px-3 py-1.5 text-[#B91C1C] dark:text-red-300">
-                <HiOutlineBell size={14} /> Smart reminders
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-red-700 dark:text-red-300">
+                <HiOutlineBell size={15} /> WhatsApp Reminders
               </span>
-              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#2858e8]/20 bg-[#2858e8]/10 px-3 py-1.5 text-[#2858e8] dark:text-blue-300">
-                <HiOutlineCloudUpload size={14} /> Cloud backup
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-blue-700 dark:text-blue-300">
+                <HiOutlineLockClosed size={15} /> Biometric Protected
               </span>
             </div>
           </div>
 
-          {/* Right Column Product Visual Mockups */}
-          <div
-            className="uk-rise relative min-h-[350px] sm:min-h-[460px] lg:min-h-[500px] mt-6 lg:mt-0 lg:col-span-6 xl:col-span-7 [perspective:1200px]"
-            onMouseMove={handleTilt}
-            onMouseLeave={resetTilt}
-          >
-            <div className="uk-morph absolute inset-x-8 bottom-6 top-12 rounded-[40%] bg-[radial-gradient(circle_at_50%_30%,rgba(185,28,28,0.12),transparent_20rem),radial-gradient(circle_at_72%_70%,rgba(40,88,232,0.11),transparent_18rem)] blur-[2px]" />
+          {/* Right Column Visual Mockup */}
+          <div className="uk-rise lg:col-span-6 xl:col-span-6">
+            
+            {/* 1. DEDICATED MOBILE APP PREVIEW CARD (Optimized for Mobile Screens) */}
+            <div className="block lg:hidden w-full max-w-sm sm:max-w-md mx-auto">
+              <div className="rounded-[26px] border-4 border-slate-900 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-4 sm:p-5 relative overflow-hidden">
+                {/* Mobile Top Bar */}
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-rose-700 text-white font-black text-xs flex items-center justify-center">
+                      SK
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-black text-slate-900 dark:text-white leading-tight">Sharma Kirana Store</div>
+                      <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Online • Sync OK</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 px-2 py-0.5 rounded-full">
+                    3 Due
+                  </span>
+                </div>
 
-            <div className="uk-drift absolute left-8 top-9 z-20 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#DC2626] to-[#B91C1C] text-lg font-black text-white shadow-lg">
-              {rupee}
+                {/* Mobile Financial Summary Pills */}
+                <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+                  <div className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 p-2.5 text-left">
+                    <span className="text-[10px] font-bold text-red-600 dark:text-red-400 block uppercase tracking-wider">Lene Hain (Get)</span>
+                    <span className="text-base sm:text-lg font-black text-red-700 dark:text-red-300 block mt-0.5">{rupee}1,45,200</span>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 p-2.5 text-left">
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block uppercase tracking-wider">Dene Hain (Pay)</span>
+                    <span className="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-300 block mt-0.5">{rupee}28,400</span>
+                  </div>
+                </div>
+
+                {/* Mobile Quick Action Chips */}
+                <div className="flex items-center gap-2 mb-3.5 overflow-x-auto pb-1 text-[11px] font-black">
+                  <button
+                    type="button"
+                    onClick={() => navigate(user ? '/customers' : '/login')}
+                    className="cursor-pointer shrink-0 rounded-lg bg-red-600 text-white px-2.5 py-1.5 flex items-center gap-1 shadow-sm active:scale-95"
+                  >
+                    <HiOutlineUserAdd size={13} />
+                    <span>+ Customer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(user ? '/reminders' : '/login')}
+                    className="cursor-pointer shrink-0 rounded-lg bg-emerald-600 text-white px-2.5 py-1.5 flex items-center gap-1 shadow-sm active:scale-95"
+                  >
+                    <HiOutlineBell size={13} />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(user ? '/dashboard' : '/login')}
+                    className="cursor-pointer shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 flex items-center gap-1 active:scale-95"
+                  >
+                    <HiOutlineMicrophone size={13} />
+                    <span>Voice</span>
+                  </button>
+                </div>
+
+                {/* Mobile Ledger Customers List */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200 text-xs font-black flex items-center justify-center">
+                        R
+                      </span>
+                      <div>
+                        <div className="text-xs font-black text-slate-900 dark:text-white">Ramesh Kumar</div>
+                        <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Kirana items • Due today</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-red-600 dark:text-red-400">{rupee}1,450</div>
+                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                        SMS Sent
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200 text-xs font-black flex items-center justify-center">
+                        P
+                      </span>
+                      <div>
+                        <div className="text-xs font-black text-slate-900 dark:text-white">Priya Sharma</div>
+                        <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">GPay UPI • Settled</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">+{rupee}650</div>
+                      <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded">
+                        Settled ✅
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-200 text-xs font-black flex items-center justify-center">
+                        V
+                      </span>
+                      <div>
+                        <div className="text-xs font-black text-slate-900 dark:text-white">Vikram Traders</div>
+                        <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Grain bags • Overdue</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-red-600 dark:text-red-400">{rupee}3,800</div>
+                      <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">
+                        Follow Up 🔔
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Bottom Badge */}
+                <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-black">
+                    <HiOutlineBadgeCheck size={14} /> Instant UPI & WhatsApp
+                  </span>
+                  <span>NPCI Secured</span>
+                </div>
+              </div>
             </div>
 
-            <div className="uk-drift absolute right-20 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#33d399] to-[#03a66a] text-sm font-black text-white shadow-lg [animation-delay:1.1s]">
-              <HiOutlineCheck size={20} />
-            </div>
-
-            {/* Laptop Mockup */}
-            <div className="uk-float-large relative lg:absolute right-0 top-0 lg:top-4 w-full max-w-[760px] mx-auto">
-              <div
-                className="overflow-hidden rounded-[24px] border-[6px] sm:border-[8px] border-[#111a2f] bg-[#fbfdff] dark:bg-slate-900 shadow-[0_24px_70px_rgba(16,21,37,0.16)] transition-all duration-300 ease-out"
-                style={tiltStyle}
-              >
-                <div className="grid min-h-[404px] grid-cols-1 sm:grid-cols-[74px_1fr]">
-                  <aside className="hidden sm:block border-r border-[#edf0f4] bg-gradient-to-b from-white to-[#fbf7f6] px-3.5 py-5">
-                    <div className="mx-auto mb-4 h-8 w-8 rounded-[10px] bg-gradient-to-br from-[#fca5a5] to-[#b91c1c]" />
-                    <div className="mx-auto mb-3 h-3 w-11 rounded-full bg-[#fecaca]" />
-                    <div className="mx-auto mb-3 h-3 w-9 rounded-full bg-[#eceff3]" />
-                    <div className="mx-auto h-3 w-9 rounded-full bg-[#eceff3]" />
-                  </aside>
-
-                  <div className="p-4 sm:p-5">
-                    <div className="mb-4 flex items-center justify-between gap-3 font-black">
-                      <span className="text-sm sm:text-base">Dashboard</span>
-                      <div className="hidden h-9 w-[46%] items-center gap-2 rounded-full bg-[#f1f3f7] px-3 text-xs font-bold text-[#98a2b3] sm:flex">
-                        <HiOutlineSearch size={14} />
-                        <span>Search customers</span>
+            {/* 2. DESKTOP WIDESCREEN PREVIEW (Displayed on Desktop Screens) */}
+            <div
+              className="hidden lg:block relative min-h-[460px] [perspective:1200px]"
+              onMouseMove={handleTilt}
+              onMouseLeave={resetTilt}
+            >
+              <div className="uk-float-large relative w-full max-w-[700px] ml-auto">
+                <div
+                  className="overflow-hidden rounded-[24px] border-[6px] border-[#111a2f] bg-[#fbfdff] dark:bg-slate-900 shadow-[0_24px_70px_rgba(16,21,37,0.16)] transition-all duration-300 ease-out"
+                  style={tiltStyle}
+                >
+                  <div className="grid min-h-[390px] grid-cols-[70px_1fr]">
+                    <aside className="border-r border-[#edf0f4] dark:border-slate-800 bg-gradient-to-b from-white to-[#fbf7f6] dark:from-slate-900 dark:to-slate-950 px-3 py-5">
+                      <div className="mx-auto mb-4 h-8 w-8 rounded-xl bg-gradient-to-br from-red-500 to-rose-700 text-white flex items-center justify-center font-black text-xs">
+                        UD
                       </div>
-                      <span className="uk-pulse-soft h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-[#B91C1C]" />
-                    </div>
+                      <div className="mx-auto mb-3 h-2.5 w-10 rounded-full bg-red-200 dark:bg-red-900" />
+                      <div className="mx-auto mb-3 h-2.5 w-8 rounded-full bg-slate-200 dark:bg-slate-800" />
+                      <div className="mx-auto h-2.5 w-8 rounded-full bg-slate-200 dark:bg-slate-800" />
+                    </aside>
 
-                    <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                      <div className="uk-float-card uk-float-card-red rounded-xl border border-[#fca5a5] bg-[#fef2f2] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#B91C1C] cursor-pointer">
-                        You will get
-                        <span className="mt-1 sm:mt-2 block text-base sm:text-lg text-[#101525] dark:text-[#101525]">
-                          {rupee}2,45,000
-                        </span>
-                      </div>
-                      <div className="uk-float-card uk-float-card-green rounded-xl border border-[#c7f1e5] bg-[#effbf7] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#03a66a] cursor-pointer">
-                        You will give
-                        <span className="mt-1 sm:mt-2 block text-base sm:text-lg text-[#101525] dark:text-[#101525]">
-                          {rupee}76,500
-                        </span>
-                      </div>
-                      <div className="uk-float-card uk-float-card-blue rounded-xl border border-[#dce5ff] bg-[#f2f5ff] p-3 sm:p-3.5 text-[10px] sm:text-xs font-black uppercase text-[#2858e8] cursor-pointer">
-                        Net balance
-                        <span className="mt-1 sm:mt-2 block text-base sm:text-lg text-[#101525] dark:text-[#101525]">
-                          {rupee}1,68,500
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.05fr_0.95fr]">
-                      <div className="flex h-36 sm:h-40 items-end gap-2 rounded-xl border border-[#e6e9ef] bg-gradient-to-b from-white to-[#f8fbff] p-3 pt-5">
-                        {[58, 82, 45, 72, 66, 92].map((height, index) => (
-                          <span
-                            key={index}
-                            className={`uk-grow flex-1 rounded-t-md ${index === 1 || index === 4 ? 'bg-gradient-to-b from-[#20c997] to-[#03a66a]' : index === 2 ? 'bg-gradient-to-b from-[#5b7cfa] to-[#2858e8]' : 'bg-gradient-to-b from-[#dc2626] to-[#b91c1c]'}`}
-                            style={{ height: `${height}%`, animationDelay: `${index * 70}ms` }}
-                          />
-                        ))}
+                    <div className="p-5">
+                      <div className="mb-4 flex items-center justify-between gap-3 font-black">
+                        <span className="text-sm font-black text-slate-900 dark:text-white">Business Dashboard</span>
+                        <div className="h-8 w-[45%] flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 px-3 text-xs font-bold text-slate-400">
+                          <HiOutlineSearch size={13} />
+                          <span>Search customers...</span>
+                        </div>
+                        <span className="uk-pulse-soft h-4 w-4 rounded-full bg-[#B91C1C]" />
                       </div>
 
-                      <div className="grid gap-2">
-                        <DashboardRow initial="R" name="Ramesh Kumar" status="Due today" amount={`${rupee}12,500`} tone="red" />
-                        <DashboardRow initial="S" name="Suresh Traders" status="Paid" amount={`+${rupee}8,000`} tone="green" />
-                        <DashboardRow initial="A" name="Anil Store" status="Reminder sent" amount={`${rupee}5,600`} tone="red" />
+                      <div className="mb-4 grid grid-cols-3 gap-2.5">
+                        <div className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 p-3 text-[10px] font-black uppercase text-[#B91C1C] text-left">
+                          You will get
+                          <span className="mt-1 block text-base text-[#101525] dark:text-white">
+                            {rupee}2,45,000
+                          </span>
+                        </div>
+                        <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 p-3 text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 text-left">
+                          You will give
+                          <span className="mt-1 block text-base text-[#101525] dark:text-white">
+                            {rupee}76,500
+                          </span>
+                        </div>
+                        <div className="rounded-xl border border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30 p-3 text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 text-left">
+                          Net balance
+                          <span className="mt-1 block text-base text-[#101525] dark:text-white">
+                            {rupee}1,68,500
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                      <div className="rounded-xl border border-[#e6e9ef] bg-white p-3 text-[10px] sm:text-xs font-black">
-                        Payment reminders
-                        <span className="block pt-0.5 text-[9px] sm:text-[11px] font-bold text-[#667085]">3 customers need follow-up</span>
-                      </div>
-                      <div className="rounded-xl border border-[#e6e9ef] bg-white p-3 text-[10px] sm:text-xs font-black">
-                        Cashflow trend
-                        <span className="block pt-0.5 text-[9px] sm:text-[11px] font-bold text-[#03a66a]">+18% this month</span>
+                      <div className="grid grid-cols-[1.1fr_0.9fr] gap-3">
+                        <div className="flex h-36 items-end gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 p-3 pt-5">
+                          {[58, 82, 45, 72, 66, 92].map((height, index) => (
+                            <span
+                              key={index}
+                              className={`flex-1 rounded-t-md ${index === 1 || index === 4 ? 'bg-emerald-500' : index === 2 ? 'bg-blue-500' : 'bg-red-500'}`}
+                              style={{ height: `${height}%` }}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="grid gap-2">
+                          <DashboardRow initial="R" name="Ramesh Kumar" status="Due today" amount={`${rupee}12,500`} tone="red" />
+                          <DashboardRow initial="S" name="Suresh Traders" status="Paid via UPI" amount={`+${rupee}8,000`} tone="green" />
+                          <DashboardRow initial="A" name="Anil Store" status="Reminder sent" amount={`${rupee}5,600`} tone="red" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -382,128 +471,180 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Overlapping Phone Mockup */}
-            <div className="uk-float-small absolute -left-1 top-48 z-20 hidden h-[355px] w-[174px] overflow-hidden rounded-[25px] border-[8px] border-[#20293b] bg-white shadow-[0_28px_55px_rgba(16,21,37,0.20)] md:block">
-              <div className="m-0 h-full rounded-[17px] border-[3px] border-[#cfd6df] bg-gradient-to-b from-[#fbfdff] to-[#fff8f7] p-3">
-                <div className="mb-3 flex items-center justify-between font-black text-[#101525]">
-                  <span>Khata</span>
-                  <span className="uk-pulse-soft h-3 w-3 rounded-full bg-[#B91C1C]" />
-                </div>
-                <MobileCard title="Receivable" value={`${rupee}2.45L`} />
-                <MobileCard title="Reminder due" value={`${rupee}12,500`} tone="red" />
-                <MobileCard title="Paid today" value={`+${rupee}8,000`} tone="green" />
-                <div className="rounded-lg border border-[#e9edf3] bg-white p-2 text-[10px] font-black text-[#101525]">
-                  Recent
-                  <span className="block pt-1 text-[9px] font-bold text-[#667085]">Ramesh, Suresh, Anil</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 right-2 z-30 flex items-center gap-1.5 rounded-2xl border border-[#03a66a]/20 bg-white/95 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-black text-[#03a66a] shadow-[0_18px_40px_rgba(16,21,37,0.14)]">
-              <HiOutlineBadgeCheck size={16} />
-              <span>Payment tracked</span>
-            </div>
           </div>
         </section>
 
-        {/* CTA BANNER */}
-        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 pt-8 sm:pt-12 pb-4">
-          <div className="bg-gradient-to-r from-[#0F172A] to-[#991B1B] text-white rounded-3xl shadow-xl p-6 sm:p-10 md:p-12 lg:p-14 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden">
-            <div className="absolute w-[300px] h-[300px] bg-white/5 rounded-full blur-2xl -top-[50px] -right-[50px] pointer-events-none" />
-
-            <div className="text-left space-y-2 sm:space-y-3 flex-1 lg:max-w-2xl">
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold font-outfit text-white leading-tight" style={{ color: '#ffffff' }}>
-                Start your AI Digital Khata today
-              </h2>
-              <p className="text-xs sm:text-sm text-white/90 leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                Keep customer records, reminders, and payments in one place.
-              </p>
+        {/* STATS STRIP */}
+        <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 py-6 sm:py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 sm:p-6 backdrop-blur-md shadow-sm">
+            <div className="text-center">
+              <div className="text-xl sm:text-3xl font-black text-[#B91C1C]">50,000+</div>
+              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Active Merchants</div>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[320px] shrink-0">
-              <button
-                onClick={() => navigate('/register')}
-                className="cursor-pointer rounded-xl border-none bg-white hover:bg-slate-50 px-6 py-3 sm:py-3.5 text-xs sm:text-sm font-black text-[#101525] shadow-md transition-all hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-1.5 flex-1"
-                type="button"
-              >
-                <span>Get Started</span>
-                <HiOutlineArrowRight size={14} />
-              </button>
-              <button
-                onClick={() => navigate('/login')}
-                className="cursor-pointer rounded-xl border border-white/30 hover:border-white/50 bg-transparent hover:bg-white/10 px-6 py-3 sm:py-3.5 text-xs sm:text-sm font-black text-white transition-all hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-1.5 flex-1"
-                type="button"
-              >
-                <span>Log In</span>
-              </button>
+            <div className="text-center">
+              <div className="text-xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">{rupee}100 Cr+</div>
+              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Udhaar Tracked</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">3x Faster</div>
+              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">WhatsApp Recovery</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl sm:text-3xl font-black text-amber-500">4.9 ★</div>
+              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Merchant Trust</div>
             </div>
           </div>
         </section>
 
         {/* FEATURES GRID */}
-        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 py-12 sm:py-20" id="features">
+        <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 py-10 sm:py-16" id="features">
           <SectionHead
-            kicker="Everything in one place"
-            title="A clean khata system your team can actually use every day."
-            text="Fast entries, clear balances, timely reminders, and practical reports make daily business simpler from morning opening to night closing."
+            kicker="Powerful Features"
+            title="Everything your counter needs to run smoothly every day."
+            text="Fast entries, clear balances, timely reminders, and automatic cloud backups make daily business stress-free."
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
-            <FeatureCard icon={<HiOutlineDocumentText size={22} />} title="AI Digital Khata Register" text="Add credit and debit entries in seconds with customer-wise history, dates, notes, and total balances." />
-            <FeatureCard icon={<HiOutlineBell size={22} />} title="Smart Reminders" text="Send polite follow-ups through SMS or WhatsApp and reduce awkward manual calls." />
-            <FeatureCard icon={<HiOutlineTrendingUp size={22} />} title="Reports & Insights" text="See who owes you, which payments are pending, and how your store cashflow is moving." />
-            <FeatureCard icon={<HiOutlineShieldCheck size={22} />} title="Secure Cloud Backup" text="Keep records protected and accessible, even if your notebook, phone, or laptop is unavailable." />
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <FeatureCard
+              icon={<HiOutlineDocumentText size={24} />}
+              title="AI Digital Khata Register"
+              text="Add credit and debit entries in 2 seconds with customer-wise ledger history, dates, notes, and total balances."
+            />
+            <FeatureCard
+              icon={<HiOutlineBell size={24} />}
+              title="Smart WhatsApp Reminders"
+              text="Send polite automatic payment reminders with instant UPI pay links directly on WhatsApp. No awkward calls."
+            />
+            <FeatureCard
+              icon={<HiOutlineTrendingUp size={24} />}
+              title="Real-Time Business Reports"
+              text="Know exactly who owes what, track daily cashflow, and export neat PDF reports before closing shop."
+            />
+            <FeatureCard
+              icon={<HiOutlineShieldCheck size={24} />}
+              title="Biometric & Cloud Security"
+              text="Your customer books are safely encrypted with Face ID, Fingerprint Lock, and instant cloud sync."
+            />
           </div>
         </section>
 
         {/* WORKFLOW STEPS */}
-        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 py-12 sm:py-20" id="how-it-works">
+        <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 py-10 sm:py-16" id="how-it-works">
           <SectionHead
-            kicker="Simple workflow"
-            title="From customer entry to payment collection in three calm steps."
-            text="The interface is designed for repeat daily use: less thinking, fewer taps, and clearer numbers."
+            kicker="Simple 3-Step Flow"
+            title="From customer credit entry to full collection in minutes."
+            text="Designed for speed behind busy store counters. Tap, record, and let AI handle the reminders."
           />
 
-          <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="relative lg:min-h-[430px] flex flex-col gap-4 lg:block py-6 lg:py-0 overflow-hidden rounded-lg border border-[#e9edf3] bg-[linear-gradient(90deg,rgba(185,28,28,0.06)_1px,transparent_1px),linear-gradient(rgba(185,28,28,0.06)_1px,transparent_1px),#fff] bg-[size:36px_36px] dark:border-white/10">
-              <ProcessCard className="lg:top-14" icon={<HiOutlineUserAdd size={22} />} title="Add customer" text="Phone, name, opening balance" />
-              <ProcessCard className="lg:top-[172px]" icon={<HiOutlineBookOpen size={22} />} title="Record transaction" text="Credit or payment received" />
-              <ProcessCard className="lg:top-[290px]" icon={<HiOutlineBell size={22} />} title="Send reminder" text="Collect on time" />
-            </div>
-
-            <div className="grid gap-3 sm:gap-4">
-              <StepCard number="1" title="Add every customer once" text="Create a clean customer profile with phone number, balance status, and history." />
-              <StepCard number="2" title="Track daily udhaar instantly" text="Record money given or received and let the dashboard update totals automatically." />
-              <StepCard number="3" title="Collect with confidence" text="Use reminders and reports to follow up on pending dues at the right time." />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <StepCard
+              number="1"
+              title="Add Customer Once"
+              text="Save customer name, phone number, and opening credit in 5 seconds. Stored securely forever."
+            />
+            <StepCard
+              number="2"
+              title="Record Daily Udhaar"
+              text="Type amount or use Voice Entry. Ledger calculates pending dues and updates balances automatically."
+            />
+            <StepCard
+              number="3"
+              title="Collect Faster via UPI"
+              text="Customers receive an automated WhatsApp notification with a one-tap UPI link to pay you directly."
+            />
           </div>
         </section>
 
         {/* CUSTOMER REVIEWS */}
-        <section className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 py-12 sm:py-20" id="reviews">
+        <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 py-10 sm:py-16" id="reviews">
           <SectionHead
-            kicker="Built for real shops"
-            title="Less confusion at the counter. More clarity in your cashflow."
+            kicker="Loved by Shopkeepers"
+            title="Real stories from real businesses across India."
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
-            <ReviewCard initials="RK" name="Ravi Kirana" role="Retail store owner" quote="Earlier I checked three notebooks for one balance. Now the amount is clear in one screen." />
-            <ReviewCard initials="MT" name="Meena Textiles" role="Wholesale business" quote="Payment reminders save time. Customers get a clear message and I can focus on sales." />
-            <ReviewCard initials="AS" name="Anil Stores" role="Daily essentials shop" quote="The desktop view makes reports simple. I know pending dues before closing the shop." />
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+            <ReviewCard
+              initials="RK"
+              name="Ravi Kirana"
+              role="Retail Store Owner • Delhi"
+              quote="Earlier I lost track of small bills in rough notebooks. Now every rupee is clear on my phone, and customers pay quickly when they receive the WhatsApp reminder."
+            />
+            <ReviewCard
+              initials="MT"
+              name="Meena Textiles"
+              role="Wholesale Business • Surat"
+              quote="Payment reminders saved me hours of awkward calling. My pending collection improved by 40% in just two weeks of using AI Digital Khata."
+            />
+            <ReviewCard
+              initials="AS"
+              name="Anil General Store"
+              role="Supermarket • Hyderabad"
+              quote="The biometric face unlock and fingerprint protection give total peace of mind at the counter. Fast, reliable, and very simple to use."
+            />
+          </div>
+        </section>
+
+        {/* BOTTOM CTA BANNER */}
+        <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 pt-6 pb-16">
+          <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-red-950 text-white p-6 sm:p-12 md:p-14 shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
+            <div className="text-left max-w-2xl">
+              <span className="inline-block px-3 py-1 rounded-full bg-red-600/30 text-red-300 text-[11px] font-black uppercase tracking-wider mb-2">
+                100% Free Forever
+              </span>
+              <h2 className="font-outfit text-2xl sm:text-4xl font-black text-white leading-tight">
+                Start your AI Digital Khata today
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Join thousands of store owners simplifying credit, stopping ledger losses, and growing their business.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="cursor-pointer rounded-xl bg-white text-slate-950 hover:bg-slate-100 px-6 py-3.5 text-xs sm:text-sm font-black shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <span>Open My Dashboard</span>
+                  <HiOutlineArrowRight size={15} />
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/register')}
+                    className="cursor-pointer rounded-xl bg-white text-slate-950 hover:bg-slate-100 px-6 py-3.5 text-xs sm:text-sm font-black shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 flex-1"
+                  >
+                    <span>Get Started Free</span>
+                    <HiOutlineArrowRight size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login')}
+                    className="cursor-pointer rounded-xl border border-white/30 bg-transparent hover:bg-white/10 text-white px-6 py-3.5 text-xs sm:text-sm font-black transition-all active:scale-95 flex items-center justify-center gap-2 flex-1"
+                  >
+                    <span>Log In</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </section>
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-[#ebe6df] bg-white py-8 sm:py-10 transition-colors duration-300 dark:border-white/10 dark:bg-slate-950">
-        <div className="w-full max-w-[1600px] mx-auto flex flex-col justify-between gap-4 px-4 sm:px-8 md:px-12 lg:px-16 2xl:px-24 text-xs sm:text-sm font-bold text-[#667085] md:flex-row md:items-center text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-3">
-            <span className="w-9 h-9 flex items-center justify-center shrink-0">
+      <footer className="border-t border-slate-200 bg-white py-8 transition-colors duration-300 dark:border-slate-800 dark:bg-slate-950">
+        <div className="w-full max-w-[1500px] mx-auto flex flex-col justify-between gap-4 px-4 sm:px-8 md:px-12 lg:px-16 text-xs font-bold text-slate-500 md:flex-row md:items-center text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-2.5">
+            <span className="w-8 h-8 flex items-center justify-center shrink-0">
               <Logo />
             </span>
-            <span className="font-outfit text-sm sm:text-base font-black text-[#101525] dark:text-white">AI Digital Khata</span>
+            <span className="font-outfit text-sm font-black text-slate-900 dark:text-white">AI Digital Khata</span>
           </div>
-          <span className="text-[11px] sm:text-xs md:text-sm">Digital ledger for modern Indian businesses.</span>
+          <span className="text-[11px] sm:text-xs">
+            © {new Date().getFullYear()} AI Digital Khata. Made for Indian Retailers & Merchants.
+          </span>
         </div>
       </footer>
     </div>
@@ -511,86 +652,69 @@ const LandingPage = () => {
 };
 
 const DashboardRow = ({ initial, name, status, amount, tone }) => (
-  <div className="grid grid-cols-[30px_1fr_auto] items-center gap-2 rounded-lg border border-[#e6e9ef] bg-white p-2 text-[10px] sm:text-[11px] font-black text-[#101525]">
-    <span className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-full text-[10px] sm:text-xs ${tone === 'green' ? 'bg-[#03a66a]/10 text-[#03a66a]' : 'bg-[#B91C1C]/10 text-[#B91C1C]'}`}>
+  <div className="grid grid-cols-[28px_1fr_auto] items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 text-[11px] font-black text-slate-900 dark:text-white">
+    <span className={`grid h-7 w-7 place-items-center rounded-full text-[10px] ${tone === 'green' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'}`}>
       {initial}
     </span>
     <span className="truncate text-left">
       {name}
-      <span className="block text-[9px] sm:text-[10px] font-bold text-[#667085] truncate">{status}</span>
+      <span className="block text-[9px] font-bold text-slate-400 truncate">{status}</span>
     </span>
-    <strong className={`whitespace-nowrap ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#B91C1C]'}`}>{amount}</strong>
-  </div>
-);
-
-const MobileCard = ({ title, value, tone = 'red' }) => (
-  <div className="mb-2 rounded-lg border border-[#e9edf3] bg-white p-2 text-[10px] font-black text-[#101525]">
-    {title}
-    <span className={`block pt-1 text-xs ${tone === 'green' ? 'text-[#03a66a]' : 'text-[#B91C1C]'}`}>
-      {value}
-    </span>
+    <strong className={`whitespace-nowrap ${tone === 'green' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+      {amount}
+    </strong>
   </div>
 );
 
 const SectionHead = ({ kicker, title, text }) => (
   <div className="mb-6 sm:mb-10 flex flex-col justify-between gap-3 sm:gap-5 lg:flex-row lg:items-end text-left">
     <div>
-      <p className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-black uppercase tracking-wide text-[#B91C1C]">{kicker}</p>
-      <h2 className="font-outfit max-w-3xl text-2xl sm:text-3xl md:text-5xl font-black leading-tight text-[#101525] dark:text-white">
+      <p className="mb-2 text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#B91C1C]">{kicker}</p>
+      <h2 className="font-outfit max-w-3xl text-2xl sm:text-3xl md:text-4xl font-black leading-tight text-[#101525] dark:text-white">
         {title}
       </h2>
     </div>
-    {text && <p className="max-w-lg text-xs sm:text-sm font-semibold leading-relaxed sm:leading-7 text-[#667085] dark:text-slate-300">{text}</p>}
+    {text && <p className="max-w-lg text-xs sm:text-sm font-semibold leading-relaxed text-[#667085] dark:text-slate-300">{text}</p>}
   </div>
 );
 
 const FeatureCard = ({ icon, title, text }) => (
-  <article className="uk-reveal uk-float-card min-h-fit sm:min-h-[250px] rounded-xl border border-[#e9edf3] bg-white/90 p-5 sm:p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90 text-left">
-    <div className="mb-4 sm:mb-6 grid h-12 w-12 sm:h-14 sm:w-14 place-items-center rounded-xl sm:rounded-2xl bg-[#FEF2F2] text-[#B91C1C]">
+  <article className="uk-reveal uk-card-hover rounded-2xl border border-slate-200/80 bg-white/90 p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 text-left">
+    <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400">
       {icon}
     </div>
-    <h3 className="font-outfit mb-2 sm:mb-3 text-base sm:text-lg font-black text-[#101525] dark:text-white">{title}</h3>
-    <p className="text-xs sm:text-sm font-semibold leading-normal sm:leading-7 text-[#667085] dark:text-slate-300">{text}</p>
+    <h3 className="font-outfit mb-2 text-base font-black text-[#101525] dark:text-white">{title}</h3>
+    <p className="text-xs sm:text-sm font-medium leading-relaxed text-[#667085] dark:text-slate-400">{text}</p>
   </article>
 );
 
-const ProcessCard = ({ className, icon, title, text }) => (
-  <div className={`uk-slide-card lg:absolute left-3 right-3 lg:left-12 lg:right-12 flex min-h-[78px] items-center gap-4 rounded-lg border border-[#e9edf3] bg-white p-4 shadow-[0_18px_42px_rgba(16,21,37,0.10)] text-left ${className}`}>
-    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#101525] text-white">
-      {icon}
-    </span>
-    <span className="text-sm font-black text-[#101525]">
-      {title}
-      <span className="block text-xs font-bold text-[#667085]">{text}</span>
-    </span>
-  </div>
-);
-
 const StepCard = ({ number, title, text }) => (
-  <article className="uk-reveal uk-float-card rounded-xl border border-[#e9edf3] bg-white/90 p-5 sm:p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90 text-left">
-    <span className="mb-3 sm:mb-4 grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-[#B91C1C] text-xs sm:text-sm font-black text-white">
+  <article className="uk-reveal uk-card-hover rounded-2xl border border-slate-200/80 bg-white/90 p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 text-left">
+    <span className="mb-3.5 grid h-8 w-8 place-items-center rounded-xl bg-[#B91C1C] text-xs font-black text-white shadow-sm shadow-red-600/30">
       {number}
     </span>
-    <h3 className="font-outfit mb-1.5 sm:mb-2 text-base sm:text-lg font-black text-[#101525] dark:text-white">{title}</h3>
-    <p className="text-xs sm:text-sm font-semibold leading-normal sm:leading-7 text-[#667085] dark:text-slate-300">{text}</p>
+    <h3 className="font-outfit mb-2 text-base font-black text-[#101525] dark:text-white">{title}</h3>
+    <p className="text-xs sm:text-sm font-medium leading-relaxed text-[#667085] dark:text-slate-400">{text}</p>
   </article>
 );
 
 const ReviewCard = ({ initials, name, role, quote }) => (
-  <article className="uk-reveal uk-float-card rounded-xl border border-[#e9edf3] bg-white/90 p-5 sm:p-6 shadow-[0_12px_34px_rgba(16,21,37,0.06)] dark:border-white/10 dark:bg-slate-900/90 text-left">
-    <div className="mb-4 sm:mb-5 flex gap-1 text-[#f4aa24]">
-      {[...Array(5)].map((_, index) => (
-        <HiOutlineStar key={index} size={15} />
-      ))}
+  <article className="uk-reveal uk-card-hover rounded-2xl border border-slate-200/80 bg-white/90 p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 text-left flex flex-col justify-between">
+    <div>
+      <div className="mb-3.5 flex gap-1 text-amber-400">
+        {[...Array(5)].map((_, index) => (
+          <HiOutlineStar key={index} size={15} />
+        ))}
+      </div>
+      <p className="text-xs sm:text-sm font-medium leading-relaxed text-[#2b3242] dark:text-slate-300">"{quote}"</p>
     </div>
-    <p className="text-xs sm:text-sm font-semibold leading-normal sm:leading-7 text-[#667085] dark:text-slate-300">"{quote}"</p>
-    <div className="mt-5 sm:mt-6 flex items-center gap-3">
-      <span className="grid h-9 w-9 sm:h-11 sm:w-11 place-items-center rounded-full bg-gradient-to-br from-[#B91C1C] to-[#991B1B] text-xs sm:text-sm font-black text-white">
+    <div className="mt-5 flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+      <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-[#B91C1C] to-[#991B1B] text-xs font-black text-white">
         {initials}
       </span>
       <div>
-        <h3 className="font-outfit text-xs sm:text-sm font-black text-[#101525] dark:text-white">{name}</h3>
-        <p className="text-[10px] sm:text-xs font-bold text-[#667085] dark:text-slate-300">{role}</p>
+        <h4 className="font-outfit text-xs font-black text-[#101525] dark:text-white">{name}</h4>
+        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{role}</p>
       </div>
     </div>
   </article>
