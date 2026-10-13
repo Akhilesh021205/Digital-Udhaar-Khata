@@ -9,15 +9,15 @@ const cache = require('../utils/cache');
 const { markTokenUsed } = require('./paymentTokenService');
 
 const getRazorpayConfig = () => {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  let keyId = (process.env.RAZORPAY_KEY_ID || '').trim().replace(/^["']|["']$/g, '');
+  let keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim().replace(/^["']|["']$/g, '');
   return { keyId, keySecret };
 };
 
 const getRazorpayInstance = () => {
   const { keyId, keySecret } = getRazorpayConfig();
   if (!keyId || !keySecret) {
-    throw new Error('Razorpay API keys (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET) are missing in backend environment variables.');
+    throw new Error('Razorpay API keys (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET) are missing.');
   }
   return new Razorpay({
     key_id: keyId,
@@ -206,7 +206,7 @@ const processVerifiedRazorpayPayment = async ({
       console.log(`ℹ️ [${source}] Concurrent duplicate caught by database unique index for ${formattedPaymentId}`);
       const existingTx = await Transaction.findOne({
         $or: [{ razorpayPaymentId: formattedPaymentId }, { razorpayOrderId: orderId }],
-        paymentStatus: 'SETTLED',
+        paymentStatus: 'Paid',
       });
       if (existingTx) {
         const cust = await Customer.findById(existingTx.customer);

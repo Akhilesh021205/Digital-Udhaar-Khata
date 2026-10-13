@@ -7,7 +7,7 @@ import Loader from '../components/Common/Loader';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
-import { HiOutlineTrash, HiOutlinePlus, HiOutlineCheckCircle, HiOutlinePencil, HiOutlineXCircle } from 'react-icons/hi';
+import { HiOutlineTrash, HiOutlinePlus, HiOutlineCheckCircle, HiOutlinePencil, HiOutlineXCircle, HiOutlinePhotograph, HiOutlineExternalLink } from 'react-icons/hi';
 
 const TransactionsPage = () => {
   const { t } = useLanguage();
@@ -22,6 +22,7 @@ const TransactionsPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
   const [editForm, setEditForm] = useState({ amount: '', description: '', date: '', paymentStatus: '', paymentMode: '' });
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -249,6 +250,33 @@ const TransactionsPage = () => {
                   </p>
                 )}
 
+                {/* Screenshot Proof Preview on Mobile */}
+                {(txn.billImageUrl || txn.screenshot || txn.image || txn.paymentScreenshot) && (
+                  <div className="p-2 rounded-xl bg-orange/5 border border-orange/20 flex items-center gap-2.5">
+                    <div 
+                      className="w-10 h-10 rounded-lg overflow-hidden border border-orange/30 shrink-0 cursor-pointer bg-black/5"
+                      onClick={() => setLightboxImg(txn.billImageUrl || txn.screenshot || txn.image || txn.paymentScreenshot)}
+                      title="View full screenshot proof"
+                    >
+                      <img 
+                        src={txn.billImageUrl || txn.screenshot || txn.image || txn.paymentScreenshot} 
+                        alt="Payment Proof" 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-deep-navy block">Payment Proof Attached</span>
+                      <button
+                        type="button"
+                        onClick={() => setLightboxImg(txn.billImageUrl || txn.screenshot || txn.image || txn.paymentScreenshot)}
+                        className="text-[10px] font-extrabold text-orange hover:text-orange-hover bg-transparent border-none cursor-pointer p-0 inline-flex items-center gap-1"
+                      >
+                        <HiOutlinePhotograph size={11} /> View Screenshot
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {(txn.utr || txn.cashfreePaymentId) && (
                   <div className="flex flex-wrap gap-1 text-[9px] font-mono">
                     {txn.utr && (
@@ -364,6 +392,19 @@ const TransactionsPage = () => {
                                 PayID: {txn.cashfreePaymentId}
                               </span>
                             )}
+                          </div>
+                        )}
+                        {(txn.billImageUrl || txn.screenshot || txn.image || txn.paymentScreenshot) && (
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setLightboxImg(txn.billImageUrl || txn.screenshot || txn.image || txn.paymentScreenshot)}
+                              className="px-2 py-0.5 rounded-md bg-orange/10 hover:bg-orange/20 text-orange border border-orange/20 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Click to view full screenshot proof"
+                            >
+                              <HiOutlinePhotograph size={12} />
+                              <span>View Screenshot</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -659,6 +700,38 @@ const TransactionsPage = () => {
 
       <ConfirmDialog isOpen={!!deleteTxnId} onClose={() => setDeleteTxnId(null)} onConfirm={handleDelete}
         title={t('deleteTransaction')} message={t('deleteTransactionMsg')} />
+
+      {/* Screenshot Lightbox Modal */}
+      {lightboxImg && (
+        <div 
+          className="fixed inset-0 bg-deep-navy/80 z-50 flex items-center justify-center p-4 cursor-pointer" 
+          onClick={() => setLightboxImg(null)}
+        >
+          <div className="relative max-w-xl max-h-[90vh] bg-white rounded-2xl p-3 shadow-2xl overflow-hidden cursor-default" onClick={e => e.stopPropagation()}>
+            <img src={lightboxImg} alt="Payment Proof Screenshot" className="max-w-full max-h-[75vh] rounded-xl object-contain mx-auto" />
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-2">
+              <span className="text-xs font-bold text-slate-800">Uploaded Payment Screenshot</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={lightboxImg}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition-colors no-underline inline-flex items-center gap-1"
+                >
+                  <HiOutlineExternalLink size={12} /> Open in New Tab
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setLightboxImg(null)}
+                  className="px-3 py-1 bg-deep-navy text-white text-xs font-bold rounded-lg cursor-pointer border-none"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

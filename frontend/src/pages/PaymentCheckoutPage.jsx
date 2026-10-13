@@ -9,7 +9,9 @@ import {
   FaCheck, 
   FaDownload, 
   FaPrint, 
-  FaShieldAlt 
+  FaShieldAlt,
+  FaCamera,
+  FaUpload
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -44,22 +46,210 @@ export default function PaymentCheckoutPage() {
   const [paymentTime, setPaymentTime] = useState('');
   const [paymentId, setPaymentId] = useState('');
 
-  // Dynamically load Cashfree JS SDK v3 if not yet loaded
-  const loadCashfreeScript = () => {
+  // Screenshot proof upload state
+  const [screenshotUploading, setScreenshotUploading] = useState(false);
+  const [uploadedScreenshot, setUploadedScreenshot] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleScreenshotUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file (PNG, JPG, JPEG, WEBP).');
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image size must be less than 8MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Image = reader.result;
+      setScreenshotUploading(true);
+      try {
+        let res;
+        if (isPaid || (data && data.balance <= 0)) {
+          res = await API.post(`/reminders/checkout/${paymentToken}/upload-screenshot`, {
+            paymentScreenshot: base64Image,
+            orderId: urlOrderId || '',
+            paymentId: paymentId || '',
+          });
+        } else {
+          const currentAmount = paymentMode === 'full' 
+            ? (data?.balance || 0) 
+            : (parseFloat(amountPaid) || data?.balance || 0);
+          res = await API.post(`/reminders/checkout/${paymentToken}/confirm-payment`, {
+            paymentScreenshot: base64Image,
+            amount: currentAmount,
+            utr: 'AUTO',
+          });
+        }
+
+        if (res.data?.success) {
+          setUploadedScreenshot(base64Image);
+          setIsPaid(true);
+          toast.success('Payment screenshot uploaded successfully! Clearly visible in merchant records.');
+          try {
+            const refreshed = await API.get(`/reminders/checkout/${paymentToken}`);
+            if (refreshed.data?.success) {
+              setData(refreshed.data.data);
+            }
+          } catch {}
+        } else {
+          toast.error(res.data?.message || 'Failed to upload screenshot.');
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Error uploading screenshot. Please try again.');
+      } finally {
+        setScreenshotUploading(false);
+        if (e.target) e.target.value = '';
+      }
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read image file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Dynamically load Razorpay JS SDK if not yet loaded
+  const loadRazorpayScript = () => {
     return new Promise((resolve) => {
-      if (window.Cashfree) {
+      if (window.Razorpay) {
         resolve(true);
         return;
       }
       const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
   };
 
-  // Launch Official Cashfree Checkout Modal
+  // Launch Razorpay Checkout Modal
+  const launchRazorpayCheckout = async (targetAmount = null) => {
+    if (!data) return;
+
+    const outstandingBalance = parseFloat(data.balance || 0);
+    if (outstandingBalance <= 0) {
+      toast.info('Your outstanding balance is already ₹0.00. No payment required.');
+      return;
+    }
+
+    const payVal = targetAmount !== null 
+      ? parseFloat(targetAmount) 
+      : (paymentMode === 'full' ? outstandingBalance : (parseFloat(amountPaid) || outstandingBalance));
+
+    if (isNaN(payVal) || payVal <= 0) {
+      toast.error('Please enter a valid payment amount greater than ₹0.');
+      return;
+    }
+
+    if (payVal > outstandingBalance) {
+      toast.error(`Payment amount cannot exceed outstanding balance of ₹${outstandingBalance.toFixed(2)}.`);
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded || !window.Razorpay) {
+        toast.error('Payment gateway SDK failed to load. Please check your internet connection.');
+        setSubmitting(false);
+        return;
+      }
+
+      const response = await API.post(`/reminders/checkout/${paymentToken}/create-razorpay-order`, {
+        amount: payVal,
+      });
+
+      if (!response.data?.success || !response.data?.order_id) {
+        toast.error(response.data?.message || 'Failed to initialize payment.');
+        setSubmitting(false);
+        return;
+      }
+
+      const { order_id, key_id, amount } = response.data;
+
+      const options = {
+        key: key_id,
+        amount: amount,
+        currency: 'INR',
+        name: storeName || 'AI Digital Khata',
+        description: `Udhaar settlement for ${customerName}`,
+        order_id: order_id,
+        prefill: {
+          name: customerName,
+          email: 'customer@digitaludhaar.com',
+          contact: data?.phone || '',
+        },
+        theme: {
+          color: '#B91C1C',
+        },
+        handler: async (resp) => {
+          setVerifyingPayment(true);
+          setVerifyingStatusMsg('Confirming payment with bank & updating ledger...');
+          try {
+            const verifyRes = await API.post(`/reminders/checkout/${paymentToken}/verify-razorpay-payment`, {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+              amount: payVal,
+            });
+
+            if (verifyRes.data?.success) {
+              toast.success('Payment verified and settled successfully!');
+              setIsPaid(true);
+              setAutoLaunchStatus('idle');
+
+              const txData = verifyRes.data.data;
+              const dateObj = txData?.date ? new Date(txData.date) : new Date();
+              setPaymentId(txData?.paymentId || resp.razorpay_payment_id || order_id);
+              setAmountPaid((txData?.amount || payVal).toString());
+              setReceiptNo(`RCP-${dateObj.getFullYear()}${(dateObj.getMonth() + 1).toString().padStart(2, '0')}${dateObj.getDate().toString().padStart(2, '0')}-${String(paymentToken).slice(-4).toUpperCase()}`);
+              setPaymentDate(dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+              setPaymentTime(dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }));
+
+              try {
+                const refreshed = await API.get(`/reminders/checkout/${paymentToken}`);
+                if (refreshed.data?.success) {
+                  setData(refreshed.data.data);
+                }
+              } catch {}
+            } else {
+              toast.error(verifyRes.data?.message || 'Payment verification could not be confirmed.');
+            }
+          } catch (vErr) {
+            toast.error(vErr.response?.data?.message || 'Error verifying payment with server.');
+          } finally {
+            setVerifyingPayment(false);
+            setSubmitting(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setSubmitting(false);
+          }
+        }
+      };
+
+      const rzpInstance = new window.Razorpay(options);
+      rzpInstance.on('payment.failed', (resp) => {
+        toast.error(resp.error?.description || 'Payment was cancelled or unsuccessful.');
+        setSubmitting(false);
+      });
+      rzpInstance.open();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error connecting to payment gateway.');
+      setSubmitting(false);
+    }
+  };
+
+  // Launch Official Cashfree Checkout Modal (with graceful fallback to Razorpay)
   const launchCashfreeCheckout = async (targetAmount = null, isAuto = false) => {
     if (!data) return;
 
@@ -89,10 +279,8 @@ export default function PaymentCheckoutPage() {
     try {
       const isLoaded = await loadCashfreeScript();
       if (!isLoaded || !window.Cashfree) {
-        toast.error('Cashfree SDK failed to load. Please check your internet connection.');
-        setSubmitting(false);
-        setAutoLaunchStatus('blocked');
-        return;
+        console.warn('Cashfree SDK not available, falling back to Razorpay');
+        return await launchRazorpayCheckout(payVal);
       }
 
       // 1. Create order on backend (backend validates DB balance & token)
@@ -159,20 +347,17 @@ export default function PaymentCheckoutPage() {
               setSubmitting(false);
             }
           }
-        }).catch((err) => {
-          console.warn('Cashfree checkout error:', err);
-          setAutoLaunchStatus('blocked');
-          setSubmitting(false);
+        }).catch(async (err) => {
+          console.warn('Cashfree checkout error, trying Razorpay fallback:', err);
+          return await launchRazorpayCheckout(payVal);
         });
       } else {
-        toast.error(response.data?.message || 'Failed to initialize payment order.');
-        setAutoLaunchStatus('blocked');
-        setSubmitting(false);
+        console.warn('Cashfree order failed, attempting Razorpay fallback:', response.data?.message);
+        return await launchRazorpayCheckout(payVal);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error connecting to payment gateway.');
-      setAutoLaunchStatus('blocked');
-      setSubmitting(false);
+      console.warn('Cashfree connection error, falling back to Razorpay gateway:', err);
+      return await launchRazorpayCheckout(payVal);
     }
   };
 
@@ -223,6 +408,10 @@ export default function PaymentCheckoutPage() {
           setData(fetchedData);
           setAmountPaid(fetchedData.balance ? fetchedData.balance.toString() : '0');
 
+          if (fetchedData.lastPayment?.billImageUrl) {
+            setUploadedScreenshot(fetchedData.lastPayment.billImageUrl);
+          }
+
           if (fetchedData.balance <= 0) {
             setIsPaid(true);
             if (fetchedData.lastPayment) {
@@ -233,12 +422,6 @@ export default function PaymentCheckoutPage() {
               setPaymentDate(dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
               setPaymentTime(dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }));
             }
-          } else if (fetchedData.balance > 0 && !urlOrderId && !autoLaunchAttemptedRef.current) {
-            // Automatic checkout opening from email payment link when browser permits
-            autoLaunchAttemptedRef.current = true;
-            setTimeout(() => {
-              launchCashfreeCheckout(fetchedData.balance, true);
-            }, 600);
           }
         } else if (isMounted) {
           setError(response.data?.message || 'Invalid or payment link.');
@@ -396,6 +579,93 @@ export default function PaymentCheckoutPage() {
             </div>
           </div>
 
+          {/* Upload Payment Screenshot Proof Card */}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5 print:hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                  <FaCamera size={14} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 tracking-tight">Payment Screenshot / Proof</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Uploaded screenshot will be visible to merchant in transactions section</p>
+                </div>
+              </div>
+              {uploadedScreenshot && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                  <FaCheck size={8} /> Attached
+                </span>
+              )}
+            </div>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleScreenshotUpload}
+              accept="image/*"
+              className="hidden"
+            />
+
+            {uploadedScreenshot ? (
+              <div className="space-y-2.5">
+                <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 group max-h-56 flex items-center justify-center">
+                  <img
+                    src={uploadedScreenshot}
+                    alt="Payment Screenshot Proof"
+                    className="w-full max-h-56 object-contain rounded-xl"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <a
+                      href={uploadedScreenshot}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-sm no-underline inline-flex items-center gap-1.5"
+                    >
+                      View Full Size
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                    <FaCheckCircle size={12} /> Successfully attached to ledger
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={screenshotUploading}
+                    className="text-[11px] font-bold text-slate-600 hover:text-slate-900 underline bg-transparent border-none cursor-pointer p-0"
+                  >
+                    {screenshotUploading ? 'Uploading...' : 'Replace Screenshot'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={screenshotUploading}
+                className="w-full py-5 px-4 border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/70 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group"
+              >
+                {screenshotUploading ? (
+                  <>
+                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-xs font-bold text-slate-700">Uploading & Saving Screenshot...</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-emerald-100/70 group-hover:bg-emerald-200/80 text-emerald-700 flex items-center justify-center transition-colors">
+                      <FaUpload size={16} />
+                    </div>
+                    <div className="text-center">
+                      <span className="text-xs font-bold text-slate-800 block">Upload Bank / UPI Payment Screenshot</span>
+                      <span className="text-[11px] text-slate-500 font-medium block mt-0.5">Instant proof saved to merchant app (PNG, JPG)</span>
+                    </div>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
           {/* Action Buttons */}
           <div className="space-y-2.5 pt-2 print:hidden">
             <a
@@ -545,8 +815,8 @@ export default function PaymentCheckoutPage() {
           </div>
         )}
 
-        {/* ONE Prominent Hero Pay Now Button */}
-        <div className="space-y-3 pt-2">
+        {/* Payment Buttons */}
+        <div className="space-y-2.5 pt-2">
           <button
             type="button"
             id="pay-now-button"
@@ -557,7 +827,7 @@ export default function PaymentCheckoutPage() {
             {submitting ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Opening Cashfree...</span>
+                <span>Opening Payment Gateway...</span>
               </>
             ) : (
               <>
@@ -566,8 +836,45 @@ export default function PaymentCheckoutPage() {
             )}
           </button>
 
+          <button
+            type="button"
+            id="pay-upi-button"
+            onClick={() => launchRazorpayCheckout(currentPayAmount)}
+            disabled={submitting || verifyingPayment}
+            className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 active:scale-[0.99] text-slate-700 rounded-xl font-semibold text-xs transition-all border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Pay via UPI (GPay, PhonePe, Paytm, QR)</span>
+          </button>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleScreenshotUpload}
+            accept="image/*"
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={submitting || screenshotUploading}
+            className="w-full py-2.5 px-4 bg-emerald-50/60 hover:bg-emerald-50 active:scale-[0.99] text-emerald-800 rounded-xl font-semibold text-xs transition-all border border-dashed border-emerald-300 flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            {screenshotUploading ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                <span>Uploading Screenshot...</span>
+              </>
+            ) : (
+              <>
+                <FaCamera size={12} className="text-emerald-600" />
+                <span>Already paid via UPI? Upload Payment Screenshot</span>
+              </>
+            )}
+          </button>
+
           <p className="text-[11px] text-slate-400 text-center font-medium flex items-center justify-center gap-1">
-            <span>Secured by Cashfree Payments</span>
+            <span>Secured by Cashfree & Razorpay Payments</span>
           </p>
         </div>
       </div>

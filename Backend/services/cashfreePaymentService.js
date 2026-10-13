@@ -8,9 +8,16 @@ const socketService = require('./socketService');
 const cache = require('../utils/cache');
 
 const getCashfreeConfig = () => {
-  const appId = process.env.CASHFREE_CLIENT_ID;
-  const secretKey = process.env.CASHFREE_CLIENT_SECRET;
-  const isSandbox = (process.env.CASHFREE_ENV || 'SANDBOX').toUpperCase() === 'SANDBOX';
+  let appId = (process.env.CASHFREE_CLIENT_ID || '').trim().replace(/^["']|["']$/g, '');
+  let secretKey = (process.env.CASHFREE_CLIENT_SECRET || '').trim().replace(/^["']|["']$/g, '');
+
+  const envVal = (process.env.CASHFREE_ENV || '').trim().toUpperCase();
+  // If the credentials are test keys (starting with TEST or containing _test_),
+  // they MUST use the Cashfree sandbox endpoint. Attempting to use api.cashfree.com
+  // with test keys causes Cashfree to respond with 401: "authentication Failed".
+  const isTestKey = appId.toUpperCase().startsWith('TEST') || secretKey.toLowerCase().includes('_test_');
+  const isSandbox = isTestKey || envVal !== 'PRODUCTION';
+
   const baseUrl = isSandbox 
     ? 'https://sandbox.cashfree.com/pg' 
     : 'https://api.cashfree.com/pg';
@@ -175,7 +182,7 @@ const processVerifiedPayment = async ({
     amount: payAmount,
     description: desc,
     date: txTimestamp,
-    paymentStatus: 'SETTLED',
+    paymentStatus: 'PAID',
     paymentMode: 'upi',
     cashfreeOrderId: orderId,
     cashfreePaymentId: formattedPaymentId,

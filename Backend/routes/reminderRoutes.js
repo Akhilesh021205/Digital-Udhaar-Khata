@@ -163,7 +163,7 @@ router.get('/checkout/:customerId', async (req, res, next) => {
     const lastPayment = await Transaction.findOne({
       customer: customer._id,
       type: 'debit',
-      paymentStatus: 'SETTLED',
+      paymentStatus: 'PAID',
     }).sort({ date: -1 });
 
     let lastPaymentUtr = '';
@@ -198,6 +198,7 @@ router.get('/checkout/:customerId', async (req, res, next) => {
           utr: lastPaymentUtr || lastPayment.utr || '',
           paymentId: lastPayment.razorpayPaymentId || lastPayment.cashfreePaymentId || '',
           status: lastPayment.paymentStatus || 'SETTLED',
+          billImageUrl: lastPayment.billImageUrl || '',
         } : null,
       }
     });
@@ -226,11 +227,11 @@ router.get('/checkout/:customerId/receipt', async (req, res, next) => {
     const lastPayment = await Transaction.findOne({
       customer: customer._id,
       type: 'debit',
-      paymentStatus: 'SETTLED',
+      paymentStatus: 'PAID',
     }).sort({ date: -1 });
 
     if (!lastPayment) {
-      return res.status(404).json({ success: false, message: 'No settled payment transaction found' });
+      return res.status(404).json({ success: false, message: 'No payment transaction found' });
     }
 
     // Fetch all customer transactions
@@ -414,6 +415,99 @@ router.post('/checkout/:customerId/confirm-payment', async (req, res, next) => {
   }
 });
 
+// ─── UPLOAD PAYMENT SCREENSHOT PROOF ───
+router.post('/checkout/:customerId/upload-screenshot', async (req, res, next) => {
+  try {
+    const { customerId } = req.params;
+    const { paymentScreenshot, orderId, paymentId } = req.body || {};
+
+    if (!paymentScreenshot) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment screenshot image is required.'
+      });
+    }
+
+    const authResult = await resolveCustomerAndToken(customerId, req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status || 403).json({
+        success: false,
+        message: authResult.message,
+      });
+    }
+
+    const customer = await Customer.findById(authResult.customer._id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+
+    let queryConditions = [];
+    if (paymentId) {
+      queryConditions.push({ cashfreePaymentId: String(paymentId) });
+      queryConditions.push({ razorpayPaymentId: String(paymentId) });
+    }
+    if (orderId) {
+      queryConditions.push({ cashfreeOrderId: String(orderId) });
+      queryConditions.push({ razorpayOrderId: String(orderId) });
+    }
+
+    let transaction = null;
+    if (queryConditions.length > 0) {
+      transaction = await Transaction.findOne({
+        customer: customer._id,
+        $or: queryConditions
+      }).sort({ date: -1 });
+    }
+
+    if (!transaction) {
+      transaction = await Transaction.findOne({
+        customer: customer._id,
+        type: 'debit'
+      }).sort({ date: -1 });
+    }
+
+    if (!transaction) {
+      transaction = await Transaction.findOne({
+        customer: customer._id
+      }).sort({ date: -1 });
+    }
+
+    if (transaction) {
+      transaction.billImageUrl = paymentScreenshot;
+      await transaction.save();
+
+      const CustomerHistory = require('../models/CustomerHistory');
+      await CustomerHistory.updateMany(
+        { transactionId: transaction._id },
+        { $set: { billImageUrl: paymentScreenshot } }
+      );
+
+      const socketService = require('../services/socketService');
+      socketService.emitRefresh('transactions');
+      socketService.emitRefresh('customers');
+      socketService.emitEvent('payment_screenshot_received', {
+        customerId: customer._id,
+        customerName: customer.name,
+        amount: transaction.amount,
+        billImageUrl: paymentScreenshot,
+        transactionId: transaction._id,
+        storeOwnerId: customer.owner
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment screenshot uploaded successfully and verified with store!',
+      data: {
+        billImageUrl: paymentScreenshot,
+        transactionId: transaction?._id
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ─── CASHFREE CREATE ORDER ───
 router.post('/checkout/:customerId/create-order', async (req, res, next) => {
   try {
@@ -506,10 +600,14 @@ router.post('/checkout/:customerId/create-order', async (req, res, next) => {
       balance: customer.balance,
     });
   } catch (error) {
+    const rawMsg = error.response?.data?.message || error.message || 'Failed to initialize payment order.';
     console.error('Error creating Cashfree order:', error.response?.data || error.message);
+    const friendlyMsg = (error.response?.status === 401 || String(rawMsg).toLowerCase().includes('auth'))
+      ? 'Payment gateway authentication issue. Please try again or use alternative payment.'
+      : rawMsg;
     res.status(500).json({
       success: false,
-      message: error.response?.data?.message || 'Failed to initialize payment order.'
+      message: friendlyMsg
     });
   }
 });
@@ -787,7 +885,7 @@ router.post('/checkout/:customerId/verify-razorpay-payment', async (req, res, ne
         utr: result.transaction.utr,
         amount: result.transaction.amount,
         date: result.transaction.date,
-        paymentStatus: 'SETTLED',
+        paymentStatus: 'PAID',
         balance: result.customer.balance,
         alreadyProcessed: result.alreadyProcessed,
       },

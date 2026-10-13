@@ -24,8 +24,8 @@ const translations = {
     transactionHistory: 'History',
 
     // Common actions
-    youGave: '+ You Gave',
-    youGot: '- You Got',
+    youGave: 'You Gave',
+    youGot: 'You Got',
     addCustomer: 'Add Customer',
     addTransaction: 'Add Transaction',
     save: 'Save',
@@ -48,7 +48,7 @@ const translations = {
     status: 'Status',
     actions: 'Actions',
     pending: 'Pending',
-    settled: 'Paid',
+    settled: 'Settled',
     clear: 'Clear',
     due: 'Due',
     advance: 'Advance',
@@ -182,8 +182,8 @@ const translations = {
     quickActions: 'त्वरित कार्रवाई',
 
     // Common actions
-    youGave: '+ आपने दिया',
-    youGot: '- आपको मिला',
+    youGave: 'आपने दिया',
+    youGot: 'आपको मिला',
     addCustomer: 'ग्राहक जोड़ें',
     addTransaction: 'लेनदेन जोड़ें',
     save: 'सहेजें',

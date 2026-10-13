@@ -1219,7 +1219,7 @@ const CustomerDetailPage = () => {
                     : 'bg-red-give/5 text-red-give border-red-give/20 hover:bg-red-give/10'
                     }`}
                 >
-                  + Udhaar ({creditTxnsCount})
+                  You Gave ({creditTxnsCount})
                 </button>
 
                 <button
@@ -1230,7 +1230,7 @@ const CustomerDetailPage = () => {
                     : 'bg-green-get/5 text-green-get border-green-get/20 hover:bg-green-get/10'
                     }`}
                 >
-                  - Paid ({debitTxnsCount})
+                  You Got ({debitTxnsCount})
                 </button>
 
                 {pendingTxnsCount > 0 && (
@@ -1323,7 +1323,7 @@ const CustomerDetailPage = () => {
 
                 const txn = item.data;
                 const isCredit = txn.type === 'credit';
-                const isSettled = txn.paymentStatus === 'SETTLED';
+                const isSettled = txn.paymentStatus === 'Paid';
                 const utrMatch = txn.description ? txn.description.match(/(?:UTR|Order|ID):\s*([a-zA-Z0-9_-]+)/i) : null;
                 const displayUtr = txn.utr || (utrMatch ? utrMatch[1] : null);
                 const displayPayId = txn.cashfreePaymentId || null;
@@ -1350,11 +1350,11 @@ const CustomerDetailPage = () => {
                       {/* Info & Metadata */}
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-xs sm:text-sm font-black ${isCredit ? 'text-red-give' : 'text-green-get'}`}>
+                          <span className={`text-xs sm:text-sm font-bold ${isCredit ? 'text-red-give' : 'text-green-get'}`}>
                             {isCredit ? t('youGave') : t('youGot')}
                           </span>
                           {txn.paymentMode && txn.paymentMode !== 'none' && (
-                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-soft-gray/30 text-slate-gray">
+                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                               {txn.paymentMode}
                             </span>
                           )}
@@ -1365,7 +1365,7 @@ const CustomerDetailPage = () => {
                               className="px-2 py-0.5 rounded-md bg-orange/15 hover:bg-orange/25 text-orange border border-orange/30 text-[9px] font-black inline-flex items-center gap-1 cursor-pointer transition-colors"
                               title="View Attached Screenshot / Bill"
                             >
-                              <HiOutlinePhotograph size={11} /> Proof Attached
+                              <HiOutlinePhotograph size={11} /> Bill Attached
                             </button>
                           )}
                         </div>
@@ -1422,57 +1422,61 @@ const CustomerDetailPage = () => {
                               PayID: {displayPayId}
                             </span>
                           )}
-                          <span className="font-mono text-slate-gray/50 text-[9px]">
-                            #{txn._id.slice(-6)}
-                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Right: Amount, Status, and Actions */}
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      {/* Amount */}
-                      <div className={`text-base sm:text-lg font-black tracking-tight ${(isSettled || !isCredit) ? 'text-green-get' : 'text-red-give'
-                        }`}>
-                        {isCredit ? '+' : '-'}₹{txn.amount.toLocaleString('en-IN')}
+                      {/* Amount: Red for You Gave (Credit), Green for You Got (Debit) */}
+                      <div className={`text-base sm:text-lg font-black tracking-tight ${isCredit ? 'text-red-give' : 'text-green-get'}`}>
+                        ₹{txn.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
 
                       {/* Status & 1-Click Settlement / Approval */}
-                      <div className="flex items-center gap-1 flex-wrap justify-end">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${isSettled
-                          ? 'bg-green-get/10 text-green-get'
-                          : 'bg-warning-pending/10 text-warning-pending'
-                          }`}>
-                          {isSettled ? t('settled') : t('pending')}
-                        </span>
-
-                        {isCredit && !isSettled && (
-                          <button
-                            type="button"
-                            onClick={() => handleSettle(txn._id)}
-                            className="px-2 py-0.5 bg-orange/10 hover:bg-orange/20 text-orange border border-orange/30 text-[9px] font-bold rounded-md cursor-pointer transition-colors inline-flex items-center gap-0.5"
-                          >
-                            <HiOutlineCheckCircle size={10} /> Settle
-                          </button>
-                        )}
-
-                        {!isCredit && !isSettled && (
-                          <div className="flex gap-1 items-center">
-                            <button
-                              type="button"
-                              onClick={() => handleApprovePayment(txn._id)}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-1.5 py-0.5 cursor-pointer text-[8px] font-bold inline-flex items-center gap-0.5"
-                            >
-                              <HiOutlineCheckCircle size={9} /> Approve
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeclinePayment(txn._id)}
-                              className="bg-red-500 hover:bg-red-600 text-white rounded px-1.5 py-0.5 cursor-pointer text-[8px] font-bold inline-flex items-center gap-0.5"
-                            >
-                              <HiOutlineXCircle size={9} /> Decline
-                            </button>
-                          </div>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {isCredit ? (
+                          isSettled ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                              Settled
+                            </span>
+                          ) : (
+                            <>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                Pending
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleSettle(txn._id)}
+                                className="px-2 py-0.5 bg-orange/10 hover:bg-orange/20 text-orange border border-orange/30 text-[10px] font-bold rounded-md cursor-pointer transition-colors inline-flex items-center gap-0.5"
+                              >
+                                <HiOutlineCheckCircle size={10} /> Settle
+                              </button>
+                            </>
+                          )
+                        ) : (
+                          isSettled ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-get/10 text-green-get border border-green-get/20">
+                              Received
+                            </span>
+                          ) : (
+                            <div className="flex gap-1 items-center">
+                              <button
+                                type="button"
+                                onClick={() => handleApprovePayment(txn._id)}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-1.5 py-0.5 cursor-pointer text-[8px] font-bold inline-flex items-center gap-0.5"
+                              >
+                                <HiOutlineCheckCircle size={9} /> Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeclinePayment(txn._id)}
+                                className="bg-red-500 hover:bg-red-600 text-white rounded px-1.5 py-0.5 cursor-pointer text-[8px] font-bold inline-flex items-center gap-0.5"
+                              >
+                                <HiOutlineXCircle size={9} /> Decline
+                              </button>
+                            </div>
+                          )
                         )}
 
                         {/* Edit & Delete Action Buttons */}
@@ -1549,7 +1553,7 @@ const CustomerDetailPage = () => {
                 </span>
               </div>
               <p className="text-[11px] leading-snug text-amber-800 dark:text-amber-300">
-                Address is not verified. Please verify the customer's address before approving high credit.
+                Address is not verified. Please verify the customer's address before adding khata.
               </p>
             </div>
           )}

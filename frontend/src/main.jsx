@@ -36,6 +36,7 @@ const getNotificationTitle = (message, type) => {
 
     return 'Success';
   } else if (type === 'error') {
+    if (msg.includes('payment') || msg.includes('gateway') || msg.includes('cashfree') || msg.includes('razorpay') || msg.includes('checkout')) return 'Payment Error';
     if (msg.includes('udhaar') || msg.includes('entry') || msg.includes('transaction')) return 'Transaction Failed';
     if (msg.includes('customer')) return 'Customer Error';
     if (msg.includes('backup')) return 'Backup Failed';

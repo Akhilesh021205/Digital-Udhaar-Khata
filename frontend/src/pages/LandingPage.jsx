@@ -474,27 +474,6 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* STATS STRIP */}
-        <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 py-6 sm:py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-4 sm:p-6 backdrop-blur-md shadow-sm">
-            <div className="text-center">
-              <div className="text-xl sm:text-3xl font-black text-[#B91C1C]">50,000+</div>
-              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Active Merchants</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">{rupee}100 Cr+</div>
-              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Udhaar Tracked</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">3x Faster</div>
-              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">WhatsApp Recovery</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl sm:text-3xl font-black text-amber-500">4.9 ★</div>
-              <div className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Merchant Trust</div>
-            </div>
-          </div>
-        </section>
 
         {/* FEATURES GRID */}
         <section className="w-full max-w-[1500px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16 py-10 sm:py-16" id="features">

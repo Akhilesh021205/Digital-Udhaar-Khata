@@ -111,6 +111,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
   const [hasCamera, setHasCamera] = useState(false);
   const [unlockSuccess, setUnlockSuccess] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
+  const [isScanningFingerprint, setIsScanningFingerprint] = useState(false);
 
   // Forgot PIN state
   const [showForgotPinModal, setShowForgotPinModal] = useState(false);
@@ -468,12 +469,15 @@ const SecurityLockScreen = ({ onUnlock }) => {
     setShowBiometricModal(false);
   };
 
-  // Start Fingerprint/Passkey verification using browser WebAuthn API or Native Biometrics
+  // Start Fingerprint/Passkey verification directly using browser WebAuthn API or Native Biometrics without modal UI
   const handleFingerprintAuth = async () => {
     if (!user?.isBiometricEnabled) {
       toast.error('Fingerprint unlock has not been registered');
       return;
     }
+
+    setIsScanningFingerprint(true);
+    setShowBiometricModal(false);
 
     try {
       setBiometricStatus('Verifying Fingerprint...');
@@ -514,7 +518,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
         } catch (webAuthnErr) {
           console.warn('WebAuthn fingerprint prompt canceled or failed:', webAuthnErr);
           verified = false;
-          setShowBiometricModal(false);
+          setIsScanningFingerprint(false);
           toast.info('No fingerprint passkey found on this device. Please unlock with your 4-digit PIN, then tap "Register This Device" in Settings.');
           return;
         }
@@ -525,13 +529,13 @@ const SecurityLockScreen = ({ onUnlock }) => {
       if (verified) {
         setUnlockSuccess(true);
         setBiometricStatus('Fingerprint Verified');
+        toast.success('Fingerprint verified!');
         setTimeout(() => {
           verifyBiometricOnServer();
-        }, 500);
+        }, 300);
       } else {
         setUnlockSuccess(false);
         setBiometricStatus('Verification Canceled');
-        setShowBiometricModal(false);
         toast.warning('Biometric authentication canceled or unverified. Enter PIN to unlock.');
       }
     } catch (err) {
@@ -539,11 +543,15 @@ const SecurityLockScreen = ({ onUnlock }) => {
       setUnlockSuccess(false);
       setBiometricStatus('Verification Canceled');
       toast.warning('Fingerprint authentication failed or canceled.');
+    } finally {
+      setIsScanningFingerprint(false);
     }
   };
 
-  // Dedicated trigger for Fingerprint Unlock with device compatibility check
+  // Dedicated trigger for Fingerprint Unlock with direct native authentication (no modal UI)
   const triggerFingerprintUnlock = async () => {
+    if (isScanningFingerprint) return;
+
     if (Capacitor.isNativePlatform()) {
       try {
         const available = await BiometricService.isAvailable();
@@ -551,6 +559,7 @@ const SecurityLockScreen = ({ onUnlock }) => {
           toast.error('Fingerprint sensor is not supported or not set up on this device. Please use Face ID or your 4-digit PIN.');
           return;
         }
+        setIsScanningFingerprint(true);
         const verified = await BiometricService.authenticate();
         if (verified) {
           localStorage.setItem('udhaar-unlocked', 'true');
@@ -562,6 +571,8 @@ const SecurityLockScreen = ({ onUnlock }) => {
       } catch (err) {
         console.error('Native biometric unlock failed:', err);
         toast.error('Fingerprint verification failed or canceled.');
+      } finally {
+        setIsScanningFingerprint(false);
       }
       return;
     }
@@ -572,9 +583,10 @@ const SecurityLockScreen = ({ onUnlock }) => {
       return;
     }
 
+    // Direct background fingerprint invocation without custom modal UI
     setActiveScanType('fingerprint');
-    setShowBiometricModal(true);
-    setTimeout(() => handleFingerprintAuth(), 150);
+    setShowBiometricModal(false);
+    handleFingerprintAuth();
   };
 
   // Dedicated trigger for Face ID Unlock
@@ -686,11 +698,20 @@ const SecurityLockScreen = ({ onUnlock }) => {
             <button
               type="button"
               onClick={triggerFingerprintUnlock}
-              disabled={verifying}
+              disabled={verifying || isScanningFingerprint}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-deep-navy dark:text-white rounded-2xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all shadow-2xs hover:border-orange cursor-pointer disabled:opacity-50"
             >
-              <LucideFingerprint className="w-4 h-4 text-orange" />
-              <span>Fingerprint</span>
+              {isScanningFingerprint ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+                  <span>Scanning...</span>
+                </>
+              ) : (
+                <>
+                  <LucideFingerprint className="w-4 h-4 text-orange" />
+                  <span>Fingerprint</span>
+                </>
+              )}
             </button>
 
             <button
@@ -728,10 +749,12 @@ const SecurityLockScreen = ({ onUnlock }) => {
             <button
               type="button"
               onClick={triggerBiometricSelection}
-              disabled={verifying}
+              disabled={verifying || isScanningFingerprint}
               className="pin-key flex items-center justify-center cursor-pointer disabled:opacity-50 text-orange dark:text-orange/90 hover:text-orange-hover"
             >
-              {Capacitor.isNativePlatform() ? (
+              {isScanningFingerprint ? (
+                <div className="w-5 h-5 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+              ) : Capacitor.isNativePlatform() ? (
                 <LucideFingerprint className="w-5.5 h-5.5" />
               ) : user.biometricCredentialId?.startsWith('face-id-') ? (
                 <LucideScan className="w-5.5 h-5.5" />
